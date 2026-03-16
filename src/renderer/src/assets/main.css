@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== 全局 CSS 变量 (黑白橙主题) ===== */
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #f97316;
+  --card: #0f0f0f;
+  --border: #27272a;
+  --input: #18181b;
+}
+
+/* ===== 全局重置 ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+}
+
+/* ===== 通用复用样式 ===== */
+.glass-panel {
+  background: rgba(15, 15, 15, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

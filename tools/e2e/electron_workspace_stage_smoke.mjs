@@ -1,0 +1,91 @@
+import path from 'node:path'
+import process from 'node:process'
+import fs from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { _electron as electron } from 'playwright'
+import { prepareE2EOutDir } from './e2e-output.mjs'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const PROJECT_NAME = 'ÐÞÏÉ´«ÅÅÐòÑéÖ¤-583876'
+const SOURCE_USER_DATA_DIR = 'userdata-script-real-run-fix2'
+
+async function main() {
+  const repoRoot = path.resolve(__dirname, '..', '..')
+  const mainEntry = path.join(repoRoot, 'out', 'main', 'index.js')
+  const { outDir, userDataDir } = await prepareE2EOutDir(repoRoot, 'stage-smoke')
+  const sourceDir = path.join(outDir, SOURCE_USER_DATA_DIR)
+  await fs.cp(sourceDir, userDataDir, { recursive: true })
+
+  const app = await electron.launch({
+    args: [mainEntry],
+    env: {
+      ...process.env,
+      E2E_USER_DATA_DIR: userDataDir
+    }
+  })
+
+  try {
+    const page = await app.firstWindow()
+    page.setDefaultTimeout(20_000)
+    await page.waitForLoadState('domcontentloaded', { timeout: 20_000 })
+    await page.setViewportSize({ width: 1440, height: 960 })
+    await page.waitForTimeout(1500)
+
+    const search = page.getByPlaceholder(/æœç´¢é¡¹ç›®â€¦|æœç´¢\.\.\.|æœç´¢â€¦|æœç´¢/)
+    await search.fill(PROJECT_NAME)
+    await page.waitForTimeout(500)
+    await page.getByRole('button').filter({ hasText: PROJECT_NAME }).first().click()
+    await page.waitForSelector(`text=/é¡¹ç›®ï¼š\\s*${PROJECT_NAME}/`, { timeout: 30_000 })
+    await page.waitForTimeout(1200)
+
+    const stages = [
+      { name: 'chat', button: /Áé¸Ð¶Ô»°/, mustSee: ['¾çÇéÁé¸Ð·õ»¯', 'È¥´Ö¸ÙÈ·ÈÏ¹Ø¼üÊÂÊµ'] },
+      { name: 'outline', button: /ç²—ç•¥å¤§çº²/, mustSee: ['ç²—ç•¥å¤§çº²', 'åˆ†é›†å‰§æƒ…è§†çª—'] },
+      { name: 'character', button: /äººç‰©å°ä¼ /, mustSee: ['äººç‰©å°ä¼ ', 'æ·»åŠ è§’è‰²'] },
+      { name: 'detailed_outline', button: /è¯¦ç»†å¤§çº²/, mustSee: ['è¯¦ç»†å¤§çº²', 'æŠŠç²—çº²å˜æˆçœŸæ­£èƒ½å¾€ä¸‹å†™å‰§æœ¬çš„æŽ¨è¿›å›¾'] },
+      { name: 'script', button: /¾ç±¾¶¨¸å/, mustSee: ['¾ç±¾¶¨¸å', 'Ò»¼üÖ´±ÊÉú³É'] }
+    ]
+
+    const results = []
+
+    for (const stage of stages) {
+      await page.getByRole('button', { name: stage.button }).first().click()
+      await page.waitForTimeout(1000)
+
+      const snapshot = await page.evaluate((input) => {
+        const text = document.body.innerText || ''
+        return {
+          stage: input.name,
+          matched: input.mustSee.every((keyword) => text.includes(keyword)),
+          missing: input.mustSee.filter((keyword) => !text.includes(keyword))
+        }
+      }, stage)
+
+      results.push(snapshot)
+
+      await page.screenshot({
+        path: path.join(outDir, `stage-smoke-${stage.name}.png`),
+        fullPage: true
+      })
+    }
+
+    console.log(`stageResults:${JSON.stringify(results)}`)
+    console.log(`userDataDir:${userDataDir}`)
+
+    const failed = results.find((item) => !item.matched)
+    if (failed) {
+      throw new Error(`stage_smoke_failed:${JSON.stringify(failed)}`)
+    }
+  } finally {
+    await app.close()
+  }
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
+
+

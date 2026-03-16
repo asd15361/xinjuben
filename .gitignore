@@ -1,0 +1,16 @@
+node_modules
+dist
+out
+tools/e2e/out
+.env
+.env.*
+!.env.example
+.vscode
+codex-build.log
+codex-typecheck.log
+codex-typecheck.exit
+typecheck.log
+tmp-home.png
+.DS_Store
+.eslintcache
+*.log*
