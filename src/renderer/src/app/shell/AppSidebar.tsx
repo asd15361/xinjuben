@@ -15,6 +15,7 @@ const STAGES = [
 export function AppSidebar() {
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const setStage = useWorkflowStore((state) => state.setStage)
+  const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)
@@ -34,11 +35,11 @@ export function AppSidebar() {
             <Zap className="fill-current text-orange-500" size={22} />
             <span className="hidden lg:inline">XINJUBEN</span>
           </motion.h1>
-          <p className="hidden xl:block text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">创作工作台</p>
+          <p className="hidden xl:block text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">故事创作流程</p>
         </div>
 
         <div className="space-y-2">
-          <p className="hidden lg:block text-[10px] uppercase tracking-widest text-white/20 font-bold px-2 mb-4">当前工序</p>
+          <p className="hidden lg:block text-[10px] uppercase tracking-widest text-white/20 font-bold px-2 mb-4">当前步骤</p>
           {STAGES.map((stage) => {
             const isActive = currentStage === stage.id
             const Icon = stage.icon
@@ -52,7 +53,7 @@ export function AppSidebar() {
             const lockHint = lockedByProject
               ? '先在首页选择一个项目'
               : lockedByUpstream
-                ? '先去聊天一键生成粗纲和人物草稿'
+                ? '先去聊天页生成第一版粗纲和人物'
                 : ''
 
             return (
@@ -60,6 +61,7 @@ export function AppSidebar() {
                 key={stage.id}
                 onClick={() => {
                   if (isLocked) return
+                  clearGenerationNotice()
                   setStage(stage.id as WorkflowStage)
                 }}
                 whileHover={{ x: 4 }}
@@ -93,7 +95,7 @@ export function AppSidebar() {
       </div>
 
       <div className="hidden lg:block bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3">
-        <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">当前原则</p>
+        <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">使用提醒</p>
         <div className="space-y-2 text-[11px] text-white/45 leading-relaxed">
           <p>先把故事说清楚，再往下写。</p>
           <p>每一页只做这一页该做的事。</p>

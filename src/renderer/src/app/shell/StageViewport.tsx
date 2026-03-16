@@ -13,8 +13,8 @@ const ScriptStage = lazy(async () => import('../../features/script/ui/ScriptStag
 function StageViewportFallback() {
   return (
     <div className="h-full rounded-[24px] border border-white/8 bg-white/3 px-6 py-5">
-      <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">正在切换工序</p>
-      <p className="mt-3 text-sm text-white/55">正在载入当前工序内容，避免首页一次性背全包。</p>
+      <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">正在切换页面</p>
+      <p className="mt-3 text-sm text-white/55">正在载入这一页的内容，请稍等一下。</p>
     </div>
   )
 }

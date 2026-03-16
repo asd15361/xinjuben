@@ -7,8 +7,11 @@ const OUTLINE_ESTIMATED_SECONDS = 160
 
 export function useChatStageActions() {
   const projectId = useWorkflowStore((state) => state.projectId)
+  const setStage = useWorkflowStore((state) => state.setStage)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
   const setGenerationStatus = useWorkflowStore((state) => state.setGenerationStatus)
+  const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
+  const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
   const hydrateProjectDrafts = useStageStore((state) => state.hydrateProjectDrafts)
   const [status, setStatus] = useState(
@@ -38,16 +41,15 @@ export function useChatStageActions() {
       task: 'outline_bundle',
       stage: 'chat',
       title: '正在生成粗纲和人物',
-      detail: '我在把刚才的聊天收成第一版创作底稿。',
+      detail: '我在把刚才的聊天整理成第一版粗纲和人物。',
       startedAt: Date.now(),
       estimatedSeconds: OUTLINE_ESTIMATED_SECONDS,
-      scope: 'project',
-      autoChain: true,
-      nextTask: 'detailed_outline'
+      scope: 'project'
     } as const
+    clearGenerationNotice()
     setGenerationStatus(nextGenerationStatus)
     void window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: nextGenerationStatus })
-    setStatus(`正在把聊天内容收成第一版创作底稿，预计还要 ${OUTLINE_ESTIMATED_SECONDS} 秒。`)
+    setStatus('正在把聊天内容整理成第一版粗纲和人物，请先稍等。')
 
     try {
       const result = await window.api.workspace.generateOutlineAndCharacters({
@@ -72,14 +74,27 @@ export function useChatStageActions() {
       await window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: null })
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setGenerationStatus(null)
+        setGenerationNotice({
+          kind: 'success',
+          title: '第一版粗纲和人物已经生成好了',
+          detail: `这次一共整理出粗略大纲 ${episodeCount} 集、重点人物 ${result.characterDrafts.length} 个。先确认粗纲主线，再去看人物。`,
+          primaryAction: { label: '去看粗纲', stage: 'outline' },
+          secondaryAction: { label: '去看人物', stage: 'character' }
+        })
+        setStage('outline')
       }
       setStatus(
-        `已经生成：粗略大纲 ${episodeCount} 集，重点人物 ${result.characterDrafts.length} 个。先去粗纲把主线钉住，再进人物。`
+        `第一版已经出来了：粗略大纲 ${episodeCount} 集，重点人物 ${result.characterDrafts.length} 个。先确认粗纲，再补人物。`
       )
     } catch (error) {
       await window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: null })
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setGenerationStatus(null)
+        setGenerationNotice({
+          kind: 'error',
+          title: '粗纲和人物这次没有生成成功',
+          detail: '先别换方向，继续补一句题材、主角困境或核心冲突，再重新生成一版。'
+        })
       }
       setStatus('这次收束没有成功。继续补关键冲突或人物关系，再生成一版。')
       throw error

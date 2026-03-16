@@ -68,7 +68,7 @@ export function ChatIntakePanel(props: {
       setMessages([
         ...messages,
         userMessage,
-        { role: 'assistant', text: '这次回复没有拿稳。你可以继续补一句关键信息，或者直接先生成第一版底稿。', createdAt: Date.now() }
+        { role: 'assistant', text: '这次回复没有拿稳。你可以继续补一句关键信息，或者直接先生成第一版粗纲和人物。', createdAt: Date.now() }
       ])
     } finally {
       setBusy(false)
@@ -100,11 +100,9 @@ export function ChatIntakePanel(props: {
     <div className="flex-1 flex flex-col min-h-0 relative">
       <div className="flex-1 min-h-0 flex flex-col bg-white/[0.01] rounded-2xl border border-white/[0.03] p-4 lg:p-6 mb-4 overflow-hidden">
         <ChatMessageList messages={messages} />
-        {generationBusy && (
-          <div className="mx-2 mb-2">
-            <ProjectGenerationBanner status={props.generationStatus} />
-          </div>
-        )}
+        <div className="mx-2 mb-2">
+          <ProjectGenerationBanner status={props.generationStatus} />
+        </div>
       </div>
 
       <ChatComposer

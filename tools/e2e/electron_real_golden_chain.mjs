@@ -35,6 +35,18 @@ async function waitForProject(projectFile, predicate, timeoutMs, label) {
   })}`);
 }
 
+async function waitForScriptStart(projectFile, timeoutMs) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const project = await readProjectSnapshot(projectFile).catch(() => null);
+    if (project?.generationStatus?.task === 'script') {
+      return project;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+  }
+  return null;
+}
+
 async function main() {
   const repoRoot = path.resolve(__dirname, '..', '..');
   const mainEntry = path.join(repoRoot, 'out', 'main', 'index.js');
@@ -96,7 +108,7 @@ async function main() {
       await page.waitForTimeout(180);
     }
 
-    await page.getByRole('button', { name: /生成第一版粗纲和人物/ }).click();
+    await page.getByRole('button', { name: '生成第一版粗纲和人物', exact: true }).click();
     const outlineProject = await waitForProject(
       projectFile,
       (project) => Boolean(project?.outlineDraft?.summaryEpisodes?.length && project?.characterDrafts?.length),
@@ -136,13 +148,25 @@ async function main() {
         30_000,
         'formal_fact_confirmed'
       );
+
+      const backHome = page.getByRole('button', { name: '回到项目首页' });
+      await backHome.waitFor({ state: 'visible', timeout: 30_000 });
+      await backHome.click();
+      await page.waitForTimeout(1200);
+      await page.getByRole('button').filter({ hasText: projectName }).first().click();
+      await page.waitForSelector(`text=/项目：\\s*${projectName}/`, { timeout: 30_000 });
+      await page.waitForTimeout(1000);
     }
 
     await page.getByRole('button', { name: /粗略大纲/ }).click();
     await page.waitForTimeout(600);
     await page.getByRole('button').filter({ hasText: /人物|小传/ }).first().click();
     await page.waitForTimeout(600);
-    await page.getByRole('button').filter({ hasText: /详细|大纲/ }).first().click();
+    await page.getByRole('button', { name: /确认：生成详细大纲/ }).click();
+    await page.waitForTimeout(800);
+    const generateDetailedOutlineButton = page.getByRole('button', { name: /生成这一版详细大纲|AI 帮我补这一版/ }).first();
+    await generateDetailedOutlineButton.waitFor({ state: 'visible', timeout: 30_000 });
+    await generateDetailedOutlineButton.click();
 
     await waitForProject(
       projectFile,
@@ -172,12 +196,27 @@ async function main() {
 
     await page.getByRole('button', { name: /剧本定稿/ }).first().click();
     await page.waitForTimeout(1000);
+    await page.getByRole('heading', { name: /剧本定稿/ }).waitFor({ state: 'visible', timeout: 30_000 });
     const scriptProject = await readProjectSnapshot(projectFile);
-    const scriptGenerateButton = page.getByRole('button', { name: /一键执笔生成|启动真实生成 Gate/ }).first();
+    const scriptGenerateButton = page.getByRole('button', { name: /一键执笔生成|现在开始写剧本|启动真实生成 Gate/ }).first();
+    await scriptGenerateButton.waitFor({ state: 'visible', timeout: 30_000 });
+    await page.waitForFunction(
+      () => {
+        const target = Array.from(document.querySelectorAll('button')).find((node) =>
+          /(一键执笔生成|现在开始写剧本|启动真实生成 Gate)/.test((node.textContent || '').trim())
+        );
+        return Boolean(target && !(target).disabled);
+      },
+      { timeout: 30_000 }
+    ).catch(() => null);
     const scriptButtonEnabled = await scriptGenerateButton.isEnabled().catch(() => false);
 
     if (scriptButtonEnabled) {
       await scriptGenerateButton.click();
+      const started = await waitForScriptStart(projectFile, 15_000);
+      if (!started?.generationStatus || started.generationStatus.task !== 'script') {
+        throw new Error('script_generation_not_started_by_ui_click');
+      }
     } else {
       const directResult = await page.evaluate(async (payload) => {
         const nextGenerationStatus = {
@@ -187,9 +226,7 @@ async function main() {
           detail: '我在根据详细大纲，把这一轮场景往前写出来。',
           startedAt: Date.now(),
           estimatedSeconds: 110,
-          scope: 'project',
-          autoChain: true,
-          nextTask: null
+          scope: 'project'
         };
 
         await window.api.workspace.saveGenerationStatus({

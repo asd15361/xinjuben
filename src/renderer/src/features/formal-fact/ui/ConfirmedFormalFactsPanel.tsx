@@ -24,7 +24,7 @@ export function ConfirmedFormalFactsPanel(input: {
             <div key={fact.id} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-bold text-white/85">{fact.label}</p>
-                <span className="text-[10px] text-emerald-300/70 uppercase tracking-widest">confirmed</span>
+                <span className="text-[10px] text-emerald-300/70 uppercase tracking-widest">已确认</span>
               </div>
               <p className="mt-1 text-[11px] text-white/50 leading-relaxed">{fact.description}</p>
             </div>

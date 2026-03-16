@@ -1,12 +1,9 @@
 import { AppBackdrop } from './AppBackdrop'
 import { AppHeader } from './AppHeader'
 import { AppSidebar } from './AppSidebar'
-import { useProjectAutoGeneration } from '../hooks/useProjectAutoGeneration'
 import { StageViewport } from './StageViewport'
 
 export function ProjectShell() {
-  useProjectAutoGeneration()
-
   return (
     <div className="flex h-screen w-full overflow-hidden" style={{ background: '#050505', color: '#f8fafc' }}>
       <AppSidebar />

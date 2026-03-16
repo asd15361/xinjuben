@@ -1,18 +1,29 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '../../../shared/contracts/workflow'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineEpisodeBeatDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto
+} from '../../../shared/contracts/workflow'
 import { ensureOutlineEpisodeShape } from '../../../shared/domain/workflow/outline-episodes'
+import { buildFourActEpisodeRanges } from '../../../shared/domain/workflow/episode-count'
 import { buildDetailedOutlinePrompt } from './generation-stage-prompts'
 
 interface DetailedOutlinePayload {
-  opening?: string
-  midpoint?: string
-  climax?: string
-  ending?: string
+  opening?: string | DetailedOutlineActPayload
+  midpoint?: string | DetailedOutlineActPayload
+  climax?: string | DetailedOutlineActPayload
+  ending?: string | DetailedOutlineActPayload
 }
 
 type DetailedAct = 'opening' | 'midpoint' | 'climax' | 'ending'
+
+interface DetailedOutlineActPayload {
+  summary?: string
+  episodes?: Array<{ episodeNo?: number; summary?: string }>
+}
 
 function normalizeWhitespace(text: string): string {
   return text.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim()
@@ -117,6 +128,87 @@ function normalizeSegmentContent(value: unknown, fallback: string): string {
   return normalizeWhitespace(typeof value === 'string' ? value : '') || fallback
 }
 
+function normalizeEpisodeBeats(value: unknown): DetailedOutlineEpisodeBeatDto[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item, index) => {
+      const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
+      const rawEpisodeNo = Number(record.episodeNo)
+      const episodeNo = Number.isFinite(rawEpisodeNo) && rawEpisodeNo > 0 ? Math.floor(rawEpisodeNo) : index + 1
+      const summary = normalizeWhitespace(typeof record.summary === 'string' ? record.summary : '')
+      return { episodeNo, summary }
+    })
+    .filter((item) => item.summary)
+    .sort((left, right) => left.episodeNo - right.episodeNo)
+}
+
+function buildFallbackEpisodeSummary(input: {
+  act: DetailedAct
+  episodeSummary: string
+  overview: string
+}): string {
+  const summary = normalizeWhitespace(input.episodeSummary)
+  const overview = normalizeWhitespace(input.overview)
+  if (!summary && !overview) return ''
+
+  const suffixByAct: Record<DetailedAct, string> = {
+    opening: '这一集先把人物拖进局里，让第一层压力当场落下，结尾必须挂出马上要来的下一刀。',
+    midpoint: '这一集不能只重复前情，要把代价继续抬高，让主角被逼着换打法，结尾留下更险的口子。',
+    climax: '这一集要逼到最痛的位置，让底牌、误判或关系翻面真的落地，结尾不能收虚。',
+    ending: '这一集先把这一轮选择和代价落定，再把下一轮余波轻轻挂出去，不要重新开新题。'
+  }
+
+  return [summary, suffixByAct[input.act], overview ? `这一集仍然要吃住本段主任务：${overview}` : '']
+    .filter(Boolean)
+    .join(' ')
+}
+
+function buildFallbackEpisodeBeats(input: {
+  outline: OutlineDraftDto
+  fallbackSegments: DetailedOutlineSegmentDto[]
+}): Record<DetailedAct, DetailedOutlineEpisodeBeatDto[]> {
+  const ranges = buildFourActEpisodeRanges(input.outline.summaryEpisodes.length)
+  const acts: DetailedAct[] = ['opening', 'midpoint', 'climax', 'ending']
+  const result: Record<DetailedAct, DetailedOutlineEpisodeBeatDto[]> = {
+    opening: [],
+    midpoint: [],
+    climax: [],
+    ending: []
+  }
+
+  acts.forEach((act, index) => {
+    const range = ranges[index]
+    const overview = input.fallbackSegments[index]?.content || ''
+    result[act] = input.outline.summaryEpisodes
+      .filter((episode) => episode.episodeNo >= range.startEpisode && episode.episodeNo <= range.endEpisode)
+      .map((episode) => ({
+        episodeNo: episode.episodeNo,
+        summary: buildFallbackEpisodeSummary({
+          act,
+          episodeSummary: episode.summary,
+          overview
+        })
+      }))
+      .filter((episode) => episode.summary)
+  })
+
+  return result
+}
+
+function extractActSummary(payload: string | DetailedOutlineActPayload | undefined, fallback: string): string {
+  if (typeof payload === 'string') return normalizeSegmentContent(payload, fallback)
+  return normalizeSegmentContent(payload?.summary, fallback)
+}
+
+function extractActEpisodes(
+  payload: string | DetailedOutlineActPayload | undefined,
+  fallback: DetailedOutlineEpisodeBeatDto[]
+): DetailedOutlineEpisodeBeatDto[] {
+  if (!payload || typeof payload === 'string') return fallback
+  const normalized = normalizeEpisodeBeats(payload.episodes)
+  return normalized.length > 0 ? normalized : fallback
+}
+
 function segmentHasStageDuty(act: DetailedAct, content: string): boolean {
   const text = normalizeWhitespace(content)
   if (!text) return false
@@ -147,6 +239,10 @@ export async function generateDetailedOutlineFromContext(input: {
     characters: input.characters,
     storyIntent: input.storyIntent
   })
+  const fallbackEpisodeBeats = buildFallbackEpisodeBeats({
+    outline: normalizedOutline,
+    fallbackSegments: fallback
+  })
   const prompt = buildDetailedOutlinePrompt({
     outline: normalizedOutline,
     characters: input.characters,
@@ -164,34 +260,45 @@ export async function generateDetailedOutlineFromContext(input: {
       input.runtimeConfig
     )
     const payload = safeJsonParse(result.text) as DetailedOutlinePayload
-    const opening = normalizeSegmentContent(payload.opening, fallback[0].content)
-    const midpoint = normalizeSegmentContent(payload.midpoint, fallback[1].content)
-    const climax = normalizeSegmentContent(payload.climax, fallback[2].content)
-    const ending = normalizeSegmentContent(payload.ending, fallback[3].content)
+    const opening = extractActSummary(payload.opening, fallback[0].content)
+    const midpoint = extractActSummary(payload.midpoint, fallback[1].content)
+    const climax = extractActSummary(payload.climax, fallback[2].content)
+    const ending = extractActSummary(payload.ending, fallback[3].content)
+    const openingEpisodes = extractActEpisodes(payload.opening, fallbackEpisodeBeats.opening)
+    const midpointEpisodes = extractActEpisodes(payload.midpoint, fallbackEpisodeBeats.midpoint)
+    const climaxEpisodes = extractActEpisodes(payload.climax, fallbackEpisodeBeats.climax)
+    const endingEpisodes = extractActEpisodes(payload.ending, fallbackEpisodeBeats.ending)
 
     return [
       {
         act: 'opening',
         content: segmentHasStageDuty('opening', opening) ? opening : fallback[0].content,
-        hookType: '入局钩子'
+        hookType: '入局钩子',
+        episodeBeats: openingEpisodes
       },
       {
         act: 'midpoint',
         content: segmentHasStageDuty('midpoint', midpoint) ? midpoint : fallback[1].content,
-        hookType: '升级钩子'
+        hookType: '升级钩子',
+        episodeBeats: midpointEpisodes
       },
       {
         act: 'climax',
         content: segmentHasStageDuty('climax', climax) ? climax : fallback[2].content,
-        hookType: '反转钩子'
+        hookType: '反转钩子',
+        episodeBeats: climaxEpisodes
       },
       {
         act: 'ending',
         content: segmentHasStageDuty('ending', ending) ? ending : fallback[3].content,
-        hookType: '收束钩子'
+        hookType: '收束钩子',
+        episodeBeats: endingEpisodes
       }
     ]
   } catch {
-    return fallback
+    return fallback.map((segment) => ({
+      ...segment,
+      episodeBeats: fallbackEpisodeBeats[segment.act]
+    }))
   }
 }

@@ -29,8 +29,8 @@ export function WorkspaceProjectList(props: WorkspaceProjectListProps) {
       </div>
 
       <div className="space-y-2">
-        <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">Recent Projects</p>
-        {props.projects.length === 0 && <p className="text-xs text-white/35">还没有项目，先创建一个工作台入口。</p>}
+        <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">最近项目</p>
+        {props.projects.length === 0 && <p className="text-xs text-white/35">还没有项目，先新建一个项目再开始。</p>}
         {props.projects.map((project) => {
           const isActive = props.activeProject?.id === project.id
           return (

@@ -30,7 +30,7 @@ export function ChatComposer(props: {
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           <p className="text-[11px] text-white/50 tracking-wider">
-            {props.canGenerate ? '信息已经够了，可以先收成第一版底稿' : '先把题材、主角、冲突说出来'}
+            {props.canGenerate ? '信息已经够了，可以先整理第一版粗纲和人物' : '先把题材、主角、冲突说出来'}
           </p>
         </div>
         <button

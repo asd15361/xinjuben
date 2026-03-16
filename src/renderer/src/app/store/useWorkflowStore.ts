@@ -5,12 +5,26 @@ import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
 import type { ScriptRuntimeFailureHistoryCode } from '../../../../shared/contracts/script-generation'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow'
 
+export interface GenerationNoticeAction {
+  label: string
+  stage: WorkflowStage
+}
+
+export interface GenerationNotice {
+  kind: 'success' | 'error'
+  title: string
+  detail: string
+  primaryAction?: GenerationNoticeAction
+  secondaryAction?: GenerationNoticeAction
+}
+
 interface WorkflowState {
   currentStage: WorkflowStage
   projectId: string | null
   projectName: string
   chatMessages: ChatMessageDto[]
   generationStatus: ProjectGenerationStatusDto | null
+  generationNotice: GenerationNotice | null
   storyIntent: StoryIntentPackageDto | null
   scriptRuntimeFailureHistory: ScriptRuntimeFailureHistoryCode[]
   setStage: (stage: WorkflowStage) => void
@@ -18,6 +32,8 @@ interface WorkflowState {
   setProjectName: (name: string) => void
   setChatMessages: (messages: ChatMessageDto[]) => void
   setGenerationStatus: (status: ProjectGenerationStatusDto | null) => void
+  setGenerationNotice: (notice: GenerationNotice | null) => void
+  clearGenerationNotice: () => void
   setStoryIntent: (storyIntent: StoryIntentPackageDto | null) => void
   setScriptRuntimeFailureHistory: (history: ScriptRuntimeFailureHistoryCode[]) => void
   reset: () => void
@@ -29,6 +45,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   projectName: '',
   chatMessages: [],
   generationStatus: null,
+  generationNotice: null,
   storyIntent: null,
   scriptRuntimeFailureHistory: [],
   setStage: (stage) => set({ currentStage: stage }),
@@ -36,6 +53,8 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   setProjectName: (projectName) => set({ projectName }),
   setChatMessages: (chatMessages) => set({ chatMessages }),
   setGenerationStatus: (generationStatus) => set({ generationStatus }),
+  setGenerationNotice: (generationNotice) => set({ generationNotice }),
+  clearGenerationNotice: () => set({ generationNotice: null }),
   setStoryIntent: (storyIntent) => set({ storyIntent }),
   setScriptRuntimeFailureHistory: (scriptRuntimeFailureHistory) => set({ scriptRuntimeFailureHistory }),
   reset: () =>
@@ -45,6 +64,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       projectName: '',
       chatMessages: [],
       generationStatus: null,
+      generationNotice: null,
       storyIntent: null,
       scriptRuntimeFailureHistory: []
     }))

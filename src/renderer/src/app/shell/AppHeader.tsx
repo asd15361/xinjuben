@@ -10,10 +10,12 @@ export function AppHeader() {
   const projectId = useWorkflowStore((state) => state.projectId)
   const projectName = useWorkflowStore((state) => state.projectName)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
+  const generationNotice = useWorkflowStore((state) => state.generationNotice)
+  const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const resetWorkflow = useWorkflowStore((state) => state.reset)
   const resetStage = useStageStore((state) => state.reset)
   const { appInfo } = useRuntimeInfo()
-  const { remainingSeconds } = useProjectGenerationProgress(generationStatus)
+  const { elapsedSeconds } = useProjectGenerationProgress(generationStatus)
   const currentStageLabel = {
     chat: '灵感对话',
     outline: '粗略大纲',
@@ -21,6 +23,11 @@ export function AppHeader() {
     detailed_outline: '详细大纲',
     script: '剧本定稿'
   }[currentStage]
+  const noticeToneClass =
+    generationNotice?.kind === 'error'
+      ? 'border-rose-500/20 bg-rose-500/10'
+      : 'border-emerald-500/20 bg-emerald-500/10'
+  const noticeTextClass = generationNotice?.kind === 'error' ? 'text-rose-300' : 'text-emerald-300'
 
   const backToHome = () => {
     // Hard reset: avoid "串项目" and multi-truth leaks.
@@ -54,11 +61,17 @@ export function AppHeader() {
         {generationStatus && (
           <div className="hidden lg:flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/8 px-3 py-1.5">
             <span className="text-[10px] font-black text-orange-300">{generationStatus.title}</span>
-            <span className="text-[10px] text-white/45">预计还要 {remainingSeconds} 秒</span>
-            {generationStatus.autoChain && generationStatus.nextTask && (
-              <span className="text-[10px] text-orange-200/65">完成后自动继续</span>
-            )}
+            <span className="text-[10px] text-white/45">已处理 {elapsedSeconds} 秒</span>
           </div>
+        )}
+        {!generationStatus && generationNotice && (
+          <button
+            onClick={clearGenerationNotice}
+            className={`hidden lg:flex items-center gap-2 rounded-full border px-3 py-1.5 ${noticeToneClass}`}
+          >
+            <span className={`text-[10px] font-black ${noticeTextClass}`}>{generationNotice.title}</span>
+            <span className="text-[10px] text-white/45">点这里关闭提示</span>
+          </button>
         )}
         {projectId && (
           <button

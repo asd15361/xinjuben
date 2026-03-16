@@ -6,6 +6,7 @@ interface EpisodeStageWindow {
   endEpisode: number
   content: string
   hookType: string
+  episodeSummary?: string
 }
 
 function getActiveSegments(segments: DetailedOutlineSegmentDto[]): DetailedOutlineSegmentDto[] {
@@ -31,6 +32,8 @@ function buildEpisodeStageWindows(segments: DetailedOutlineSegmentDto[], totalEp
       endEpisode,
       content: segment.content.trim(),
       hookType: segment.hookType.trim(),
+      episodeSummary:
+        segment.episodeBeats?.find((beat) => beat.episodeNo === startEpisode)?.summary?.trim() || '',
     })
 
     startEpisode = endEpisode + 1
@@ -81,11 +84,17 @@ export function buildEpisodePromptGuidance(input: {
 
   const lines = ['【阶段引导】']
   if (currentWindow) {
+    const exactEpisodeBeat = input.segments
+      .flatMap((segment) => segment.episodeBeats ?? [])
+      .find((beat) => beat.episodeNo === input.episodeNo)?.summary?.trim()
     lines.push(
-      `- 当前集处于 ${currentWindow.act} 段（第 ${currentWindow.startEpisode}-${currentWindow.endEpisode} 集）。`,
-      `- 本段主任务：${currentWindow.content}`,
-      currentWindow.hookType ? `- 本段钩子偏向：${currentWindow.hookType}` : '- 本段钩子偏向：延续当前冲突势能。',
-      `- 阶段动作建议：${buildThemeActionHint(input.outline, currentWindow.act)}`
+      ...[
+        `- 当前集处于 ${currentWindow.act} 段（第 ${currentWindow.startEpisode}-${currentWindow.endEpisode} 集）。`,
+        `- 本段主任务：${currentWindow.content}`,
+        exactEpisodeBeat ? `- 当前集细纲：${exactEpisodeBeat}` : '',
+        currentWindow.hookType ? `- 本段钩子偏向：${currentWindow.hookType}` : '- 本段钩子偏向：延续当前冲突势能。',
+        `- 阶段动作建议：${buildThemeActionHint(input.outline, currentWindow.act)}`
+      ].filter(Boolean)
     )
     if (lastWindow && currentWindow === lastWindow && input.episodeNo > lastWindow.endEpisode) {
       lines.push('- 当前已经越过原定终局场次，后续场次仍按收束段执行：先把这一轮决定、代价和新局面写实，不要重新退回只顾着开新口。')

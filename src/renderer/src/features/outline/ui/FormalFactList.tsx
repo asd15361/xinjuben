@@ -1,5 +1,13 @@
 import type { FormalFact } from '../../../../../shared/contracts/workflow'
 
+function getFactLevelLabel(level: FormalFact['level']): string {
+  return level === 'core' ? '核心设定' : '补充设定'
+}
+
+function getFactStatusLabel(status: FormalFact['status']): string {
+  return status === 'confirmed' ? '已确认' : '待确认'
+}
+
 export function FormalFactList(input: {
   facts: FormalFact[]
   onConfirm: (factId: string) => void
@@ -11,7 +19,7 @@ export function FormalFactList(input: {
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">已声明正式事实</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">已添加的关键设定</p>
       {input.facts.map((fact) => (
         <div
           key={fact.id}
@@ -19,12 +27,12 @@ export function FormalFactList(input: {
         >
           <div className="space-y-1">
             <p className="text-sm font-bold text-white/80">
-              {fact.label} <span className="text-[10px] text-white/35">[{fact.level}] [{fact.status}]</span>
+              {fact.label}{' '}
+              <span className="text-[10px] text-white/35">
+                [{getFactLevelLabel(fact.level)}] [{getFactStatusLabel(fact.status)}]
+              </span>
             </p>
             <p className="text-[11px] text-white/45">{fact.description}</p>
-            <p className="text-[10px] text-white/25">
-              {fact.authorityType} / {fact.declaredBy} / {fact.declaredStage}
-            </p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {fact.status !== 'confirmed' && (

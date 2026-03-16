@@ -14,7 +14,7 @@ export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProp
         </div>
         <div>
           <h2 className="text-lg font-black text-white/90">详细大纲</h2>
-          <p className="text-[11px] text-white/40 mt-0.5">先把四个大阶段理顺。每一段都要写清楚推进、翻面和下一步钩子。</p>
+          <p className="text-[11px] text-white/40 mt-0.5">先生成这一版详细大纲，再按阶段对照分集粗纲检查推进、翻面和下一步钩子。</p>
         </div>
       </div>
 
@@ -25,7 +25,7 @@ export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProp
           className="rounded-xl px-5 py-2.5 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20 disabled:opacity-40"
           style={{ background: '#FF7A00' }}
         >
-          AI 帮我补这一版
+          生成这一版详细大纲
         </button>
       </div>
     </div>

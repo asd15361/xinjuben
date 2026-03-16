@@ -71,8 +71,12 @@ export function buildCompactedSegmentBlock(input: {
   const rows: string[] = []
 
   for (const segment of input.segments) {
+    const episodeBeatPreview = (segment.episodeBeats ?? [])
+      .slice(0, 3)
+      .map((beat) => `第${beat.episodeNo}集=${beat.summary}`)
+      .join('；')
     const line = clipText(
-      `${segment.act}｜${segment.content || '待补内容'}${segment.hookType ? `｜钩子=${segment.hookType}` : ''}`,
+      `${segment.act}｜${segment.content || '待补内容'}${segment.hookType ? `｜钩子=${segment.hookType}` : ''}${episodeBeatPreview ? `｜分集=${episodeBeatPreview}` : ''}`,
       Math.min(260, remaining)
     )
     if (!line) continue

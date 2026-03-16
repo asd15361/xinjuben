@@ -140,9 +140,13 @@ async function main() {
     await page.waitForTimeout(600);
     await page.getByRole('button').filter({ hasText: /人物|小传/ }).first().click();
     await page.waitForTimeout(600);
+    await page.getByRole('button', { name: /确认：生成详细大纲/ }).click();
+    await page.waitForTimeout(800);
 
     const startAt = Date.now();
-    await page.getByRole('button').filter({ hasText: /详细|大纲/ }).first().click();
+    const generateDetailedOutlineButton = page.getByRole('button', { name: /生成这一版详细大纲|AI 帮我补这一版/ }).first();
+    await generateDetailedOutlineButton.waitFor({ state: 'visible', timeout: 30_000 });
+    await generateDetailedOutlineButton.click();
 
     const detailedProject = await waitForProject(
       projectFile,

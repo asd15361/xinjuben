@@ -10,7 +10,6 @@ export function ChatStage() {
   const setStage = useWorkflowStore((s) => s.setStage)
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
   const setChatMessages = useWorkflowStore((s) => s.setChatMessages)
-  const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)
   const { projectId, status, handleGenerate } = useChatStageActions()
@@ -68,17 +67,6 @@ export function ChatStage() {
           onGenerate={(chatTranscript) => handleGenerate(chatTranscript)}
         />
       </div>
-
-
-      {/* 引导与背景状态 - 浮动或精简展示 */}
-      {storyIntent?.freeChatFinalSummary && (
-        <div className="absolute top-20 right-8 max-w-[200px] p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 backdrop-blur-md z-20 pointer-events-none">
-          <p className="text-[10px] font-black text-orange-400/60 uppercase tracking-tighter mb-1">当前故事收束</p>
-          <p className="text-[10px] text-white/40 leading-relaxed italic line-clamp-3">
-            {storyIntent.freeChatFinalSummary}
-          </p>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   CharacterDraftDto,
+  DetailedOutlineEpisodeBeatDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
@@ -12,6 +13,25 @@ export interface OutlineData extends OutlineDraftDto {}
 export interface CharacterData extends CharacterDraftDto {}
 export interface OutlineSegment extends DetailedOutlineSegmentDto {}
 export interface ScriptSegment extends ScriptSegmentDto {}
+
+function normalizeDetailedOutlineEpisodeBeats(input?: DetailedOutlineEpisodeBeatDto[] | null): DetailedOutlineEpisodeBeatDto[] {
+  return (input ?? [])
+    .map((item, index) => ({
+      episodeNo: Number.isFinite(Number(item?.episodeNo)) && Number(item.episodeNo) > 0 ? Math.floor(Number(item.episodeNo)) : index + 1,
+      summary: item?.summary?.trim() || ''
+    }))
+    .filter((item) => item.summary)
+    .sort((left, right) => left.episodeNo - right.episodeNo)
+}
+
+function normalizeSegments(input?: OutlineSegment[] | null): OutlineSegment[] {
+  return (input ?? []).map((segment) => ({
+    ...segment,
+    content: segment.content?.trim() || '',
+    hookType: segment.hookType?.trim() || '',
+    episodeBeats: normalizeDetailedOutlineEpisodeBeats(segment.episodeBeats)
+  }))
+}
 
 function normalizeCharacter(input?: Partial<CharacterData> | null): CharacterData {
   return {
@@ -61,6 +81,7 @@ interface StageStore {
   replaceCharacters: (characters: CharacterData[]) => void;
   updateCharacter: (index: number, c: Partial<CharacterData>) => void;
   setSegment: (act: OutlineSegment['act'], content: string) => void;
+  setSegmentEpisodeBeat: (act: OutlineSegment['act'], episodeNo: number, summary: string) => void;
   replaceSegments: (segments: OutlineSegment[]) => void;
   addScriptSegment: (s: ScriptSegment) => void;
   replaceScript: (script: ScriptSegment[]) => void;
@@ -82,7 +103,7 @@ export const useStageStore = create<StageStore>((set) => ({
     set(() => ({
       outline: input.outline ? ensureOutlineEpisodeShape(input.outline) : createEmptyOutline(),
       characters: (input.characters ?? []).map((item) => normalizeCharacter(item)),
-      segments: input.segments ?? [],
+      segments: normalizeSegments(input.segments),
       script: input.script ?? []
     })),
 
@@ -123,12 +144,53 @@ export const useStageStore = create<StageStore>((set) => ({
         return { segments: updated };
       }
       return {
-        segments: [...state.segments, { act, content, hookType: '' }],
+        segments: [...state.segments, { act, content, hookType: '', episodeBeats: [] }],
       };
     }),
 
+  setSegmentEpisodeBeat: (act, episodeNo, summary) =>
+    set((state) => {
+      const existing = state.segments.findIndex((segment) => segment.act === act)
+      const normalizedSummary = summary.trim()
+
+      if (existing < 0) {
+        return {
+          segments: [
+            ...state.segments,
+            {
+              act,
+              content: '',
+              hookType: '',
+              episodeBeats: normalizedSummary ? [{ episodeNo, summary: normalizedSummary }] : []
+            }
+          ]
+        }
+      }
+
+      const updated = [...state.segments]
+      const currentBeats = normalizeDetailedOutlineEpisodeBeats(updated[existing].episodeBeats)
+      const beatIndex = currentBeats.findIndex((beat) => beat.episodeNo === episodeNo)
+
+      if (beatIndex >= 0) {
+        if (normalizedSummary) {
+          currentBeats[beatIndex] = { episodeNo, summary: normalizedSummary }
+        } else {
+          currentBeats.splice(beatIndex, 1)
+        }
+      } else if (normalizedSummary) {
+        currentBeats.push({ episodeNo, summary: normalizedSummary })
+      }
+
+      updated[existing] = {
+        ...updated[existing],
+        episodeBeats: currentBeats.sort((left, right) => left.episodeNo - right.episodeNo)
+      }
+
+      return { segments: updated }
+    }),
+
   replaceSegments: (segments) =>
-    set(() => ({ segments })),
+    set(() => ({ segments: normalizeSegments(segments) })),
 
   addScriptSegment: (s) =>
     set((state) => ({ script: [...state.script, s] })),

@@ -65,10 +65,16 @@ export interface CharacterDraftDto {
   arc: string
 }
 
+export interface DetailedOutlineEpisodeBeatDto {
+  episodeNo: number
+  summary: string
+}
+
 export interface DetailedOutlineSegmentDto {
   act: 'opening' | 'midpoint' | 'climax' | 'ending'
   content: string
   hookType: string
+  episodeBeats?: DetailedOutlineEpisodeBeatDto[]
 }
 
 export interface ScriptSegmentDto {

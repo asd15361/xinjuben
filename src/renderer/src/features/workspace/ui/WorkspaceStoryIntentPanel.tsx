@@ -57,11 +57,11 @@ export function WorkspaceStoryIntentPanel(props: WorkspaceStoryIntentPanelProps)
     <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">Story Intent</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">故事方向卡</p>
           <h4 className="text-sm font-bold mt-1">{props.activeProject?.name || '未选择项目'}</h4>
         </div>
         <span className={`text-[10px] uppercase tracking-widest ${props.storyIntentReady ? 'text-green-400/80' : 'text-white/25'}`}>
-          {props.storyIntentReady ? 'ready' : 'draft'}
+          {props.storyIntentReady ? '已保存' : '待补充'}
         </span>
       </div>
 
@@ -100,7 +100,7 @@ export function WorkspaceStoryIntentPanel(props: WorkspaceStoryIntentPanelProps)
         onChange={(value) => props.onDraftChange((prev) => ({ ...prev, conflict: value }))}
       />
       <Field
-        label="主题锚点"
+        label="主题方向"
         value={props.draft.theme}
         placeholder="例：身份真相逼迫人物完成自我价值觉醒"
         multiline
@@ -133,7 +133,7 @@ export function WorkspaceStoryIntentPanel(props: WorkspaceStoryIntentPanelProps)
           className="rounded-xl px-4 py-3 text-sm font-bold border border-white/15 text-white disabled:opacity-40"
           disabled={!props.activeProject}
         >
-          注入粗纲工序
+          生成粗纲草稿
         </button>
       </div>
     </div>

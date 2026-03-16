@@ -16,6 +16,7 @@ export function useHomePageActions() {
   const setProjectNameInShell = useWorkflowStore((state) => state.setProjectName)
   const setChatMessages = useWorkflowStore((state) => state.setChatMessages)
   const setGenerationStatus = useWorkflowStore((state) => state.setGenerationStatus)
+  const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const setStage = useWorkflowStore((state) => state.setStage)
   const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
   const hydrateProjectDrafts = useStageStore((state) => state.hydrateProjectDrafts)
@@ -36,6 +37,7 @@ export function useHomePageActions() {
     setProjectNameInShell(project.name)
     setChatMessages(project.chatMessages || [])
     setGenerationStatus(project.generationStatus || null)
+    clearGenerationNotice()
     setStoryIntent(project.storyIntent)
     hydrateProjectDrafts({
       outline: project.outlineDraft,
