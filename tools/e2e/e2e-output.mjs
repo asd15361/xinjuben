@@ -2,6 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 
 const DEFAULT_KEEP_LATEST = 2;
+const DEFAULT_KEEP_LATEST_FILES = 12;
 
 function getUserdataFamilyName(entryName) {
   const match = /^userdata-([a-z0-9-]+?)-[a-z0-9]+(?:-\d+)?$/i.exec(entryName);
@@ -12,8 +13,34 @@ async function removePathSafe(targetPath) {
   await fs.rm(targetPath, { recursive: true, force: true }).catch(() => {});
 }
 
+async function pruneTopLevelFiles(outDir, keepLatestFiles) {
+  const entries = await fs.readdir(outDir, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const filePath = path.join(outDir, entry.name);
+    const stat = await fs.stat(filePath).catch(() => null);
+    if (!stat) continue;
+    files.push({
+      name: entry.name,
+      path: filePath,
+      mtimeMs: stat.mtimeMs
+    });
+  }
+
+  files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  const removed = [];
+  for (const file of files.slice(keepLatestFiles)) {
+    await removePathSafe(file.path);
+    removed.push(file.name);
+  }
+  return removed;
+}
+
 export async function pruneE2EOutDir(outDir, options = {}) {
   const keepLatestPerFamily = options.keepLatestPerFamily ?? DEFAULT_KEEP_LATEST;
+  const keepLatestFiles = options.keepLatestFiles ?? DEFAULT_KEEP_LATEST_FILES;
   await fs.mkdir(outDir, { recursive: true });
   const entries = await fs.readdir(outDir, { withFileTypes: true });
   const familyMap = new Map();
@@ -45,6 +72,7 @@ export async function pruneE2EOutDir(outDir, options = {}) {
     }
   }
 
+  removed.push(...(await pruneTopLevelFiles(outDir, keepLatestFiles)));
   return removed;
 }
 

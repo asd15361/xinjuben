@@ -1,60 +1,6 @@
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
 import type { CharacterDraftDto, OutlineDraftDto } from '../../../shared/contracts/workflow'
-
-function extractSection(text: string, title: string): string {
-  const match = text.match(new RegExp(`【${title}】([\\s\\S]*?)(?=【[^】]+】|$)`))
-  return match?.[1]?.trim() || ''
-}
-
-function splitBulletLines(text: string): string[] {
-  return text
-    .split('\n')
-    .map((line) => line.replace(/^- /, '').trim())
-    .filter(Boolean)
-}
-
-function splitNameList(text: string): string[] {
-  return text
-    .split(/[、,，/｜|]/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function buildPromptAnchors(generationBriefText: string): {
-  keyCharacters: string[]
-  characterLayers: string[]
-  relationAnchors: string[]
-  roleCards: string[]
-  movement: string[]
-  synopsis: string
-} {
-  return {
-    keyCharacters: splitNameList(extractSection(generationBriefText, '关键角色')).slice(0, 6),
-    characterLayers: splitBulletLines(extractSection(generationBriefText, '人物分层')).slice(0, 6),
-    relationAnchors: splitBulletLines(extractSection(generationBriefText, '人物关系总梳理')).slice(0, 8),
-    roleCards: splitBulletLines(extractSection(generationBriefText, '角色卡')).slice(0, 6),
-    movement: [
-      extractSection(generationBriefText, '主线欲望线'),
-      extractSection(generationBriefText, '总阻力线'),
-      extractSection(generationBriefText, '代价升级线'),
-      extractSection(generationBriefText, '关系杠杆线'),
-      extractSection(generationBriefText, '钩子承接线')
-    ].filter(Boolean),
-    synopsis: extractSection(generationBriefText, '串联简介')
-  }
-}
-
-function renderAnchorBlock(generationBriefText: string): string {
-  const anchors = buildPromptAnchors(generationBriefText)
-  return [
-    `关键角色：${anchors.keyCharacters.join('、') || '待补'}`,
-    `人物分层：${anchors.characterLayers.join('；') || '待补'}`,
-    `关系杠杆：${anchors.relationAnchors.join('；') || '待补'}`,
-    `角色卡：${anchors.roleCards.join('；') || '待补'}`,
-    `推进合同：${anchors.movement.join('；') || '待补'}`,
-    `串联简介：${anchors.synopsis || '待补'}`
-  ].join('\n')
-}
+import { renderAnchorBlock } from './generation-stage-prompt-anchors'
 
 export function buildOutlineGenerationPrompt(generationBriefText: string): string {
   return [
@@ -62,6 +8,8 @@ export function buildOutlineGenerationPrompt(generationBriefText: string): strin
     '这一工序只负责“粗纲”，不是人物百科，也不是世界观扩写。',
     '你的目标是根据正式创作底稿，交出可供下游继续推进的主线骨架。',
     '这一步要守住 6 件事：主欲望、总阻力、阶段升级、关键关系杠杆、每集事件推进、每集结尾钩子。',
+    '先守住“设定成交句、核心错位、情绪兑现”这三个最上层抓手，再往下展开主线。',
+    '粗纲开写前先在心里答一句：这部戏第一集最值钱、最像宣传语的一刀到底是什么；如果答不上来，就先把这一刀写清再推进。',
     '优化方向：让戏更有推力，不是把设定写得更满。',
     '请优先继承底稿里的正式事实，不要自己改主角、对手、关键关系、主题方向。',
     '如果底稿里已经给了固有角色、地点、道具、关系，就直接拿这些锚点往前写，不要退回“主角/反派/神秘势力”这种通用叫法。',
@@ -93,6 +41,7 @@ export function buildOutlineGenerationPrompt(generationBriefText: string): strin
     '2. 每集都要带出当前阻力和这一集结尾的钩子。',
     '3. 让正式角色直接出现在分集里，不要总用泛称。',
     '4. 优先把底稿里的关系、地点、道具、主题锚点写进主线推进，而不是只写成背景。',
+    '5. 每集都要写出“这一集最想让人继续点开的理由”，不要只把事情讲清楚。',
     '',
     '这份底稿里你必须优先执行的锚点：',
     renderAnchorBlock(generationBriefText),
@@ -113,6 +62,8 @@ export function buildCharacterGenerationPrompt(input: {
     '你是短剧编剧助手。',
     '这一工序只负责“人物小传”，它不是人物百科，而是“详纲可执行说明书”。',
     '目标：让下游详纲一眼就知道，这个人想要什么、怕失去什么、会怎么施压、会在什么条件下行动、每推进一步会付什么代价。',
+    '还要让下游一眼看出：这个人物最会制造什么戏、最会放大哪种反差、最容易把哪种情绪兑现打出来。',
+    '每个人都要写得出一句大白话：这个人一进场，最容易把哪口气、哪种难堪、哪种翻盘打出来。',
     '优化方向：人物分层，不冗余。优先保留真正推动主线的人物，不重复扩表。',
     '请优先使用底稿和粗纲里已经明确的人物，不要随意发明新的核心角色、改名或重写关系。',
     '如果底稿已经给了某个人的前史、悟道、关系、代价、传承来源，你要做的是压缩成交付下游可执行的抓手，不是重新发明一版人物。',
@@ -158,6 +109,9 @@ export function buildDetailedOutlinePrompt(input: {
     )
     .join('\n')
   const storyIntentBlock = [
+    `设定成交句：${input.storyIntent?.sellingPremise || '待补'}`,
+    `核心错位：${input.storyIntent?.coreDislocation || '待补'}`,
+    `情绪兑现：${input.storyIntent?.emotionalPayoff || '待补'}`,
     `主线欲望：${input.storyIntent?.dramaticMovement?.[0] || input.storyIntent?.coreConflict || '待补'}`,
     `总阻力：${input.storyIntent?.dramaticMovement?.[1] || input.storyIntent?.relationAnchors?.[0] || '待补'}`,
     `代价升级：${input.storyIntent?.dramaticMovement?.[2] || input.storyIntent?.themeAnchors?.[0] || '待补'}`,
@@ -169,14 +123,20 @@ export function buildDetailedOutlinePrompt(input: {
     '你是短剧编剧助手。你要把“粗纲主线骨架 + 人物执行说明书”展开成可直接写剧本的详细大纲。',
     '这一步不是扩资料，也不是把粗纲重新分四块。',
     '你必须站到粗纲上面一层，把整季推进重新压成四段“阶段推进图”。',
+    '四段都要持续吃住“设定成交句、核心错位、情绪兑现”，不能一进详纲就把最能卖的那一刀写没了。',
     '每个阶段都要明确回答：这一段主角想守什么、谁在拦、采取了什么动作、付了什么代价、这一段最后正式变成了什么新局面。',
+    '每一段除了回答“在打什么仗”，还要回答“这一段最让人想继续点开的理由是什么、这一段最早兑现的情绪是什么”。',
+    '每一段都要有一句最值钱的大白话，像宣传片里最会被剪出来的那一句，不准四段都写成局势说明。',
     '四段里的人物推动不能只停在“态度”和“立场”上，还要写出他们在当下怎么嘴硬、怎么难堪、怎么压着不退，情绪压强要落进行动和代价。',
     '四段职责不能混：开局负责点火，中段负责升级，高潮负责逼到亮底，收束负责先把这一轮正式收住，再把下一轮轻轻挂出去。',
     '四段都要用大白话直接回答“这一段在打什么仗”，不要写成长解释、背景说明或复盘报告。',
     '每段尽量控制在 2 到 4 句，短、硬、能执行，少讲抽象道理。',
     '开局段必须写出：最先想守什么、第一层压力怎么压下来、故事为什么从这里点燃。',
+    '开局段优先把最强反差和最强错位打出来，不准一上来把最好卖的设定写平。',
     '中段必须写出：局面为什么更难、谁在升级、主角怎么应对、代价怎么明显变重。',
+    '中段必须明确制造下一轮更想点开的理由，不能只是把局势解释得更清楚。',
     '高潮段必须写出：为什么这是最痛的一刀、哪张底牌被逼出来、哪层误判或真相一起翻面。',
+    '高潮段要让情绪兑现真正落下去，不能只有结构翻面，没有爽点、痛点或关系翻盘。',
     '收束段必须写出：这一轮怎么收、主角付了什么代价、下一轮为什么还会继续。',
     '收束段先回答 3 件事：这一轮人物到底做了什么决定、为这个决定付了什么代价、局面因此正式变成了什么新状态。',
     '只有这 3 件事已经落定，收束段才允许留下一条下一轮继续追的口子。',

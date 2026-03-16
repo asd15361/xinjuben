@@ -10,23 +10,26 @@ function clipText(value: string, maxLength: number): string {
 
 export function buildCompactedStoryIntentBlock(input: StartScriptGenerationInputDto): string {
   const maxChars = input.plan.runtimeProfile.maxStoryIntentChars
-  const raw = [
-    input.storyIntent?.titleHint,
-    input.storyIntent?.genre,
-    input.storyIntent?.tone,
-    input.storyIntent?.coreConflict,
-    input.storyIntent?.manualRequirementNotes,
-    input.storyIntent?.freeChatFinalSummary,
-    ...(input.storyIntent?.themeAnchors || []),
-    ...(input.storyIntent?.worldAnchors || []),
-    ...(input.storyIntent?.relationAnchors || []),
-    ...(input.storyIntent?.dramaticMovement || [])
-  ]
-    .filter(Boolean)
-    .join('｜')
+  const rows = [
+    input.storyIntent?.sellingPremise ? `卖点一刀=${input.storyIntent.sellingPremise}` : '',
+    input.storyIntent?.coreDislocation ? `最反常的点=${input.storyIntent.coreDislocation}` : '',
+    input.storyIntent?.emotionalPayoff ? `先兑现的情绪=${input.storyIntent.emotionalPayoff}` : '',
+    input.storyIntent?.coreConflict ? `当前硬冲突=${input.storyIntent.coreConflict}` : '',
+    (input.storyIntent?.relationAnchors || []).length > 0
+      ? `关系压力=${input.storyIntent?.relationAnchors?.join('；')}`
+      : '',
+    (input.storyIntent?.worldAnchors || []).length > 0
+      ? `外部压力=${input.storyIntent?.worldAnchors?.join('；')}`
+      : '',
+    (input.storyIntent?.dramaticMovement || []).length > 0
+      ? `推进合同=${input.storyIntent?.dramaticMovement?.join('；')}`
+      : '',
+    input.storyIntent?.freeChatFinalSummary ? `底稿摘要=${input.storyIntent.freeChatFinalSummary}` : '',
+    input.storyIntent?.manualRequirementNotes ? `未讲死的口子=${input.storyIntent.manualRequirementNotes}` : ''
+  ].filter(Boolean)
 
-  if (!raw.trim()) return '故事意图摘要：当前未提供额外 story intent。'
-  return `故事意图摘要：${clipText(raw, maxChars)}`
+  if (rows.length === 0) return '故事意图摘要：当前未提供额外 story intent。'
+  return `故事意图摘要：${clipText(rows.join('｜'), maxChars)}`
 }
 
 export function buildCompactedCharacterBlock(input: {

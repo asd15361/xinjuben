@@ -8,6 +8,7 @@ function hasConfirmedFact(outline: OutlineDraftDto, label: string): boolean {
 export function buildEpisodeSceneDirectives(outline: OutlineDraftDto, episodeNo: number): string[] {
   const lines = [
     '每段都写成正在发生的戏，不要解释人物层次，不要总结主题。',
+    '先把这场最能卖的反差、错位或关系不对劲打出来，再补其他信息。',
     '先让人物带着站位和关系进场，再交代信息；不要把对白写成播报现状。',
     '“站位”“钉子句”“关系施压”“说明”“总结”这些词只准留在你脑子里，不准写进 Action、Dialogue、Emotion 正文。',
     '正文里不准出现“（站位：…）”“（钉子句）”“（说明）”这类幕后注释。',
@@ -22,6 +23,7 @@ export function buildEpisodeSceneDirectives(outline: OutlineDraftDto, episodeNo:
     '不要直接端出“他很生气”“她很难过”这种情绪结论，要把情绪压强落在停顿、顶嘴、反咬、让步、手上动作和代价里。',
     '如果这场有关系施压，先写难堪、对顶、嘴硬、退让这些当下反应，再补背景信息。',
     'Emotion 只写本场情绪变化和逼出的下一步，不写分析报告。',
+    '每场都要尽快给出一口当下可兑现的情绪，不要一直拖到后面才让观众爽、痛或心里一紧。',
     '每一场都必须比上一场更往前一步，不能只把上一场换个说法重新写一遍。'
   ]
 
@@ -30,6 +32,7 @@ export function buildEpisodeSceneDirectives(outline: OutlineDraftDto, episodeNo:
     lines.push('第 1 场开头 30% 内容内就要起冲突，不能先铺世界观和人物分析。')
     lines.push('第 1 场必须写清主角眼下最想守住的人或物，而且这个选择要立刻害他付出看得见的代价。')
     lines.push('第 1 场必须让观众明确看见“他明明能动手，却因为旧规矩、旧誓言或师父交代硬压着不动”。')
+    lines.push('第 1 场必须让观众一眼看懂这部戏最不对劲、最反常、最值得点开的地方，不准把设定成交点藏到后面。')
     lines.push('第 1 场对白先不要急着讲明白前情，先让观众从顶撞、嘴硬、试探、护短里听见关系和压强。')
     lines.push('第 1 场关键对白必须带人物自己的口气和站位，不能换个人说也通。')
 
@@ -53,6 +56,7 @@ export function buildEpisodeSceneDirectives(outline: OutlineDraftDto, episodeNo:
     lines.push('第 1 场必须带出一次师父、旧事或旧规矩在主角心里被触发的瞬间，最好直接出现一句师父旧话、旧规矩或旧告诫，形成看得见的记忆回声。')
     lines.push('如果上游主冲突里已经有妖兽危机或更大外压，第 1 场至少要露一个不安信号，不能把整条大压强完全留空。')
     lines.push('第 1 场结尾必须留下立刻要发生的硬钩子，例如搜身、夺物、带走人、限时威胁。')
+    lines.push('第 1 场结尾要让人明确感到“下一秒麻烦会更大”，不能只是正常收尾。')
     lines.push('第 1 场最后两句里，至少有一句必须是“下一秒就会发生”的具体动作或逼压，不能只停在主角心里发紧、决定变重这种感受上。')
     lines.push('如果结尾没有门外脚步、刀再压近、手已经伸过来、对手开始动手、有人被拖走、时限被钉死这类眼前动作，就说明钩子还没落地，继续改。')
     lines.push('第 1 场最后一句优先写“已经开始发生”的动作，不要只写“他准备去做什么”“他意识到什么”。')

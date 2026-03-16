@@ -8,6 +8,18 @@ export function buildFallbackGenerationBrief(facts: FallbackSummaryFacts): Parti
     projectTitle: facts.projectTitle,
     episodeCount: facts.episodeCount,
     genreAndStyle: facts.genreAndStyle,
+    sellingPremise:
+      facts.protagonist && facts.antagonist
+        ? `${facts.protagonist}明明只想藏住${facts.keyAsset || '关键底牌'}，偏偏${facts.antagonist}拿${facts.protectTarget || '重要的人'}的命逼他当场亮底。`
+        : facts.chainSynopsis || '待补',
+    coreDislocation:
+      facts.antagonist && facts.protectTarget
+        ? `最该藏锋的人，偏偏被${facts.antagonist}拿${facts.protectTarget}逼到退无可退。`
+        : '主角明明想躲，结果局势偏偏逼他第一个站出来。',
+    emotionalPayoff:
+      facts.protectTarget
+        ? `先让观众看到他宁可把自己暴露，也要把${facts.protectTarget}护下来的那口气。`
+        : '先让观众吃到主角不再白挨打、开始反咬回去的那口爽。',
     worldAndBackground: facts.worldAndBackground,
     protagonist: facts.protagonist || '待补',
     antagonist: facts.antagonist || '待补',
@@ -76,6 +88,15 @@ export function buildFallbackStoryIntent(facts: FallbackSummaryFacts): Partial<S
   return {
     titleHint: facts.projectTitle ? `《${facts.projectTitle}》` : '',
     genre: facts.genreAndStyle,
+    sellingPremise:
+      facts.protagonist && facts.antagonist
+        ? `${facts.protagonist}明明只想藏住${facts.keyAsset || '关键底牌'}，偏偏${facts.antagonist}拿${facts.protectTarget || '重要的人'}的命逼他当场亮底。`
+        : facts.chainSynopsis,
+    coreDislocation:
+      facts.antagonist && facts.protectTarget
+        ? `最该藏锋的人，偏偏被${facts.antagonist}拿${facts.protectTarget}逼到退无可退。`
+        : '主角明明想躲，结果局势偏偏逼他第一个站出来。',
+    emotionalPayoff: facts.protectTarget ? `先护住${facts.protectTarget}这口气` : '先把那口被压着的气反咬回去',
     protagonist: facts.protagonist,
     antagonist: facts.antagonist,
     coreConflict: facts.coreConflict,

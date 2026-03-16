@@ -13,6 +13,9 @@ export interface GenerationBriefPackage {
   projectTitle: string
   episodeCount: number
   genreAndStyle: string
+  sellingPremise: string
+  coreDislocation: string
+  emotionalPayoff: string
   worldAndBackground: string
   protagonist: string
   antagonist: string
@@ -75,6 +78,9 @@ export function normalizeGenerationBriefPackage(input: Partial<GenerationBriefPa
     projectTitle: cleanLine(input.projectTitle || '') || '未命名项目',
     episodeCount: Number.isFinite(input.episodeCount) && (input.episodeCount || 0) > 0 ? Number(input.episodeCount) : 10,
     genreAndStyle: cleanLine(input.genreAndStyle || '') || '待补',
+    sellingPremise: cleanLine(input.sellingPremise || '') || '待补',
+    coreDislocation: cleanLine(input.coreDislocation || '') || '待补',
+    emotionalPayoff: cleanLine(input.emotionalPayoff || '') || '待补',
     worldAndBackground: cleanLine(input.worldAndBackground || '') || '待补',
     protagonist: cleanLine(input.protagonist || '') || '待补',
     antagonist: cleanLine(input.antagonist || '') || '待补',
@@ -111,6 +117,9 @@ export function renderGenerationBriefTemplate(input: Partial<GenerationBriefPack
   const lines = [
     `【项目】${brief.projectTitle}｜${brief.episodeCount}集`,
     `【题材与风格】${brief.genreAndStyle}`,
+    `【设定成交句】${brief.sellingPremise}`,
+    `【核心错位】${brief.coreDislocation}`,
+    `【情绪兑现】${brief.emotionalPayoff}`,
     `【世界观与故事背景】${brief.worldAndBackground}`,
     `【主角】${brief.protagonist}`,
     `【对手】${brief.antagonist}`,

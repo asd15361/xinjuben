@@ -25,6 +25,9 @@ import {
 import {
   inferChainFromStructuredSections,
   inferCharacterLayersFromSections,
+  pickCoreDislocation,
+  pickEmotionalPayoff,
+  pickSellingPremise,
   pickThemeAnchor,
   pickWorldPressure
 } from './summarize-chat-for-generation-structured-inference'
@@ -57,6 +60,9 @@ export function parseStructuredGenerationBrief(chatTranscript: string): Record<s
       projectTitle: toText(projectMatch?.[1] || sectionMap.get('项目')),
       episodeCount: Number(projectMatch?.[2] || 10),
       genreAndStyle: toText(sectionMap.get('题材与风格')),
+      sellingPremise: pickSellingPremise(sections),
+      coreDislocation: pickCoreDislocation(sections),
+      emotionalPayoff: pickEmotionalPayoff(sections),
       worldAndBackground: toText(sectionMap.get('世界观与故事背景')),
       protagonist: sections.protagonist,
       antagonist: sections.antagonist,
@@ -74,6 +80,9 @@ export function parseStructuredGenerationBrief(chatTranscript: string): Record<s
     storyIntent: {
       titleHint: toText(projectMatch?.[1] || sectionMap.get('项目')),
       genre: toText(sectionMap.get('题材与风格')),
+      sellingPremise: pickSellingPremise(sections),
+      coreDislocation: pickCoreDislocation(sections),
+      emotionalPayoff: pickEmotionalPayoff(sections),
       protagonist: sections.protagonist,
       antagonist: sections.antagonist,
       coreConflict: toText(sectionMap.get('核心冲突')),
@@ -136,6 +145,9 @@ export function normalizeSummaryPayload(payload: Record<string, unknown> | null,
     projectTitle: toText(generationBriefRecord.projectTitle) || fallback.generationBrief?.projectTitle,
     episodeCount: Number(generationBriefRecord.episodeCount) || fallback.generationBrief?.episodeCount,
     genreAndStyle: toText(generationBriefRecord.genreAndStyle) || fallback.generationBrief?.genreAndStyle,
+    sellingPremise: toText(generationBriefRecord.sellingPremise) || fallback.generationBrief?.sellingPremise,
+    coreDislocation: toText(generationBriefRecord.coreDislocation) || fallback.generationBrief?.coreDislocation,
+    emotionalPayoff: toText(generationBriefRecord.emotionalPayoff) || fallback.generationBrief?.emotionalPayoff,
     worldAndBackground: toText(generationBriefRecord.worldAndBackground) || fallback.generationBrief?.worldAndBackground,
     protagonist: toText(generationBriefRecord.protagonist) || fallback.generationBrief?.protagonist,
     antagonist: toText(generationBriefRecord.antagonist) || fallback.generationBrief?.antagonist,
@@ -168,6 +180,18 @@ export function normalizeSummaryPayload(payload: Record<string, unknown> | null,
     storyIntent: {
       ...fallback.storyIntent,
       ...normalizeStoryIntent(payload?.storyIntent),
+      sellingPremise:
+        toText((payload?.storyIntent as Record<string, unknown> | undefined)?.sellingPremise) ||
+        fallback.storyIntent?.sellingPremise ||
+        generationBrief.sellingPremise,
+      coreDislocation:
+        toText((payload?.storyIntent as Record<string, unknown> | undefined)?.coreDislocation) ||
+        fallback.storyIntent?.coreDislocation ||
+        generationBrief.coreDislocation,
+      emotionalPayoff:
+        toText((payload?.storyIntent as Record<string, unknown> | undefined)?.emotionalPayoff) ||
+        fallback.storyIntent?.emotionalPayoff ||
+        generationBrief.emotionalPayoff,
       officialKeyCharacters: normalizeNameList(
         [
           ...toTextArray((payload?.storyIntent as Record<string, unknown> | undefined)?.officialKeyCharacters),

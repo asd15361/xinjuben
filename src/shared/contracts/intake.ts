@@ -11,6 +11,9 @@ export interface StoryIntentPackageDto {
   genre?: string
   tone?: string
   audience?: string
+  sellingPremise?: string
+  coreDislocation?: string
+  emotionalPayoff?: string
   protagonist?: string
   antagonist?: string
   coreConflict?: string
