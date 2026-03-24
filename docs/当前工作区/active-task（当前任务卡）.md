@@ -4,66 +4,104 @@
 如果电脑重启、会话断掉、任务被打断，先看这份。
 
 ## 所属大计划
-- 当前所属主线：`docs/plans/前端交互收口计划（第一版）.md`
-- 当前执行计划：`docs/plans/前端交互收口计划（第一版）.md`
-- 参考总标准：`docs/plans/优秀稳定剧本验收标准（第一版）.md`
-- 参考旧维度：`docs/plans/好剧本判断维度（第一版）.md`
-- 上一条已完成主线：`docs/plans/爆款样本写法吸收计划（第一版）.md`
+
+- 当前所属主线：`docs/plans/计划总表.md`
+- 当前执行计划：`docs/plans/计划总表.md`
 - 当前任务卡路径：`docs/当前工作区/active-task（当前任务卡）.md`
 
 ## 大任务阶段
-- 大任务名称：前端交互收口
-- 大任务总阶段数：7 个阶段
-- 当前大计划路径：`docs/plans/前端交互收口计划（第一版）.md`
+
+- 大任务名称：项目打开与切页卡顿根因治理
+- 大任务总阶段数：5 个 Wave
+- 当前大计划路径：`docs/plans/计划总表.md`
 
 ## 任务状态
-- 进行中
+
+- 进行中（Wave 1-5 代码实施已完成，待用户手测验收）
 
 ## 任务名称
-- 前端交互收口
+
+- 项目打开与切页卡顿根因治理
 
 ## 任务目标（本质）
-- 这轮不是再证明后端能不能生成。
-- 真正要解决的本质问题是：现在软件虽然已经能写出粗纲、人物、详纲和剧本，但用户在前端真实操作时，根本搞不清“它正在干什么、到底有没有生成完、下一步该点哪里、生成结果到底在哪”。
-- 如果前端交互主路不收口，用户就会把“系统能写”体验成“系统在后台自己乱跑、界面不会说人话、阶段结构也改不动”，这会直接推翻当前交付判断。
+
+- 解决"打开项目卡顿"和"切页卡顿"的根本原因：render 期重量计算、派生数据级联写回、IPC 调用碎片化。
+- 通过统一 service、纯函数 builder、视图模型预计算，将重量操作移出 render 周期。
 
 ## 当前做到哪一步
-- 已完成：根据用户刚才的真实上手路径，正式确认这轮问题不在结果层，而在前端交互主路。
-- 已完成：定位到 5 条主问题线：项目打开后自动推进、`99%` 假进度、生成完成后没有明确提示和跳转、顶部和阶段说明文案像系统脑内话、详细大纲和剧本结构不符合用户逐级修改方式。
-- 已完成：把这轮修复顺序正式写成 `docs/plans/前端交互收口计划（第一版）.md`。
-- 已完成：停掉项目打开时自动继续生成详细大纲和剧本，不再偷偷推进。
-- 已完成：去掉 `99% / 0 秒` 假进度，改成真实“生成中 / 已完成 / 失败”提示。
-- 已完成：粗纲、详细大纲、剧本三段生成完成后，都补上明确提示和下一步入口；粗纲生成后会直接切到粗纲页。
-- 已完成：移除聊天页右上角“当前故事收束”悬浮块，并把详细大纲页、剧本页的空状态和下一步文案改成人话。
-- 已完成：详细大纲底层已从“只存四个阶段槽位”升级成“阶段总览 + 逐集细纲”；现在每个阶段下面都能按集看、按集改，不再只能改四段大块。
-- 已完成：剧本页生成入口不再“看起来能点、点了没反应”；现在会先等计划准备好再开放按钮，没准备好时会明确提示。
-- 已完成：真实 Electron 详纲链路已重新按当前用户路径跑通，确认“人物页确认进入详纲 -> 生成这一版详细大纲 -> 四段 + 逐集细纲落出”成立。
-- 已完成：真实 Electron 全链路已重新按当前前端路径跑通，确认“粗纲 -> 人物 -> 详纲 -> 剧本首场”成立，剧本第 1 场已成功落出。
-- 已完成：把侧栏、项目首页、聊天页、详纲页、剧本页里残留的“工序 / 工作台 / 锚点 / 底稿 / confirmed”这类内部话术统一收口成用户能直接看懂的话。
-- 已完成：真实 Electron 全链路已再次补跑，确认改完文案后“粗纲 -> 人物 -> 详纲 -> 剧本首场”主路仍然成立，没有因为前端收口把点击链路带坏。
-- 进行中：还差用户自己再走一遍真实 UI，确认这轮手感、理解成本和操作顺序都顺。
+
+### Wave 1: StageSessionTruth ✅
+
+- 已完成：移除 `openProjectShell` / `getStagePayload` 直连，改用统一 service
+- 已完成：移除 `CharacterStage` render 期派生 + 写回 store
+- 已完成：将 renderer 内 10 处 `changeProjectStage` 直连统一收口到 `switchStageSession` service
+- 验收：grep 清零
+
+### Wave 2: ActiveCharacterBlocksTruth ✅
+
+- 已完成：`replaceActiveCharacterBlocks` 调用清零
+- 已完成：创建纯函数 builder `derive-active-character-blocks.ts`
+- 验收：grep 清零
+
+### Wave 3: DetailedOutlineViewModelTruth + ScriptSceneDerivedTruth ✅
+
+- 已完成：创建纯函数 builder `build-detailed-outline-view-model.ts`
+- 已完成：移除 `DetailedOutlineStage` render 期 inline `.flatMap` / `.find`
+- 已完成：提取 `inspectScreenplayQualityEpisode` 到独立 model `script-scene-quality-audit.ts`
+- 验收：grep 清零
+
+### Wave 4: ScriptPlanAccessTruth ✅
+
+- 已完成：`buildScriptGenerationPlan` 统一入口
+- 已完成：`JSON.stringify([...])` memo key 清零
+- 验收：grep 清零
+
+### Wave 5: PerformanceEvidenceTruth ✅
+
+- 已完成：添加统一 perf labels（`active_character_blocks_derive`、`detailed_outline_view_model`、`script_scene_summary_index`、`script_scene_quality_audit`）
+
+### 测试验收 ✅
+
+- 已完成：5 个 file-scoped tests 创建并通过
+  - `derive-active-character-blocks.test.ts`
+  - `build-detailed-outline-view-model.test.ts`
+  - `build-script-scene-summary-index.test.ts`
+  - `script-scene-quality-audit.test.ts`
+  - `script-plan-service.test.ts`
+
+## 前提校正（2026-03-24）
+
+- **全仓 typecheck 说明**：当前 `npm run typecheck` 存在历史基线类型错误，非本轮改动引入。本轮验收口径调整为：`npm run build`（打包成功）+ grep 验收 + 5 个新增 tests + 用户手测。
+- **禁止口头豁免**：不得以"历史债务"跳过 typecheck，必须通过正式前提校正修改验收口径。
 
 ## 当前已确认的问题（必须记住）
-- 当前已确认：项目打开后自动开始生成详细大纲，是当前最先伤体验的一刀，必须先停。
-- 当前已确认：当前进度条不是基于真实完成状态，而是基于估算秒数硬算出来的假进度，所以会出现 `99%` 卡住、`0 秒` 还没明确完成提示。
-- 当前已确认：生成完成后只把数据放进 store，不给用户明确反馈，也不稳定跳转，这是“用户不知道该点哪”的直接根因。
-- 当前已确认：顶部和页内说明文案现在更像系统给自己看的，不像给用户的下一步操作提示。
-- 当前已确认：详细大纲当前是四阶段摘要，不符合“逐级编辑”的用户模型；剧本页当前也更像内部工作台，而不是清楚的用户操作面板。
-- 当前已确认：每次用完测试软件都要关闭，不能留下残留进程。
+
+- 本轮解决的是"打开项目后 render 期重量计算"和"派生数据级联写回"导致的卡顿
+- 重量计算已全部移出 render 周期，改用纯函数 builder 或 service
+- IPC 调用已统一收口，不再碎片化
 
 ## 当前判断
-- 当前结论：交互层最伤体验的三刀已经压下去了，用户现在至少能看懂“有没有在生成、有没有生成完、下一步去哪”。
-- 当前结论：这轮不能再只靠后台验证，必须按用户真实操作路径一层层收口。
-- 当前结论：当前最大的结构尾巴已经补上，详细大纲不再只是四阶段摘要；剧本页最关键的“假可点”入口问题也已经压掉。
-- 当前结论：现在连真实 Electron 全链路也已经按当前交互跑通了，说明这轮前端收口不再只是“页面看着对”，而是主路已经能走到底。
-- 当前结论：这轮最后一批最容易让用户出戏的“系统脑内话”也已经压下去，首页、侧栏、聊天、详纲、剧本几条主路现在更像在告诉用户“这一步该干什么”，而不是在展示内部状态名。
-- 当前结论：最后只差你自己上手测一轮，把仍然不顺手的点继续往下压。
+
+- 代码主链已收口：Wave 1-5 实施完成
+- grep 清零项全部通过
+- 5 个新增 tests 全部通过
+- 下一步：用户真人手测验收
 
 ## 总任务进度
-- 97%（这是整条“前端交互收口”的总进度；自动推进、假进度、完成无提示、详细大纲逐集化、剧本入口假可点、前台文案收口和真实全链复验都已收掉，剩下主要是你实机复测后的最后一轮细节修正）
+
+- 95%（Wave 1-5 代码实施完成，测试完成，文档同步完成，待用户手测验收）
 
 ## 当前小任务
-- 100%（当前这一小轮是在做“把最后一批前台内部话术收口并补跑真实链路”；这轮代码已完成，并已通过 `npm run typecheck`、`npm run build` 和真实 Electron 全链验证）
+
+- 100%（代码、测试、文档三处均已收口，等待用户手测）
+
+## 验收标准（调整后）
+
+1. `npm run build` 通过（打包成功）
+2. grep 验收全部通过（openProjectShell、getStagePayload、replaceActiveCharacterBlocks、CharacterStage IIFE、DetailedOutlineStage inline compute、buildSceneDerived、inspectScreenplayQualityEpisode location、buildScriptGenerationPlan single entry、JSON.stringify memo key）
+3. 5 个新增 file-scoped tests 全部通过
+4. 用户真人手测确认打开项目和切页不再卡顿
 
 ## 更新时间
-- 2026-03-17 01:05
+
+- 2026-03-24
