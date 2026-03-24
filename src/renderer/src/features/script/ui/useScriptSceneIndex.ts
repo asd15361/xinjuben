@@ -22,7 +22,7 @@ function collectMissingFields(screenplay: string): string[] {
   return missing
 }
 
-function buildPreview(screenplay: string): string {
+export function buildPreview(screenplay: string): string {
   const firstUsefulLine = screenplay
     .split('\n')
     .find((line) => line.trim() && !/^第.+集$/.test(line.trim()))
@@ -31,7 +31,7 @@ function buildPreview(screenplay: string): string {
   return firstUsefulLine.length > 80 ? `${firstUsefulLine.slice(0, 80)}...` : firstUsefulLine
 }
 
-function buildSceneSignature(scene: ScriptSegmentDto): string {
+export function buildSceneSignature(scene: ScriptSegmentDto): string {
   return [
     scene.sceneNo,
     scene.screenplay?.trim() || '',
@@ -44,7 +44,7 @@ function buildSceneSignature(scene: ScriptSegmentDto): string {
 }
 
 // 只做轻量计算，不含质量检查
-function buildSceneSummary(scene: ScriptSegmentDto): ScriptSceneSummary {
+export function buildSceneSummary(scene: ScriptSegmentDto): ScriptSceneSummary {
   const signature = buildSceneSignature(scene)
   const cached = summaryCache.get(signature)
   if (cached) return cached
