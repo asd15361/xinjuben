@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
 import { ensureOutlineEpisodeShape } from '../../../../../shared/domain/workflow/outline-episodes'
@@ -7,7 +8,6 @@ const OUTLINE_ESTIMATED_SECONDS = 160
 
 export function useChatStageActions() {
   const projectId = useWorkflowStore((state) => state.projectId)
-  const setStage = useWorkflowStore((state) => state.setStage)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
   const setGenerationStatus = useWorkflowStore((state) => state.setGenerationStatus)
   const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
@@ -48,7 +48,10 @@ export function useChatStageActions() {
     } as const
     clearGenerationNotice()
     setGenerationStatus(nextGenerationStatus)
-    void window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: nextGenerationStatus })
+    void window.api.workspace.saveGenerationStatus({
+      projectId: requestProjectId,
+      generationStatus: nextGenerationStatus
+    })
     setStatus('正在把聊天内容整理成第一版粗纲和人物，请先稍等。')
 
     try {
@@ -71,7 +74,10 @@ export function useChatStageActions() {
         })
       }
       const episodeCount = countEpisodes(result.outlineDraft.summary || '')
-      await window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: null })
+      await window.api.workspace.saveGenerationStatus({
+        projectId: requestProjectId,
+        generationStatus: null
+      })
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setGenerationStatus(null)
         setGenerationNotice({
@@ -81,13 +87,19 @@ export function useChatStageActions() {
           primaryAction: { label: '去看粗纲', stage: 'outline' },
           secondaryAction: { label: '去看人物', stage: 'character' }
         })
-        setStage('outline')
+        const stageResult = await switchStageSession(requestProjectId, 'outline')
+        if (!stageResult) {
+          return
+        }
       }
       setStatus(
         `第一版已经出来了：粗略大纲 ${episodeCount} 集，重点人物 ${result.characterDrafts.length} 个。先确认粗纲，再补人物。`
       )
     } catch (error) {
-      await window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: null })
+      await window.api.workspace.saveGenerationStatus({
+        projectId: requestProjectId,
+        generationStatus: null
+      })
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setGenerationStatus(null)
         setGenerationNotice({

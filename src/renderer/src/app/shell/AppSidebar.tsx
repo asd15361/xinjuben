@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { ChevronRight, Sparkles, Users, FileText, PenTool, Zap, MessageCircle } from 'lucide-react'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+import { switchStageSession } from '../services/stage-session-service'
 import { useWorkflowStore } from '../store/useWorkflowStore'
 import { useStageStore } from '../../store/useStageStore'
 
@@ -14,11 +15,19 @@ const STAGES = [
 
 export function AppSidebar() {
   const currentStage = useWorkflowStore((state) => state.currentStage)
-  const setStage = useWorkflowStore((state) => state.setStage)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)
+
+  async function handleStageChange(targetStage: WorkflowStage): Promise<void> {
+    clearGenerationNotice()
+    if (!projectId) return
+    const result = await switchStageSession(projectId, targetStage)
+    if (!result) {
+      return
+    }
+  }
 
   return (
     <motion.nav
@@ -35,11 +44,15 @@ export function AppSidebar() {
             <Zap className="fill-current text-orange-500" size={22} />
             <span className="hidden lg:inline">XINJUBEN</span>
           </motion.h1>
-          <p className="hidden xl:block text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">故事创作流程</p>
+          <p className="hidden xl:block text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">
+            故事创作流程
+          </p>
         </div>
 
         <div className="space-y-2">
-          <p className="hidden lg:block text-[10px] uppercase tracking-widest text-white/20 font-bold px-2 mb-4">当前步骤</p>
+          <p className="hidden lg:block text-[10px] uppercase tracking-widest text-white/20 font-bold px-2 mb-4">
+            当前步骤
+          </p>
           {STAGES.map((stage) => {
             const isActive = currentStage === stage.id
             const Icon = stage.icon
@@ -61,8 +74,7 @@ export function AppSidebar() {
                 key={stage.id}
                 onClick={() => {
                   if (isLocked) return
-                  clearGenerationNotice()
-                  setStage(stage.id as WorkflowStage)
+                  void handleStageChange(stage.id as WorkflowStage)
                 }}
                 whileHover={{ x: 4 }}
                 whileTap={{ scale: 0.98 }}
@@ -75,7 +87,9 @@ export function AppSidebar() {
                 }`}
                 style={isActive ? { boxShadow: '0 0 18px rgba(255,122,0,0.15)' } : {}}
               >
-                <div className={`p-2 rounded-lg transition-colors ${isActive ? 'bg-orange-500/20' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                <div
+                  className={`p-2 rounded-lg transition-colors ${isActive ? 'bg-orange-500/20' : 'bg-white/5 group-hover:bg-white/10'}`}
+                >
                   <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
                 <div className="hidden lg:block text-left">

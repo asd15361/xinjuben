@@ -1,56 +1,106 @@
-import { useStageStore, hydrateStagePayload } from '../../../store/useStageStore'
+import { switchStageSession } from '../../../app/services/stage-session-service'
+import { useStageStore } from '../../../store/useStageStore'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
 import { DetailedOutlineStageHeader } from '../../../components/DetailedOutlineStageHeader'
 import { DetailedOutlineActsPanel } from '../../../components/DetailedOutlineActsPanel'
 import { useState, useMemo } from 'react'
 import { useDetailedOutlineStageActions } from './useDetailedOutlineStageActions'
-import { useScriptGenerationRuntime } from '../../../app/hooks/useScriptGenerationRuntime'
 import { ensureOutlineEpisodeShape } from '../../../../../shared/domain/workflow/outline-episodes'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
-import { buildDetailedOutlineViewModel } from '../model/build-detailed-outline-view-model'
 import { createAuthorityFailureNotice } from '../../../app/utils/authority-failure-notice'
 import { summarizeIssues } from '../../../app/utils/stage-navigation-truth'
 import { getScriptGenerationPlan } from '../../../app/services/script-plan-service'
+import type { DetailedOutlineSegmentDto } from '../../../../../shared/contracts/workflow'
 
 function formatEpisodeRange(startEpisode: number, endEpisode: number): string {
   return startEpisode === endEpisode ? `${startEpisode}集` : `${startEpisode}-${endEpisode}集`
 }
 
 export function DetailedOutlineStage() {
-  const detailedOutlineBlocks = useStageStore((s) => s.detailedOutlineBlocks)
+  const segments = useStageStore((s) => s.segments)
   const characters = useStageStore((s) => s.characters)
-  const activeCharacterBlocks = useStageStore((s) => s.activeCharacterBlocks)
   const script = useStageStore((s) => s.script)
-  const setDetailedOutlineSectionSummary = useStageStore((s) => s.setDetailedOutlineSectionSummary)
-  const setDetailedOutlineEpisodeBeatSummary = useStageStore(
-    (s) => s.setDetailedOutlineEpisodeBeatSummary
-  )
-  const setDetailedOutlineEpisodeBeatSceneByScene = useStageStore(
-    (s) => s.setDetailedOutlineEpisodeBeatSceneByScene
-  )
-  const saveDetailedOutlineBlocks = useStageStore((s) => s.saveDetailedOutlineBlocks)
+  const setSegment = useStageStore((s) => s.setSegment)
+  const setSegmentEpisodeBeat = useStageStore((s) => s.setSegmentEpisodeBeat)
   const outline = useStageStore((s) => s.outline)
   const projectId = useWorkflowStore((s) => s.projectId)
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const setGenerationNotice = useWorkflowStore((s) => s.setGenerationNotice)
-  const applyStageTransition = useWorkflowStore((s) => s.applyStageTransition)
   const { generationStatus, handleGenerateDetailedOutline } = useDetailedOutlineStageActions()
-  const runtime = useScriptGenerationRuntime({
-    projectId,
-    plan: null,
-    stageContractFingerprint: null,
-    enabled: Boolean(projectId)
-  })
   const [checkingScriptGate, setCheckingScriptGate] = useState(false)
   const normalizedOutline = useMemo(() => ensureOutlineEpisodeShape(outline), [outline])
-  const hasDetailedOutlineBlocks = detailedOutlineBlocks.length > 0
-
-  // Use pure view model builder - NO render-period heavy computation
-  const viewModel = useMemo(
-    () => buildDetailedOutlineViewModel(normalizedOutline, detailedOutlineBlocks),
-    [normalizedOutline, detailedOutlineBlocks]
+  const hasDetailedOutlineBlocks = segments.length > 0
+  const totalEpisodes = normalizedOutline.summaryEpisodes.length
+  const filledCount = useMemo(
+    () =>
+      segments
+        .flatMap((segment) => segment.episodeBeats ?? [])
+        .filter((beat) => beat.summary.trim())
+        .map((beat) => beat.episodeNo)
+        .filter((episodeNo, index, arr) => arr.indexOf(episodeNo) === index).length,
+    [segments]
   )
-  const { filledCount, totalEpisodes, sectionInputs, blockLabels } = viewModel
+  const orderedActs: DetailedOutlineSegmentDto['act'][] = [
+    'opening',
+    'midpoint',
+    'climax',
+    'ending'
+  ]
+  const segmentMap = useMemo(() => {
+    const map = new Map<DetailedOutlineSegmentDto['act'], DetailedOutlineSegmentDto>()
+    for (const segment of segments) {
+      map.set(segment.act, segment)
+    }
+    return map
+  }, [segments])
+  const segmentEpisodeRange = (segment: DetailedOutlineSegmentDto, fallbackIndex: number) => {
+    const beatEpisodes = (segment.episodeBeats ?? []).map((beat) => beat.episodeNo).filter(Boolean)
+    const startEpisode = beatEpisodes[0] ?? Math.max(1, fallbackIndex + 1)
+    const endEpisode =
+      beatEpisodes[beatEpisodes.length - 1] ?? Math.max(startEpisode, totalEpisodes || startEpisode)
+    return { startEpisode, endEpisode }
+  }
+  const acts = orderedActs.map((act, index) => {
+    const segment = segmentMap.get(act) ?? { act, content: '', hookType: '', episodeBeats: [] }
+    const { startEpisode, endEpisode } = segmentEpisodeRange(segment, index)
+    const labels: Record<DetailedOutlineSegmentDto['act'], string> = {
+      opening: '开局',
+      midpoint: '中段',
+      climax: '高潮',
+      ending: '收束'
+    }
+    return {
+      key: act,
+      label: labels[act],
+      hint: segment.hookType || '把这一段的推进、压强升级和结尾钩子写清楚。',
+      startEpisode,
+      endEpisode
+    }
+  })
+  const values = orderedActs.reduce(
+    (acc, act, index) => {
+      const segment = segmentMap.get(act) ?? { act, content: '', hookType: '', episodeBeats: [] }
+      const { startEpisode, endEpisode } = segmentEpisodeRange(segment, index)
+      acc[act] = {
+        summary: segment.content,
+        episodes: normalizedOutline.summaryEpisodes
+          .filter((episode) => episode.episodeNo >= startEpisode && episode.episodeNo <= endEpisode)
+          .map((episode) => ({
+            episodeNo: episode.episodeNo,
+            summary:
+              segment.episodeBeats?.find((beat) => beat.episodeNo === episode.episodeNo)?.summary ??
+              ''
+          }))
+      }
+      return acc
+    },
+    {
+      opening: { summary: '', episodes: [] as Array<{ episodeNo: number; summary: string }> },
+      midpoint: { summary: '', episodes: [] as Array<{ episodeNo: number; summary: string }> },
+      climax: { summary: '', episodes: [] as Array<{ episodeNo: number; summary: string }> },
+      ending: { summary: '', episodes: [] as Array<{ episodeNo: number; summary: string }> }
+    }
+  )
   const outlineEpisodes = normalizedOutline.summaryEpisodes
 
   const handleGoToScriptStage = async (): Promise<void> => {
@@ -64,10 +114,10 @@ export function DetailedOutlineStage() {
         storyIntent,
         outline: normalizedOutline,
         characters,
-        activeCharacterBlocks,
-        detailedOutlineBlocks,
+        activeCharacterBlocks: [],
+        detailedOutlineBlocks: segments,
         script,
-        failureHistory: runtime.failureHistory
+        failureHistory: []
       })
 
       if (!plan) {
@@ -85,17 +135,8 @@ export function DetailedOutlineStage() {
           return
         }
         try {
-          await saveDetailedOutlineBlocks(projectId)
-          const result = await window.api.workspace.changeProjectStage({
-            projectId,
-            targetStage: 'script'
-          })
-          if (result.project && result.payload && result.nextStage) {
-            hydrateStagePayload(result.payload)
-            applyStageTransition(result.nextStage, result.project)
-            return
-          }
-          if (!result.project) {
+          const result = await switchStageSession(projectId, 'script')
+          if (!result) {
             setGenerationNotice(
               createAuthorityFailureNotice({
                 type: 'authority_failure',
@@ -117,7 +158,6 @@ export function DetailedOutlineStage() {
             )
             return
           }
-          throw new Error('Incomplete stage session result: payload or nextStage missing')
         } catch {
           setGenerationNotice(
             createAuthorityFailureNotice({
@@ -213,16 +253,8 @@ export function DetailedOutlineStage() {
                   return
                 }
                 try {
-                  const result = await window.api.workspace.changeProjectStage({
-                    projectId,
-                    targetStage: 'outline'
-                  })
-                  if (result.project && result.payload && result.nextStage) {
-                    hydrateStagePayload(result.payload)
-                    applyStageTransition(result.nextStage, result.project)
-                    return
-                  }
-                  if (!result.project) {
+                  const result = await switchStageSession(projectId, 'outline')
+                  if (!result) {
                     setGenerationNotice(
                       createAuthorityFailureNotice({
                         type: 'authority_failure',
@@ -244,7 +276,6 @@ export function DetailedOutlineStage() {
                     )
                     return
                   }
-                  throw new Error('Incomplete stage session result: payload or nextStage missing')
                 } catch {
                   setGenerationNotice(
                     createAuthorityFailureNotice({
@@ -299,11 +330,11 @@ export function DetailedOutlineStage() {
         {hasDetailedOutlineBlocks && (
           <div className="max-w-4xl">
             <DetailedOutlineActsPanel
-              acts={sectionInputs}
+              acts={acts}
+              values={values}
               downstreamLocked={Boolean(generationStatus)}
-              onChange={setDetailedOutlineSectionSummary}
-              onEpisodeChange={setDetailedOutlineEpisodeBeatSummary}
-              onSceneBySceneChange={setDetailedOutlineEpisodeBeatSceneByScene}
+              onChange={setSegment}
+              onEpisodeChange={setSegmentEpisodeBeat}
             />
           </div>
         )}
@@ -324,19 +355,21 @@ export function DetailedOutlineStage() {
           </div>
 
           <div className="space-y-4">
-            {detailedOutlineBlocks.map((block) => (
+            {segments.map((segment, index) => (
               <div
-                key={block.blockNo}
+                key={segment.act}
                 className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4"
               >
                 <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-[11px] font-black text-white/80">第 {block.blockNo} 块</p>
+                  <p className="text-[11px] font-black text-white/80">第 {index + 1} 段</p>
                   <span className="text-[10px] text-orange-300/80">
-                    {blockLabels[block.blockNo] ||
-                      formatEpisodeRange(block.startEpisode, block.endEpisode)}
+                    {formatEpisodeRange(
+                      acts[index]?.startEpisode ?? 1,
+                      acts[index]?.endEpisode ?? 1
+                    )}
                   </span>
                 </div>
-                <p className="text-[12px] text-white/55 leading-relaxed">{block.summary}</p>
+                <p className="text-[12px] text-white/55 leading-relaxed">{segment.content}</p>
               </div>
             ))}
           </div>

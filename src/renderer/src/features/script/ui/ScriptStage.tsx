@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { PenTool, Play } from 'lucide-react'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
+import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useStageStore } from '../../../store/useStageStore'
 import { ScriptSceneNavigator } from './ScriptSceneNavigator'
 import { ScriptSceneDraftEditor } from './ScriptSceneDraftEditor'
@@ -34,20 +35,40 @@ export function ScriptStage() {
   const script = useStageStore((state) => state.script)
   const addScript = useStageStore((state) => state.addScriptSegment)
   const outline = useStageStore((state) => state.outline)
-  const setStage = useWorkflowStore((state) => state.setStage)
+  const projectId = useWorkflowStore((state) => state.projectId)
   const storyIntent = useWorkflowStore((state) => state.storyIntent)
   const targetEpisodes = resolveProjectEpisodeCount({ outline, storyIntent })
   const generationPlan = useScriptGenerationPlan({ targetEpisodes })
-  const { generationStatus, handleStartGeneration } = useScriptStageActions({ generationPlan, audit: { report: null } as any })
+  const { generationStatus, handleStartGeneration } = useScriptStageActions({
+    generationPlan,
+    audit: { report: null } as any
+  })
   const generationPlanReady = generationPlan?.ready === true
   const generationPlanPending = generationPlan === null
   const generationBlockedMessage =
     generationPlan?.ready === false
-      ? getScriptBlockedSummary(generationPlan.blockedBy[0]?.code, generationPlan.blockedBy[0]?.message)
+      ? getScriptBlockedSummary(
+          generationPlan.blockedBy[0]?.code,
+          generationPlan.blockedBy[0]?.message
+        )
       : ''
 
-  const [draft, setDraft] = useState({ sceneNo: script.length + 1, action: '', dialogue: '', emotion: '' })
-  const { sceneSearch, sceneFilter, visibleScenes, setSceneSearch, setSceneFilter } = useScriptSceneFilter(script)
+  const [draft, setDraft] = useState({
+    sceneNo: script.length + 1,
+    action: '',
+    dialogue: '',
+    emotion: ''
+  })
+  const { sceneSearch, sceneFilter, visibleScenes, setSceneSearch, setSceneFilter } =
+    useScriptSceneFilter(script)
+
+  async function handleGoToDetailedOutline(): Promise<void> {
+    if (!projectId) return
+    const result = await switchStageSession(projectId, 'detailed_outline')
+    if (!result) {
+      return
+    }
+  }
 
   function handleAdd(): void {
     if (!draft.action && !draft.dialogue) return
@@ -65,8 +86,12 @@ export function ScriptStage() {
           </div>
           <div>
             <h2 className="text-lg font-black text-white/90">剧本定稿</h2>
-            <p className="text-[11px] text-white/40 mt-0.5">这一页只做一件事：把详细大纲真正写成可看的场次。</p>
-            <p className="text-[10px] text-orange-400/90 mt-1">当前按 {targetEpisodes} 集链路推进</p>
+            <p className="text-[11px] text-white/40 mt-0.5">
+              这一页只做一件事：把详细大纲真正写成可看的场次。
+            </p>
+            <p className="text-[10px] text-orange-400/90 mt-1">
+              当前按 {targetEpisodes} 集链路推进
+            </p>
           </div>
         </div>
 
@@ -86,7 +111,9 @@ export function ScriptStage() {
 
       {!generationStatus && script.length === 0 && (
         <div className="shrink-0 mb-6 rounded-2xl border border-orange-500/20 bg-orange-500/8 p-5">
-          <p className="text-[10px] uppercase tracking-widest text-orange-300 font-black">剧本还没开始写</p>
+          <p className="text-[10px] uppercase tracking-widest text-orange-300 font-black">
+            剧本还没开始写
+          </p>
           <p className="mt-1 text-sm font-black text-white/90">
             {generationPlanPending
               ? '我正在检查这一页能不能直接开写，请先等入口准备好。'
@@ -96,7 +123,9 @@ export function ScriptStage() {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
-              onClick={() => setStage('detailed_outline')}
+              onClick={() => {
+                void handleGoToDetailedOutline()
+              }}
               className="rounded-xl border border-white/10 px-4 py-2 text-[11px] font-black text-white/75 hover:text-white hover:bg-white/5 transition-colors"
             >
               先回详细大纲检查
@@ -116,11 +145,17 @@ export function ScriptStage() {
         <div className="shrink-0 mb-6 rounded-2xl border border-white/8 bg-white/[0.02] px-5 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">当前结果</p>
-              <p className="text-sm font-black text-white/85">下面已经写出 {script.length} 场，你可以直接往下看、手动补，或者继续生成。</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">
+                当前结果
+              </p>
+              <p className="text-sm font-black text-white/85">
+                下面已经写出 {script.length} 场，你可以直接往下看、手动补，或者继续生成。
+              </p>
             </div>
             <button
-              onClick={() => setStage('detailed_outline')}
+              onClick={() => {
+                void handleGoToDetailedOutline()
+              }}
               className="rounded-xl border border-white/10 px-4 py-2 text-[11px] font-black text-white/70 hover:text-white hover:bg-white/5 transition-colors"
             >
               回详细大纲

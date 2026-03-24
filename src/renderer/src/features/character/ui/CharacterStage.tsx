@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Users, Plus, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useStageStore } from '../../../store/useStageStore'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { CharacterStageEditor } from '../../../components/CharacterStageEditor'
@@ -10,8 +11,16 @@ export function CharacterStage() {
   const updateCharacter = useStageStore((s) => s.updateCharacter)
   const addCharacter = useStageStore((s) => s.addCharacter)
   const removeCharacter = useStageStore((s) => s.removeCharacter)
-  const setStage = useWorkflowStore((s) => s.setStage)
+  const projectId = useWorkflowStore((s) => s.projectId)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
+
+  async function handleGoToDetailedOutline(): Promise<void> {
+    if (!projectId) return
+    const result = await switchStageSession(projectId, 'detailed_outline')
+    if (!result) {
+      return
+    }
+  }
 
   function handleRemoveCharacter(index: number) {
     removeCharacter(index)
@@ -49,7 +58,9 @@ export function CharacterStage() {
             </div>
             <div>
               <h2 className="text-lg font-black text-white/90">人物小传</h2>
-              <p className="text-[11px] text-white/40 mt-0.5">塑造角色灵魂，剧本的发动机就在这里。</p>
+              <p className="text-[11px] text-white/40 mt-0.5">
+                塑造角色灵魂，剧本的发动机就在这里。
+              </p>
             </div>
           </div>
 
@@ -65,7 +76,9 @@ export function CharacterStage() {
             </button>
 
             <button
-              onClick={() => setStage('detailed_outline')}
+              onClick={() => {
+                void handleGoToDetailedOutline()
+              }}
               className="rounded-xl px-5 py-2.5 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20"
               style={{ background: '#FF7A00' }}
             >
@@ -177,8 +190,16 @@ export function CharacterStage() {
                       </div>
                       {(c.publicMask || c.hiddenPressure) && (
                         <div className="space-y-2">
-                          {c.publicMask && <p className="text-[11px] text-white/55 leading-relaxed">表面：{c.publicMask}</p>}
-                          {c.hiddenPressure && <p className="text-[11px] text-white/55 leading-relaxed">暗里卡着：{c.hiddenPressure}</p>}
+                          {c.publicMask && (
+                            <p className="text-[11px] text-white/55 leading-relaxed">
+                              表面：{c.publicMask}
+                            </p>
+                          )}
+                          {c.hiddenPressure && (
+                            <p className="text-[11px] text-white/55 leading-relaxed">
+                              暗里卡着：{c.hiddenPressure}
+                            </p>
+                          )}
                         </div>
                       )}
                       <p className="text-[12px] text-white/50 leading-relaxed font-medium line-clamp-4">
@@ -198,7 +219,11 @@ export function CharacterStage() {
             }}
             className="w-full min-h-[160px] rounded-2xl border-2 border-dashed border-white/5 flex flex-col items-center justify-center gap-3 text-white/15 hover:text-orange-400/50 hover:border-orange-500/20 hover:bg-orange-500/[0.01] transition-all group"
           >
-            <Plus size={28} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
+            <Plus
+              size={28}
+              strokeWidth={1.5}
+              className="group-hover:scale-110 transition-transform"
+            />
             <span className="text-[9px] font-black uppercase tracking-[0.25em]">塑造新灵魂</span>
           </button>
         </div>

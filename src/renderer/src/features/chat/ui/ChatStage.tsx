@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { MessageCircle } from 'lucide-react'
 import { ChatIntakePanel } from '../../workspace/ui/ChatIntakePanel'
+import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
 import { useChatStageActions } from './useChatStageActions'
 import { createInitialChatMessages } from '../../workspace/ui/chat/ChatTypes'
 
 export function ChatStage() {
-  const setStage = useWorkflowStore((s) => s.setStage)
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
   const setChatMessages = useWorkflowStore((s) => s.setChatMessages)
   const outline = useStageStore((s) => s.outline)
@@ -16,6 +16,14 @@ export function ChatStage() {
   const [sessionKey, setSessionKey] = useState(0)
 
   const projectLocked = !projectId
+
+  async function handleGoToOutline(): Promise<void> {
+    if (!projectId) return
+    const result = await switchStageSession(projectId, 'outline')
+    if (!result) {
+      return
+    }
+  }
 
   return (
     <div className="h-full overflow-hidden flex flex-col relative">
@@ -37,7 +45,9 @@ export function ChatStage() {
         <div className="flex items-center gap-2">
           {(outline.title.trim() || characters.length > 0) && (
             <button
-              onClick={() => setStage('outline')}
+              onClick={() => {
+                void handleGoToOutline()
+              }}
               className="rounded-lg px-3 py-1.5 text-[10px] font-black text-[#050505] transition-transform active:scale-95"
               style={{ background: '#FF7A00' }}
             >
