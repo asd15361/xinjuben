@@ -1,8 +1,15 @@
-export type ProjectGenerationTaskDto = 'outline_bundle' | 'detailed_outline' | 'script'
+import type { WorkflowStage } from './workflow'
+
+export type ProjectGenerationTaskDto =
+  | 'confirm_story_intent'
+  | 'seven_questions'
+  | 'outline_and_characters'
+  | 'detailed_outline'
+  | 'script'
 
 export interface ProjectGenerationStatusDto {
   task: ProjectGenerationTaskDto
-  stage: 'chat' | 'detailed_outline' | 'script'
+  stage: WorkflowStage
   title: string
   detail: string
   startedAt: number

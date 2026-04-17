@@ -54,7 +54,7 @@ export function parseGeneratedScene(text: string, sceneNo: number): ScriptSegmen
   if (headingMatches.length >= 2) {
     return {
       sceneNo,
-      ...extractStructuredSceneFromScreenplay(text, sceneNo)
+      ...extractStructuredSceneFromScreenplay(normalizedText, sceneNo)
     }
   }
 
@@ -63,7 +63,7 @@ export function parseGeneratedScene(text: string, sceneNo: number): ScriptSegmen
   if (looksLikeScreenplayFormat(normalizedText)) {
     return {
       sceneNo,
-      ...extractStructuredSceneFromScreenplay(text, sceneNo)
+      ...extractStructuredSceneFromScreenplay(normalizedText, sceneNo)
     }
   }
 

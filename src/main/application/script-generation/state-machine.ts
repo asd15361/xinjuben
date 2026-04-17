@@ -1,5 +1,5 @@
 import type { ScriptGenerationProgressBoardDto } from '../../../shared/contracts/script-generation'
-import { markBatchStatus, updateEpisodeStatus } from './progress-board'
+import { markBatchStatus, updateEpisodeStatus } from './progress-board.ts'
 
 export type ScriptGenerationEvent =
   | { type: 'batch_started'; reason: string }

@@ -2,6 +2,11 @@ import { BrowserWindow, screen, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../../../resources/icon.png?asset'
+import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log'
+import {
+  runtimeConsoleError,
+  runtimeConsoleLog
+} from '../../infrastructure/diagnostics/runtime-console'
 
 export function createWindow(): BrowserWindow {
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
@@ -29,10 +34,54 @@ export function createWindow(): BrowserWindow {
   })
 
   mainWindow.on('ready-to-show', () => {
+    void appendRuntimeDiagnosticLog('main', 'ready-to-show')
+    runtimeConsoleLog('[main] ready-to-show')
     if (shouldMaximize) {
       mainWindow.maximize()
     }
     mainWindow.show()
+  })
+
+  mainWindow.webContents.on(
+    'did-fail-load',
+    (_, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      void appendRuntimeDiagnosticLog(
+        'main',
+        `did-fail-load code=${errorCode} description=${errorDescription} url=${validatedURL} mainFrame=${isMainFrame}`
+      )
+      runtimeConsoleError('[main] did-fail-load', {
+        errorCode,
+        errorDescription,
+        validatedURL,
+        isMainFrame
+      })
+    }
+  )
+
+  mainWindow.webContents.on('render-process-gone', (_, details) => {
+    void appendRuntimeDiagnosticLog(
+      'main',
+      `webContents render-process-gone ${JSON.stringify(details)}`
+    )
+    runtimeConsoleError('[main] webContents render-process-gone', details)
+  })
+
+  mainWindow.webContents.on('unresponsive', () => {
+    void appendRuntimeDiagnosticLog('main', 'webContents unresponsive')
+    runtimeConsoleError('[main] webContents unresponsive')
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    void appendRuntimeDiagnosticLog('main', `did-finish-load ${mainWindow.webContents.getURL()}`)
+    runtimeConsoleLog('[main] did-finish-load', mainWindow.webContents.getURL())
+  })
+
+  mainWindow.webContents.on('console-message', (_, level, message, line, sourceId) => {
+    void appendRuntimeDiagnosticLog(
+      'renderer-console',
+      `level=${level} source=${sourceId}:${line} message=${message}`
+    )
+    runtimeConsoleLog('[renderer-console]', { level, message, line, sourceId })
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -41,9 +90,14 @@ export function createWindow(): BrowserWindow {
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    void appendRuntimeDiagnosticLog('main', `loadURL ${process.env['ELECTRON_RENDERER_URL']}`)
+    runtimeConsoleLog('[main] loadURL', process.env['ELECTRON_RENDERER_URL'])
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    const rendererHtmlPath = join(__dirname, '../renderer/index.html')
+    void appendRuntimeDiagnosticLog('main', `loadFile ${rendererHtmlPath}`)
+    runtimeConsoleLog('[main] loadFile', rendererHtmlPath)
+    mainWindow.loadFile(rendererHtmlPath)
   }
 
   return mainWindow

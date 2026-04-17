@@ -2,8 +2,16 @@ import type { ChatMessageDto } from '../../../../shared/contracts/chat'
 import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
 import { create } from 'zustand'
 import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
-import type { ScriptRuntimeFailureHistoryCode } from '../../../../shared/contracts/script-generation'
+import type {
+  ScriptGenerationFailureResolutionDto,
+  ScriptGenerationProgressBoardDto,
+  ScriptRuntimeFailureHistoryCode
+} from '../../../../shared/contracts/script-generation'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+import type {
+  FormalReleaseState,
+  VisibleResultState
+} from '../../../../shared/contracts/visible-release-state'
 
 export interface GenerationNoticeAction {
   label: string
@@ -11,6 +19,7 @@ export interface GenerationNoticeAction {
 }
 
 export interface GenerationNotice {
+  source?: 'system' | 'generation_result' | 'stage_gate'
   kind: 'success' | 'error'
   title: string
   detail: string
@@ -27,6 +36,10 @@ interface WorkflowState {
   generationNotice: GenerationNotice | null
   storyIntent: StoryIntentPackageDto | null
   scriptRuntimeFailureHistory: ScriptRuntimeFailureHistoryCode[]
+  scriptProgressBoard: ScriptGenerationProgressBoardDto | null
+  scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
+  visibleResult: VisibleResultState | null
+  formalRelease: FormalReleaseState | null
   setStage: (stage: WorkflowStage) => void
   setProjectId: (id: string | null) => void
   setProjectName: (name: string) => void
@@ -36,6 +49,10 @@ interface WorkflowState {
   clearGenerationNotice: () => void
   setStoryIntent: (storyIntent: StoryIntentPackageDto | null) => void
   setScriptRuntimeFailureHistory: (history: ScriptRuntimeFailureHistoryCode[]) => void
+  setScriptProgressBoard: (value: ScriptGenerationProgressBoardDto | null) => void
+  setScriptFailureResolution: (value: ScriptGenerationFailureResolutionDto | null) => void
+  setVisibleResult: (value: VisibleResultState | null) => void
+  setFormalRelease: (value: FormalReleaseState | null) => void
   reset: () => void
 }
 
@@ -48,6 +65,10 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   generationNotice: null,
   storyIntent: null,
   scriptRuntimeFailureHistory: [],
+  scriptProgressBoard: null,
+  scriptFailureResolution: null,
+  visibleResult: null,
+  formalRelease: null,
   setStage: (stage) => set({ currentStage: stage }),
   setProjectId: (projectId) => set({ projectId }),
   setProjectName: (projectName) => set({ projectName }),
@@ -56,7 +77,12 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   setGenerationNotice: (generationNotice) => set({ generationNotice }),
   clearGenerationNotice: () => set({ generationNotice: null }),
   setStoryIntent: (storyIntent) => set({ storyIntent }),
-  setScriptRuntimeFailureHistory: (scriptRuntimeFailureHistory) => set({ scriptRuntimeFailureHistory }),
+  setScriptRuntimeFailureHistory: (scriptRuntimeFailureHistory) =>
+    set({ scriptRuntimeFailureHistory }),
+  setScriptProgressBoard: (scriptProgressBoard) => set({ scriptProgressBoard }),
+  setScriptFailureResolution: (scriptFailureResolution) => set({ scriptFailureResolution }),
+  setVisibleResult: (visibleResult) => set({ visibleResult }),
+  setFormalRelease: (formalRelease) => set({ formalRelease }),
   reset: () =>
     set(() => ({
       currentStage: 'chat',
@@ -66,6 +92,10 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       generationStatus: null,
       generationNotice: null,
       storyIntent: null,
-      scriptRuntimeFailureHistory: []
+      scriptRuntimeFailureHistory: [],
+      scriptProgressBoard: null,
+      scriptFailureResolution: null,
+      visibleResult: null,
+      formalRelease: null
     }))
 }))

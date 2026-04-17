@@ -1,5 +1,9 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPostflightDto, ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import { getLedgerHashFromState } from './ledger-semantic-hash'
+import type {
+  ScriptLedgerIssueDto,
+  ScriptLedgerPostflightDto,
+  ScriptStateLedgerDto
+} from '../../../../shared/contracts/script-ledger'
+import { getLedgerHashFromState } from './ledger-semantic-hash.ts'
 
 export function collectLedgerMomentumPostflight(input: {
   previousLedger: ScriptStateLedgerDto
@@ -56,10 +60,23 @@ export function collectLedgerMomentumPostflight(input: {
     })
   }
 
-  const previousHookAnchors = input.previousLedger.openHooks.flatMap((hook) => hook.anchorRefs).sort().join('|')
-  const nextHookAnchors = input.nextLedger.openHooks.flatMap((hook) => hook.anchorRefs).sort().join('|')
-  const previousHookMap = new Map(input.previousLedger.openHooks.map((hook) => [hook.id, hook.anchorRefs.slice().sort().join('|')]))
-  const nextHookMap = new Map(input.nextLedger.openHooks.map((hook) => [hook.id, hook.anchorRefs.slice().sort().join('|')]))
+  const previousHookAnchors = input.previousLedger.openHooks
+    .flatMap((hook) => hook.anchorRefs)
+    .sort()
+    .join('|')
+  const nextHookAnchors = input.nextLedger.openHooks
+    .flatMap((hook) => hook.anchorRefs)
+    .sort()
+    .join('|')
+  const previousHookMap = new Map(
+    input.previousLedger.openHooks.map((hook) => [
+      hook.id,
+      hook.anchorRefs.slice().sort().join('|')
+    ])
+  )
+  const nextHookMap = new Map(
+    input.nextLedger.openHooks.map((hook) => [hook.id, hook.anchorRefs.slice().sort().join('|')])
+  )
   const sharedHookIds = [...previousHookMap.keys()].filter((id) => nextHookMap.has(id))
   const hasSharedHookAnchorShift =
     sharedHookIds.length > 0 &&

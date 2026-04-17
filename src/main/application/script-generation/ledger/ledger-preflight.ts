@@ -83,6 +83,31 @@ export function buildLedgerPreflight(input: {
     })
   }
 
+  const blockedCharacters = input.characters.filter(
+    (character) =>
+      !character.continuityStatus.canActDirectly &&
+      (character.continuityStatus.custodyStatus === 'captured' ||
+        character.continuityStatus.custodyStatus === 'restricted')
+  )
+  if (blockedCharacters.length > 0) {
+    issues.push({
+      severity: 'high',
+      code: 'character_custody_lock',
+      detail: `这些角色当前处于关押/受限状态，下一集若继续直接带队行动，必须先写清越狱、放出、换押送或解除限制：${blockedCharacters.map((character) => character.name).join('、')}。`
+    })
+  }
+
+  const prolongedInjuryCharacters = input.characters.filter(
+    (character) => character.continuityStatus.injuryEpisodeStreak >= 2
+  )
+  if (prolongedInjuryCharacters.length > 0) {
+    issues.push({
+      severity: 'high',
+      code: 'injury_streak_overload',
+      detail: `这些角色已经连续 ${Math.max(...prolongedInjuryCharacters.map((character) => character.continuityStatus.injuryEpisodeStreak))} 集维持重伤/中毒状态，下一集必须触发治疗、解毒、换壳恢复或明确失能后果，不能继续拿吐血当过场：${prolongedInjuryCharacters.map((character) => character.name).join('、')}。`
+    })
+  }
+
   return {
     issues,
     assertionBlock:

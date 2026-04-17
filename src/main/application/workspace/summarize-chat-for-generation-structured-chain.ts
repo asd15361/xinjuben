@@ -1,10 +1,15 @@
-import type { GenerationBriefCharacterLayer } from './generation-brief-template'
-import { uniqueList } from './summarize-chat-for-generation-shared'
+import type { GenerationBriefCharacterLayer } from './generation-brief-template.ts'
+import { uniqueList } from './summarize-chat-for-generation-shared.ts'
 import {
   findCharacterCard,
   type StructuredBriefSections
-} from './summarize-chat-for-generation-structured-parser'
-import { pickKeyAsset, pickProtectTarget, pickThemeAnchor, pickWorldPressure } from './summarize-chat-for-generation-structured-inference'
+} from './summarize-chat-for-generation-structured-parser.ts'
+import {
+  pickKeyAsset,
+  pickProtectTarget,
+  pickThemeAnchor,
+  pickWorldPressure
+} from './summarize-chat-for-generation-structured-inference.ts'
 
 function inferSeasonDesireLine(sections: StructuredBriefSections): string {
   const explicit = sections.sectionMap.get('主线欲望线')?.trim()

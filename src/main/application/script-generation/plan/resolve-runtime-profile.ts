@@ -73,16 +73,7 @@ export function resolveScriptRuntimeProfile(input: {
     shouldCompactContextFirst ? (runtimeFailureCount > 0 ? 1300 : 1600) : 2400
   const maxSegmentChars =
     shouldCompactContextFirst ? (runtimeFailureCount > 0 ? 760 : 900) : 1500
-  const preferSingleEpisodeFirstBatch = runtimeFailureCount === 0 && input.targetEpisodes >= 8
-  const recommendedBatchSize = clamp(
-    shouldCompactContextFirst
-      ? Math.min(runtimeFailureCount > 0 ? 2 : 3, input.targetEpisodes)
-      : preferSingleEpisodeFirstBatch
-        ? 1
-        : Math.min(3, input.targetEpisodes),
-    1,
-    Math.max(1, input.targetEpisodes)
-  )
+  const recommendedBatchSize = clamp(Math.min(5, input.targetEpisodes), 1, Math.max(1, input.targetEpisodes))
   const profileLabel = [
     shouldCompactContextFirst ? 'compact' : 'full',
     `episodes-${input.targetEpisodes}`,
@@ -104,7 +95,7 @@ export function resolveScriptRuntimeProfile(input: {
       `人物包=${characterLength}`,
       `详纲包=${segmentLength}`,
       shouldCompactContextFirst ? '先瘦身上下文' : '保留完整上下文',
-      preferSingleEpisodeFirstBatch ? '首批先跑1集拿真结果' : '首批按常规批次推进',
+      `首批按 ${recommendedBatchSize} 集推进`,
       runtimeFailureCount > 0 ? `失败历史=${runtimeFailureCount}` : '失败历史=0'
     ].join('｜')
   }

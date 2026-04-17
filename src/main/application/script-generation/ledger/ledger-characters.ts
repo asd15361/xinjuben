@@ -1,17 +1,20 @@
 import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
 import type { CharacterDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow'
-import { findTraitBindingEvidence } from '../../../../shared/domain/script-generation/signal-policy'
+import { findTraitBindingEvidence } from '../../../../shared/domain/script-generation/signal-policy.ts'
 
-const LOCATION_PATTERN = /在([\u4e00-\u9fa5A-Za-z0-9]{2,12}(?:房|室|厅|楼|巷|街|院|馆|店|城|村|站|口))/
+const LOCATION_PATTERN =
+  /在([\u4e00-\u9fa5A-Za-z0-9]{2,12}(?:房|室|厅|楼|巷|街|院|馆|店|城|村|站|口))/
 const SCENE_LIMIT = 3
 
-type TraitLandingType = ScriptStateLedgerDto['characters'][number]['traitBindings'][number]['landingType']
-type RelationshipPressureDto = ScriptStateLedgerDto['characters'][number]['relationshipPressure'][number]
+type TraitLandingType =
+  ScriptStateLedgerDto['characters'][number]['traitBindings'][number]['landingType']
+type RelationshipPressureDto =
+  ScriptStateLedgerDto['characters'][number]['relationshipPressure'][number]
 
 function inferCustodyStatus(text: string): 'free' | 'captured' | 'missing' | 'restricted' {
   if (/失踪|下落不明|找不到/i.test(text)) return 'missing'
-  if (/被抓|被绑|押走|囚禁|控制住|扣下/i.test(text)) return 'captured'
-  if (/受限|监视|盯梢|软禁|不能离开/i.test(text)) return 'restricted'
+  if (/被抓|被绑|押走|押回|押入地牢|地牢|收监|候审|囚禁|控制住|扣下/i.test(text)) return 'captured'
+  if (/受限|监视|盯梢|软禁|不能离开|封住经脉|革去.*职务|停职|夺权/i.test(text)) return 'restricted'
   return 'free'
 }
 
@@ -20,14 +23,35 @@ function inferLocation(text: string): string {
 }
 
 function inferInjuryStatus(text: string): string {
-  if (/重伤|吐血|昏迷|濒危/i.test(text)) return '重伤'
-  if (/受伤|流血|擦伤|疼痛/i.test(text)) return '轻伤'
+  if (/中毒|毒发|黑血|吐血|咳血|血沫|昏迷|濒危|重伤/i.test(text)) return '重伤'
+  if (/受伤|流血|擦伤|疼痛|伤口|负伤/i.test(text)) return '轻伤'
   return '正常'
+}
+
+function pickStatusEvidence(text: string): string {
+  return (
+    text
+      .split(/[。！？!?；\n]/)
+      .map((line) => line.trim())
+      .find((line) => /吐血|咳血|黑血|中毒|押入地牢|押回|候审|地牢|被抓|被绑|软禁|封住经脉|革去.*职务/.test(line)) ||
+    '最近场景未提炼出更明确的状态证据'
+  )
+}
+
+function countTailWhile<T>(items: T[], predicate: (item: T) => boolean): number {
+  let count = 0
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (!predicate(items[index]!)) break
+    count += 1
+  }
+  return count
 }
 
 function pickRecentScenes(script: ScriptSegmentDto[], characterName: string): ScriptSegmentDto[] {
   return script
-    .filter((scene) => `${scene.action}\n${scene.dialogue}\n${scene.emotion}`.includes(characterName))
+    .filter((scene) =>
+      `${scene.action}\n${scene.dialogue}\n${scene.emotion}`.includes(characterName)
+    )
     .slice(-SCENE_LIMIT)
 }
 
@@ -86,7 +110,9 @@ function buildTraitBindings(character: CharacterDraftDto, scenes: ScriptSegmentD
     .map((item) => String(item || '').trim())
     .filter(Boolean)
     .slice(0, 4)
-  const sceneText = scenes.map((scene) => `${scene.action}\n${scene.dialogue}\n${scene.emotion}`).join('\n')
+  const sceneText = scenes
+    .map((scene) => `${scene.action}\n${scene.dialogue}\n${scene.emotion}`)
+    .join('\n')
 
   return traits.map((trait) => {
     const landingType = normalizeTraitLandingType(trait)
@@ -107,7 +133,9 @@ function buildRelationshipPressure(input: {
   currentCharacter: CharacterDraftDto
 }): RelationshipPressureDto[] {
   const recentScenes = pickRecentScenes(input.script, input.currentCharacter.name)
-  const joinedText = recentScenes.map((scene) => `${scene.action}\n${scene.dialogue}\n${scene.emotion}`).join('\n')
+  const joinedText = recentScenes
+    .map((scene) => `${scene.action}\n${scene.dialogue}\n${scene.emotion}`)
+    .join('\n')
 
   return input.characters
     .filter((character) => character.name !== input.currentCharacter.name)
@@ -134,6 +162,19 @@ export function buildCharacterStates(input: {
     const characterScenes = pickRecentScenes(input.script, character.name)
     const lastSeenScene = characterScenes[characterScenes.length - 1]
     const latestText = `${lastSeenScene?.action || latestScene?.action || ''}\n${lastSeenScene?.dialogue || latestScene?.dialogue || ''}\n${lastSeenScene?.emotion || latestScene?.emotion || ''}`
+    const appearanceHistory = input.script.filter(
+      (scene) =>
+        scene.action.includes(character.name) ||
+        scene.dialogue.includes(character.name) ||
+        scene.emotion.includes(character.name)
+    )
+    const injuryEpisodeStreak = countTailWhile(appearanceHistory, (scene) =>
+      inferInjuryStatus(`${scene.action}\n${scene.dialogue}\n${scene.emotion}`) === '重伤'
+    )
+    const custodyEpisodeStreak = countTailWhile(appearanceHistory, (scene) =>
+      inferCustodyStatus(`${scene.action}\n${scene.dialogue}\n${scene.emotion}`) !== 'free'
+    )
+    const latestCustodyStatus = inferCustodyStatus(latestText)
 
     return {
       name: character.name,
@@ -149,8 +190,13 @@ export function buildCharacterStates(input: {
       continuityStatus: {
         location: inferLocation(latestText),
         injuryStatus: inferInjuryStatus(latestText),
-        custodyStatus: inferCustodyStatus(latestText),
-        canActDirectly: !/昏迷|被绑|被抓|失踪|软禁/i.test(latestText),
+        custodyStatus: latestCustodyStatus,
+        canActDirectly:
+          !/昏迷|被绑|被抓|失踪|软禁|押入地牢|押回|候审|地牢|封住经脉/.test(latestText) &&
+          latestCustodyStatus === 'free',
+        injuryEpisodeStreak,
+        custodyEpisodeStreak,
+        statusEvidence: pickStatusEvidence(latestText),
         lastSeenSceneNo: lastSeenScene?.sceneNo ?? null
       },
       relationshipPressure: buildRelationshipPressure({

@@ -20,6 +20,8 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    console.log('[preload] api injected')
+    void api.system.appendDiagnosticLog({ source: 'preload', message: 'api injected' })
   } catch (error) {
     console.error(error)
   }

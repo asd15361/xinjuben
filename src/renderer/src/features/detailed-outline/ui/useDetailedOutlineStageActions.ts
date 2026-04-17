@@ -1,77 +1,94 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
+import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
-import { ensureOutlineEpisodeShape } from '../../../../../shared/domain/workflow/outline-episodes'
+import { clearScriptPlanCache } from '../../../app/services/script-plan-service.ts'
+import { buildDetailedOutlineFailureNotice } from './detailed-outline-generation-notice.ts'
+import { resolveDetailedOutlineEntryBlock } from './detailed-outline-entry-guard.ts'
+import { buildDetailedOutlineGenerationSuccessNotice } from './detailed-outline-stage-label.ts'
 
-const DETAILED_OUTLINE_ESTIMATED_SECONDS = 90
+interface DetailedOutlineStageActionsResult {
+  generationStatus: ProjectGenerationStatusDto | null
+  generationBusy: boolean
+  handleGenerateDetailedOutline: () => Promise<void>
+}
 
-export function useDetailedOutlineStageActions() {
+export function useDetailedOutlineStageActions(): DetailedOutlineStageActionsResult {
   const projectId = useWorkflowStore((state) => state.projectId)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
-  const setGenerationStatus = useWorkflowStore((state) => state.setGenerationStatus)
   const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
-  const storyIntent = useWorkflowStore((state) => state.storyIntent)
+  const replaceSegments = useStageStore((state) => state.replaceSegments)
   const outline = useStageStore((state) => state.outline)
   const characters = useStageStore((state) => state.characters)
-  const replaceSegments = useStageStore((state) => state.replaceSegments)
+  const segments = useStageStore((state) => state.segments)
+  const [generationKickoffPending, setGenerationKickoffPending] = useState(false)
 
   const handleGenerateDetailedOutline = useCallback(async (): Promise<void> => {
-    if (!projectId) return
+    if (!projectId || generationKickoffPending || generationStatus) return
+
+    const entryBlockCode = resolveDetailedOutlineEntryBlock({ outline, characters })
+    if (entryBlockCode) {
+      clearGenerationNotice()
+      setGenerationNotice(buildDetailedOutlineFailureNotice(entryBlockCode))
+      return
+    }
 
     const requestProjectId = projectId
-    const normalizedOutline = ensureOutlineEpisodeShape(outline)
-    const nextGenerationStatus = {
-      task: 'detailed_outline',
-      stage: 'detailed_outline',
-      title: '正在生成详细大纲',
-      detail: '我在根据粗纲和人物，把这一版详细大纲补齐成真正能往下写的推进图。',
-      startedAt: Date.now(),
-      estimatedSeconds: DETAILED_OUTLINE_ESTIMATED_SECONDS,
-      scope: 'project'
-    } as const
+    const hadExistingBlocks = segments.length > 0
     clearGenerationNotice()
-    setGenerationStatus(nextGenerationStatus)
-    void window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: nextGenerationStatus })
+    setGenerationKickoffPending(true)
 
     try {
-      const result = await window.api.workspace.generateDetailedOutline({
+      // 【第三刀】静默自动保存：生成前先确保所有前置数据落盘
+      // 避免 frontend 本地 state 与 backend persisted state 不同步导致门禁误报
+      await window.api.workspace.saveOutlineDraft({
         projectId: requestProjectId,
-        outline: normalizedOutline,
-        characters,
-        storyIntent
+        outlineDraft: outline
       })
+      await window.api.workspace.saveCharacterDrafts({
+        projectId: requestProjectId,
+        characterDrafts: characters
+      })
+
+      const result = await window.api.workspace.generateDetailedOutline({
+        projectId: requestProjectId
+      })
+      if (!result.project || result.detailedOutlineSegments.length === 0) {
+        throw new Error('detailed_outline_persist_missing')
+      }
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         replaceSegments(result.detailedOutlineSegments)
       }
+      clearScriptPlanCache()
       if (useWorkflowStore.getState().projectId === requestProjectId) {
-        setGenerationNotice({
-          kind: 'success',
-          title: '详细大纲已经补好了',
-          detail: '你现在可以直接检查这一版详细大纲；如果顺了，再往下生成剧本。',
-          primaryAction: { label: '继续看详细大纲', stage: 'detailed_outline' },
-          secondaryAction: { label: '去剧本', stage: 'script' }
-        })
+        setGenerationNotice(buildDetailedOutlineGenerationSuccessNotice(hadExistingBlocks))
       }
     } catch (error) {
       if (useWorkflowStore.getState().projectId === requestProjectId) {
-        setGenerationNotice({
-          kind: 'error',
-          title: '详细大纲这次没有补成功',
-          detail: '先别急着进剧本，先回看粗纲或人物，把关键信息补清楚后再生成。'
-        })
+        setGenerationNotice(buildDetailedOutlineFailureNotice(error))
       }
-      throw error
+      return
     } finally {
-      await window.api.workspace.saveGenerationStatus({ projectId: requestProjectId, generationStatus: null })
       if (useWorkflowStore.getState().projectId === requestProjectId) {
-        setGenerationStatus(null)
+        setGenerationKickoffPending(false)
       }
     }
-  }, [characters, outline, projectId, replaceSegments, setGenerationStatus, storyIntent])
+  }, [
+    characters,
+    clearGenerationNotice,
+    generationKickoffPending,
+    generationStatus,
+    outline,
+    projectId,
+    replaceSegments,
+    segments,
+    setGenerationNotice
+  ])
 
   return {
     generationStatus,
+    generationBusy: generationKickoffPending || Boolean(generationStatus),
     handleGenerateDetailedOutline
   }
 }

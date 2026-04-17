@@ -1,7 +1,10 @@
 import type { OutlineDraftDto } from '../../../../shared/contracts/workflow'
+import { isFormalFactSemanticLabel } from '../../../../shared/domain/formal-fact/semantic-label.ts'
 
 function getConfirmedFact(outline: OutlineDraftDto, label: string) {
-  return outline.facts.find((fact) => fact.status === 'confirmed' && fact.label === label)
+  return outline.facts.find(
+    (fact) => fact.status === 'confirmed' && isFormalFactSemanticLabel(fact, label)
+  )
 }
 
 function pickName(description: string): string {

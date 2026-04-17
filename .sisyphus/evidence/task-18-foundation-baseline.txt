@@ -1,0 +1,38 @@
+2026-03-23 foundation baseline
+
+Commands executed:
+- npm run typecheck
+- npm run authority:check
+- npm run verify:foundation
+- npx tsx --test src/shared/domain/workflow/planning-blocks.test.ts
+- npx tsx --test src/main/application/workspace/decompose-chat-for-generation.test.ts
+- npx tsx --test src/main/infrastructure/storage/project-runtime-invalidation.test.ts
+
+Verdicts:
+- single-writer: pass (truth owner matrix + main enforcement + renderer writer-root removal landed)
+- provenance: pass (confirmed facts preserve origin provenance tiers)
+- boundary: pass (stage guardians active at script entry + persistence save paths)
+- failure-visible: partial/pass-for-foundation-layer (visibleResult/formalRelease split exists, failure history path improved)
+- batch governance: pass (10/10/5 batching formalized with 32 tests)
+- test layers: partial (four-layer gate commands and taxonomy exist)
+
+Four-layer baseline:
+- probe: pass
+- visible: fail (electron_p0_real_regression => product_failure)
+- formal: fail (contract_guard_check failed)
+- quality: not_ready
+
+Decision:
+- foundation baseline is NOT complete
+- P0 resume: blocked
+- P1 resume: blocked
+- P2 resume: blocked
+
+Reason:
+- visible layer still fails
+- formal layer still fails
+- quality layer is not yet formalized on trusted base
+
+Gap classification:
+- foundation gaps: formal fail, visible fail, quality not_ready
+- content-quality conclusion: not eligible yet because foundation baseline is incomplete

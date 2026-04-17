@@ -14,12 +14,14 @@ export default defineConfig({
     build: {
       rollupOptions: {
         output: {
+          entryFileNames: 'assets/[name].js',
+          chunkFileNames: 'assets/[name].js',
+          assetFileNames: 'assets/[name][extname]',
           manualChunks(id) {
             if (id.includes('src/renderer/src/features/home/ui/')) return 'home-ui'
             if (
               id.includes('src/renderer/src/components/DetailedOutlineStage') ||
-              id.includes('src/renderer/src/components/DetailedOutlineStageHeader') ||
-              id.includes('src/renderer/src/components/DetailedOutlineActsPanel')
+              id.includes('src/renderer/src/components/DetailedOutlineStageHeader')
             ) {
               return 'detailed-outline-ui'
             }

@@ -1,0 +1,78 @@
+# Task 17 Evidence: Incomplete Result - Authority Failure Regression Test
+
+## Scenario
+Authority returns missing/incomplete result → expect error, no fallback to targetStage
+
+## Test Coverage
+
+### Test 1: authority.result_incomplete creates error notice
+```typescript
+const failure = buildIncompleteResultFailure()
+const notice = createAuthorityFailureNotice(failure)
+
+assert.equal(notice.kind, 'error', 'Incomplete result must be error kind')
+assert.equal(notice.source, 'system')
+assert.ok(notice.title, 'Notice must have a title')
+assert.ok(notice.detail, 'Notice must have a detail')
+```
+
+### Test 2: authority.result_incomplete does NOT fallback to targetStage
+```typescript
+const failure = buildIncompleteResultFailure({
+  context: { fact: 'generation_result', source: 'main', stage: 'script' }
+})
+const notice = createAuthorityFailureNotice(failure)
+
+// manual_retry recoverability means NO automatic fallback
+// Renderer must NOT use targetStage as a fallback
+assert.equal(notice.primaryAction, undefined)
+```
+
+### Test 3: authority.result_incomplete is distinguishable from result_missing
+```typescript
+const incompleteFailure = buildIncompleteResultFailure()
+const missingFailure: AuthorityFailureDto = {
+  type: 'authority_failure',
+  failureType: 'authority_result_null',
+  code: 'AUTHORITY_FAILURE_AUTHORITY_RESULT_NULL',
+  message: 'Authority returned null result',
+  context: { fact: 'generation_result', source: 'main', projectId: 'test-project-id' },
+  recoverability: 'manual_retry',
+  recoverable: true,
+  noticeKey: 'authority.result_missing',
+  occurredAt: new Date().toISOString()
+}
+
+const incompleteNotice = createAuthorityFailureNotice(incompleteFailure)
+const missingNotice = createAuthorityFailureNotice(missingFailure)
+
+// Notices should be distinguishable by title or detail
+const distinguishable =
+  incompleteNotice.title !== missingNotice.title ||
+  incompleteNotice.detail !== missingNotice.detail
+assert.ok(distinguishable)
+```
+
+## Key Assertions
+1. `notice.kind === 'error'` - Incomplete result is ALWAYS an error
+2. `notice.primaryAction === undefined` - NO fallback to targetStage
+3. `incompleteNotice !== missingNotice` - Different failures have distinguishable messages
+
+## Authority Failure Contract
+- Type: `incomplete_result`
+- Code: `AUTHORITY_FAILURE_INCOMPLETE_RESULT`
+- Notice Key: `authority.result_incomplete`
+- Recoverability: `manual_retry`
+- Notice Title: '生成结果不完整'
+- Notice Detail: '后台返回了不完整的结果，请重新尝试生成。'
+
+## Regression Guarantee
+This test ensures that when authority returns incomplete result:
+- Error is explicitly shown to user
+- Renderer does NOT fallback to targetStage as substitute
+- No optimistic UI update with incomplete data
+- User must manually retry the generation
+
+## Critical Rule
+**No fallback to targetStage** - This is the core regression guarantee. The renderer
+must NOT use the targetStage parameter as a fallback value when result is incomplete.

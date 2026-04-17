@@ -1,23 +1,35 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
+import { isConfirmedStoryIntentForTranscript } from '../../../../../shared/domain/workflow/confirmed-story-intent'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
 import { ChatComposer } from './chat/ChatComposer'
 import { ChatMessageList } from './chat/ChatMessageList'
-import { createInitialChatMessages } from './chat/ChatTypes'
+import { CHAT_PENDING_MESSAGE_TEXT, createInitialChatMessages } from './chat/ChatTypes'
 import type { ChatMessage } from './chat/ChatTypes'
+import { buildWorkspaceChatFailureMessage } from './workspace-chat-error-message'
 
 export function ChatIntakePanel(props: {
   disabled: boolean
   status: string
   generationStatus: ProjectGenerationStatusDto | null
+  onConfirmIntent: (chatTranscript: string) => Promise<string>
   onGenerate: (chatTranscript: string) => Promise<void>
 }) {
   const projectId = useWorkflowStore((state) => state.projectId)
   const messages = useWorkflowStore((state) => state.chatMessages)
   const setMessages = useWorkflowStore((state) => state.setChatMessages)
+  const storyIntent = useWorkflowStore((state) => state.storyIntent)
   const [busy, setBusy] = useState(false)
   const generationBusy = Boolean(props.generationStatus)
+
+  async function persistChatMessages(nextMessages: ChatMessage[]): Promise<void> {
+    if (!projectId) return
+    await window.api.workspace.saveChatMessages({
+      projectId,
+      chatMessages: nextMessages.filter((message) => message.text !== CHAT_PENDING_MESSAGE_TEXT)
+    })
+  }
 
   useEffect(() => {
     if (!projectId || messages.length > 0) return
@@ -25,8 +37,12 @@ export function ChatIntakePanel(props: {
   }, [messages.length, projectId, setMessages])
 
   const chatTranscript = useMemo(() => {
+    return messages.map((m) => `${m.role === 'user' ? '用户' : '剧情执笔人'}：${m.text}`).join('\n')
+  }, [messages])
+  const truthTranscript = useMemo(() => {
     return messages
-      .map((m) => `${m.role === 'user' ? '用户' : '剧情执笔人'}：${m.text}`)
+      .filter((message) => message.role === 'user' && message.text.trim())
+      .map((message) => `用户：${message.text.trim()}`)
       .join('\n')
   }, [messages])
 
@@ -34,16 +50,22 @@ export function ChatIntakePanel(props: {
     const answered = messages.filter((m) => m.role === 'user' && m.text.trim()).length
     return answered >= 1 && !busy && !generationBusy && !props.disabled
   }, [busy, generationBusy, messages, props.disabled])
+  const hasConfirmedCurrentInfo = isConfirmedStoryIntentForTranscript(storyIntent, truthTranscript)
 
   async function handleSend(text: string): Promise<void> {
     if (!text.trim() || busy || generationBusy || props.disabled) return
 
     const userMessage: ChatMessage = { role: 'user', text: text.trim(), createdAt: Date.now() }
-    setMessages([...messages, userMessage])
+    const pendingMessage: ChatMessage = {
+      role: 'assistant',
+      text: CHAT_PENDING_MESSAGE_TEXT,
+      createdAt: Date.now() + 1
+    }
+    const pendingMessages = [...messages, userMessage, pendingMessage]
+    setMessages(pendingMessages)
     setBusy(true)
 
     try {
-      // 这里的战略是：调用真实的 AI 接口进行回复，并注入引导逻辑
       const response = await window.api.ai.generate({
         task: 'free_chat' as any, // 确保符合 DTO 要求的任务类型
         prompt: `你是一个专业的剧本策划助手。当前用户输入是：“${text}”。
@@ -56,20 +78,30 @@ export function ChatIntakePanel(props: {
         5. 优先帮用户把故事说实，不要空泛鼓励。`
       })
 
-
-
-      setMessages([
+      const nextMessages: ChatMessage[] = [
         ...messages,
         userMessage,
-        { role: 'assistant', text: response.text || '我在整理你的创作信息，马上继续。', createdAt: Date.now() }
-      ])
+        {
+          role: 'assistant',
+          text: response.text || '我在整理你的创作信息，马上继续。',
+          createdAt: Date.now()
+        }
+      ]
+      setMessages(nextMessages)
+      await persistChatMessages(nextMessages)
     } catch (error) {
       console.error('AI Reply Failure:', error)
-      setMessages([
+      const nextMessages: ChatMessage[] = [
         ...messages,
         userMessage,
-        { role: 'assistant', text: '这次回复没有拿稳。你可以继续补一句关键信息，或者直接先生成第一版粗纲和人物。', createdAt: Date.now() }
-      ])
+        {
+          role: 'assistant',
+          text: buildWorkspaceChatFailureMessage('回复失败', error),
+          createdAt: Date.now()
+        }
+      ]
+      setMessages(nextMessages)
+      await persistChatMessages(nextMessages)
     } finally {
       setBusy(false)
     }
@@ -79,18 +111,50 @@ export function ChatIntakePanel(props: {
     if (!canGenerate) return
     setBusy(true)
     try {
-      await props.onGenerate(chatTranscript)
+      await props.onGenerate(truthTranscript)
       // 成功后的反馈已经在外面处理（跳转或状态更新）
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error || '生成失败')
-      setMessages([
+      const nextMessages: ChatMessage[] = [
         ...messages,
         {
           role: 'assistant',
-          text: `生成失败：${message}。先别换方向，继续补题材、主角困境或核心冲突，我再帮你收一版。`,
+          text: buildWorkspaceChatFailureMessage('生成失败', error),
           createdAt: Date.now()
         }
-      ])
+      ]
+      setMessages(nextMessages)
+      await persistChatMessages(nextMessages)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleConfirmIntent(): Promise<void> {
+    if (!canGenerate) return
+    setBusy(true)
+    try {
+      const generationBriefText = await props.onConfirmIntent(truthTranscript)
+      const nextMessages: ChatMessage[] = [
+        ...messages,
+        {
+          role: 'assistant',
+          text: `我已经把当前聊天整理成正式创作信息，后面只按这版往下走。\n\n下一步先确认七问：\n\n${generationBriefText}`,
+          createdAt: Date.now()
+        }
+      ]
+      setMessages(nextMessages)
+      await persistChatMessages(nextMessages)
+    } catch (error) {
+      const nextMessages: ChatMessage[] = [
+        ...messages,
+        {
+          role: 'assistant',
+          text: buildWorkspaceChatFailureMessage('确认信息失败', error),
+          createdAt: Date.now()
+        }
+      ]
+      setMessages(nextMessages)
+      await persistChatMessages(nextMessages)
     } finally {
       setBusy(false)
     }
@@ -108,8 +172,11 @@ export function ChatIntakePanel(props: {
       <ChatComposer
         disabled={props.disabled}
         busy={busy || generationBusy}
-        canGenerate={canGenerate}
+        canConfirm={canGenerate}
+        canGenerate={canGenerate && hasConfirmedCurrentInfo}
+        confirmed={hasConfirmedCurrentInfo}
         onSend={(text) => void handleSend(text)}
+        onConfirm={() => void handleConfirmIntent()}
         onGenerate={() => void handleGenerate()}
       />
 

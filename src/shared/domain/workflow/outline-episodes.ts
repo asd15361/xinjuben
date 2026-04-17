@@ -1,8 +1,11 @@
 import type { OutlineDraftDto, OutlineEpisodeDto } from '../../contracts/workflow'
-import { DEFAULT_EPISODE_COUNT, deriveOutlineEpisodeCount } from './episode-count'
+import { DEFAULT_EPISODE_COUNT, deriveOutlineEpisodeCount } from './episode-count.ts'
 
 function normalizeWhitespace(text: string): string {
-  return text.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim()
+  return text
+    .replace(/\r/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .trim()
 }
 
 function clampEpisodeNo(value: unknown, fallback: number): number {
@@ -15,7 +18,10 @@ function normalizeEpisodeSummary(value: unknown): string {
   return normalizeWhitespace(typeof value === 'string' ? value : '')
 }
 
-export function normalizeOutlineEpisodes(value: unknown, count = DEFAULT_EPISODE_COUNT): OutlineEpisodeDto[] {
+export function normalizeOutlineEpisodes(
+  value: unknown,
+  count = DEFAULT_EPISODE_COUNT
+): OutlineEpisodeDto[] {
   const source = Array.isArray(value) ? value : []
   const inferredCount = source.reduce((current, item, index) => {
     const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
@@ -39,7 +45,7 @@ export function normalizeOutlineEpisodes(value: unknown, count = DEFAULT_EPISODE
     return true
   })
 
-  const resolvedCount = Math.max(count, inferredCount)
+  const resolvedCount = count > 0 ? count : inferredCount || DEFAULT_EPISODE_COUNT
 
   return Array.from({ length: resolvedCount }, (_, index) => {
     const episodeNo = index + 1
@@ -53,11 +59,17 @@ export function normalizeOutlineEpisodes(value: unknown, count = DEFAULT_EPISODE
 
 export function outlineEpisodesToSummary(episodes: OutlineEpisodeDto[]): string {
   return episodes
-    .map((episode) => `第${episode.episodeNo}集：${normalizeEpisodeSummary(episode.summary) || '待补这一集的核心推进、冲突和钩子。'}`)
+    .map(
+      (episode) =>
+        `第${episode.episodeNo}集：${normalizeEpisodeSummary(episode.summary) || '待补这一集的核心推进、冲突和钩子。'}`
+    )
     .join('\n')
 }
 
-export function parseSummaryToOutlineEpisodes(summary: string, count = DEFAULT_EPISODE_COUNT): OutlineEpisodeDto[] {
+export function parseSummaryToOutlineEpisodes(
+  summary: string,
+  count = DEFAULT_EPISODE_COUNT
+): OutlineEpisodeDto[] {
   const normalized = normalizeWhitespace(summary)
   if (!normalized) {
     return normalizeOutlineEpisodes([], count)
@@ -85,8 +97,7 @@ export function parseSummaryToOutlineEpisodes(summary: string, count = DEFAULT_E
 
   const withContent = parsed.filter((episode) => episode.summary)
   if (withContent.length >= 2) {
-    const inferredCount = withContent.reduce((current, episode) => Math.max(current, episode.episodeNo), 0)
-    return normalizeOutlineEpisodes(withContent, Math.max(count, inferredCount))
+    return normalizeOutlineEpisodes(withContent, count)
   }
 
   const sentences = normalized
@@ -108,10 +119,18 @@ export function parseSummaryToOutlineEpisodes(summary: string, count = DEFAULT_E
   )
 }
 
-export function ensureOutlineEpisodeShape(outline: OutlineDraftDto, count = DEFAULT_EPISODE_COUNT): OutlineDraftDto {
-  const resolvedCount = Math.max(count, deriveOutlineEpisodeCount(outline, 0))
+export function ensureOutlineEpisodeShape(
+  outline: OutlineDraftDto,
+  count?: number
+): OutlineDraftDto {
+  const resolvedCount =
+    typeof count === 'number' && count > 0
+      ? count
+      : deriveOutlineEpisodeCount(outline, 0) || DEFAULT_EPISODE_COUNT
   const summaryEpisodes = normalizeOutlineEpisodes(
-    outline.summaryEpisodes?.length ? outline.summaryEpisodes : parseSummaryToOutlineEpisodes(outline.summary, resolvedCount),
+    outline.summaryEpisodes?.length
+      ? outline.summaryEpisodes
+      : parseSummaryToOutlineEpisodes(outline.summary, resolvedCount),
     resolvedCount
   )
 

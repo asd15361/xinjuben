@@ -1,0 +1,69 @@
+# Authority Residue Audit — F1
+Date: 2026-03-23
+Scope: src/renderer/**/*.ts, src/renderer/**/*.tsx
+
+## Anti-Pattern Search Results
+
+### Pattern 1: catch { setStage(...) }
+Result: 0 matches
+Status: CLEAN
+
+### Pattern 2: if (!result.project) setStage(...) 
+Result: 0 matches (correct pattern found: if (result.project) setStage(...))
+Status: CLEAN
+
+### Pattern 3: Optimistic setStage on missing projectId
+Result: 2 violations
+
+#### V1: src/renderer/src/components/ProjectGenerationBanner.tsx:136
+```tsx
+if (!projectId) {
+  setStage(stage)  // VIOLATION: Optimistic local state update
+  return
+}
+```
+Analysis: When projectId is missing, the code optimistically sets stage locally without waiting for main process authority. This is local interpretation of stage transition authority.
+
+#### V2: src/renderer/src/features/detailed-outline/ui/DetailedOutlineStage.tsx:127
+```tsx
+if (!projectId) {
+  setStage('script')  // VIOLATION: Optimistic local state update
+  return
+}
+```
+Analysis: Same pattern — optimistic stage update when projectId is missing.
+
+### Pattern 4: Local blocked/reason interpretation
+Result: 0 violations (whitelisted)
+
+All `blockedBy` usages read from `generationPlan` which is obtained via IPC:
+- `window.api.workflow.buildScriptGenerationPlan()` (useScriptGenerationPlan.ts:28)
+- `window.api.workflow.validateStageInputContract()` (stage-navigation-truth.ts:94)
+
+These are reading from main process authority, not local interpretation.
+
+### Pattern 5: Store updated via IPC (whitelisted comments)
+- AppSidebar.tsx:34: "// Store updated via IPC — no additional setStage() needed"
+- ScriptStage.tsx:59: "// Store updated via IPC — no additional setStage() needed"
+
+These comments explicitly document the correct pattern — store is updated via IPC subscription, no local setStage needed.
+
+## Summary
+| Pattern | Count | Status |
+|---------|-------|--------|
+| catch { setStage(...) } | 0 | CLEAN |
+| if (!result.project) setStage(...) | 0 | CLEAN |
+| Optimistic setStage (!projectId) | 2 | VIOLATION |
+| Local blocked/reason interpretation | 0 | CLEAN |
+| Whitelisted (IPC comment) | 2 | WHITELISTED |
+
+## Violations Requiring Fix
+
+1. ProjectGenerationBanner.tsx:136 — Remove optimistic `setStage(stage)` in !projectId branch; should only call IPC and let store update via subscription
+2. DetailedOutlineStage.tsx:127 — Remove optimistic `setStage('script')` in !projectId branch; same remediation
+
+## Fix Guidance
+When projectId is missing, the correct behavior is to NOT initiate stage transition at all (early return without setStage), OR ensure the IPC call is made and the store subscribes to updates via IPC.
+
+DO NOT: setStage() locally as fallback
+DO: Let the IPC response (or IPC-triggered store update) drive stage changes

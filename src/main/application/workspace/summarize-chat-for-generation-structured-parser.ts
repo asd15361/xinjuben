@@ -1,11 +1,11 @@
-import type { GenerationBriefCharacterCard } from './generation-brief-template'
+import type { GenerationBriefCharacterCard } from './generation-brief-template.ts'
 import {
   cleanPossibleName,
   splitBulletLines,
   splitNameList,
   toText,
   uniqueList
-} from './summarize-chat-for-generation-shared'
+} from './summarize-chat-for-generation-shared.ts'
 
 export type StructuredBriefSections = {
   sectionMap: Map<string, string>
@@ -19,6 +19,11 @@ export type StructuredBriefSections = {
   keyCharacters: string[]
 }
 
+export type StructuredProjectHeader = {
+  projectTitle: string
+  episodeCount: number
+}
+
 export function extractSectionMap(text: string): Map<string, string> {
   const matches = [...text.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g)]
   const map = new Map<string, string>()
@@ -30,22 +35,18 @@ export function extractSectionMap(text: string): Map<string, string> {
   return map
 }
 
-export function extractStructuredBriefText(text: string): string {
-  const lines = text.split('\n')
+function collectStructuredBriefTextFromIndex(lines: string[], startIndex: number): string {
   const collected: string[] = []
-  let started = false
-  let currentSection = ''
+  let currentSection = '项目'
   const bulletSections = new Set(['角色卡', '人物分层', '人物关系总梳理', '软理解', '待确认'])
 
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd()
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const line = lines[index]?.trimEnd() || ''
     const trimmed = line.trim()
-    if (!started) {
-      if (trimmed.startsWith('【项目】')) {
-        started = true
-        currentSection = '项目'
-        collected.push(trimmed)
-      }
+
+    if (index === startIndex) {
+      if (!trimmed.startsWith('【项目】')) return ''
+      collected.push(trimmed)
       continue
     }
 
@@ -69,11 +70,45 @@ export function extractStructuredBriefText(text: string): string {
       break
     }
 
-    if (/^(AI|你|用户|助手|系统)[:：]?$/.test(trimmed)) break
+    if (/^(AI|你|用户|助手|系统)\s*[:：]/.test(trimmed)) break
     collected.push(trimmed)
   }
 
   return collected.join('\n').trim()
+}
+
+export function extractStructuredBriefText(text: string): string {
+  const lines = text.split('\n')
+  const startIndexes: number[] = []
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index]?.trim().startsWith('【项目】')) {
+      startIndexes.push(index)
+    }
+  }
+
+  for (let index = startIndexes.length - 1; index >= 0; index -= 1) {
+    const candidate = collectStructuredBriefTextFromIndex(lines, startIndexes[index])
+    if (candidate) return candidate
+  }
+
+  return ''
+}
+
+export function extractStructuredProjectHeader(text: string): StructuredProjectHeader | null {
+  const structuredText = extractStructuredBriefText(text)
+  if (!structuredText) return null
+
+  const projectText = toText(extractSectionMap(structuredText).get('项目'))
+  if (!projectText) return null
+
+  const projectMatch = projectText.match(/^([^｜|]+?)(?:[｜|]\s*(\d+)\s*集?)?$/)
+  if (!projectMatch) return null
+
+  return {
+    projectTitle: toText(projectMatch[1]),
+    episodeCount: Number(projectMatch[2] || 0)
+  }
 }
 
 export function parseCharacterCards(sectionText: string): GenerationBriefCharacterCard[] {
@@ -89,13 +124,15 @@ export function parseCharacterCards(sectionText: string): GenerationBriefCharact
 }
 
 export function collectStructuredSections(sectionMap: Map<string, string>): StructuredBriefSections {
-  const protagonist = toText(sectionMap.get('主角'))
-  const antagonist = toText(sectionMap.get('对手'))
+  const protagonist = cleanPossibleName(toText(sectionMap.get('主角')))
+  const antagonist = cleanPossibleName(toText(sectionMap.get('对手')))
   const characterCards = parseCharacterCards(sectionMap.get('角色卡') || '')
   const relationSummary = splitBulletLines(sectionMap.get('人物关系总梳理') || '')
   const softUnderstanding = splitBulletLines(sectionMap.get('软理解') || '')
   const pendingConfirmations = splitBulletLines(sectionMap.get('待确认') || '')
   const explicitKeyCharacters = splitNameList(sectionMap.get('关键角色') || '')
+    .map((name) => cleanPossibleName(name) || name.trim())
+    .filter(Boolean)
   const knownNames = uniqueList([protagonist, antagonist, ...explicitKeyCharacters, ...characterCards.map((item) => item.name)], 8)
   const relationNames = uniqueList(
     relationSummary.flatMap((line) => knownNames.filter((name) => name && line.includes(name))),

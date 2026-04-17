@@ -1,13 +1,13 @@
-import type { GenerationBriefCharacterLayer } from './generation-brief-template'
-import { extractNamesFromText, toText } from './summarize-chat-for-generation-shared'
+import type { GenerationBriefCharacterLayer } from './generation-brief-template.ts'
+import { extractNamesFromText, toText } from './summarize-chat-for-generation-shared.ts'
 import {
   findCharacterCard,
   type StructuredBriefSections
-} from './summarize-chat-for-generation-structured-parser'
+} from './summarize-chat-for-generation-structured-parser.ts'
 import {
   inferChainFromStructuredSections as inferStructuredChain,
   inferCharacterLayersFromSections as inferStructuredCharacterLayers
-} from './summarize-chat-for-generation-structured-chain'
+} from './summarize-chat-for-generation-structured-chain.ts'
 
 export function pickProtectTarget(sections: StructuredBriefSections): string {
   const protagonistCard = findCharacterCard(sections.characterCards, sections.protagonist)

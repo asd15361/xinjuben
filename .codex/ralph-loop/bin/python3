@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /c/Users/Administrator/AppData/Local/Programs/Python/Python314/python "$@"

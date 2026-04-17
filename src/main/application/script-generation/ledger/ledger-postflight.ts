@@ -1,7 +1,11 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPostflightDto, ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import { collectLedgerFactPostflight } from './ledger-postflight-fact-updates'
-import { collectLedgerCharacterPostflight } from './ledger-postflight-character-updates'
-import { collectLedgerMomentumPostflight } from './ledger-postflight-momentum-updates'
+import type {
+  ScriptLedgerIssueDto,
+  ScriptLedgerPostflightDto,
+  ScriptStateLedgerDto
+} from '../../../../shared/contracts/script-ledger'
+import { collectLedgerFactPostflight } from './ledger-postflight-fact-updates.ts'
+import { collectLedgerCharacterPostflight } from './ledger-postflight-character-updates.ts'
+import { collectLedgerMomentumPostflight } from './ledger-postflight-momentum-updates.ts'
 
 export function buildLedgerPostflightAssertion(input: {
   previousLedger: ScriptStateLedgerDto | null
@@ -38,7 +42,11 @@ export function buildLedgerPostflightAssertion(input: {
   const momentumPostflight = collectLedgerMomentumPostflight(stableInput)
 
   issues.push(...factPostflight.issues, ...characterPostflight.issues, ...momentumPostflight.issues)
-  updates.push(...factPostflight.updates, ...characterPostflight.updates, ...momentumPostflight.updates)
+  updates.push(
+    ...factPostflight.updates,
+    ...characterPostflight.updates,
+    ...momentumPostflight.updates
+  )
 
   return {
     issues,

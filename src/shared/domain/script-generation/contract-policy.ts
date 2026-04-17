@@ -1,14 +1,18 @@
 import type { StoryIntentPackageDto } from '../../contracts/intake'
 import type { ScriptGenerationContractDto } from '../../contracts/script-generation-contract'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '../../contracts/workflow'
-import { matchFormalFactLanding } from '../formal-fact/match-formal-fact-landing'
-import { getConfirmedFormalFacts } from '../formal-fact/selectors'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto
+} from '../../contracts/workflow'
+import { matchFormalFactLanding } from '../formal-fact/match-formal-fact-landing.ts'
+import { getConfirmedFormalFacts } from '../formal-fact/selectors.ts'
 import {
   buildStoryContract,
   buildUserAnchorLedger,
   collectMissingUserAnchorNames,
   hasHeroineAnchorCoverage
-} from '../story-contract/story-contract-policy'
+} from '../story-contract/story-contract-policy.ts'
 
 export function buildScriptGenerationContract(input: {
   storyIntent?: StoryIntentPackageDto | null
@@ -17,8 +21,17 @@ export function buildScriptGenerationContract(input: {
   segments: DetailedOutlineSegmentDto[]
   targetEpisodes: number
 }): ScriptGenerationContractDto {
-  const structuralActs = Array.from(new Set(input.segments.filter((segment) => segment.content.trim()).map((segment) => segment.act)))
-  const requiredActs: DetailedOutlineSegmentDto['act'][] = ['opening', 'midpoint', 'climax', 'ending']
+  const structuralActs = Array.from(
+    new Set(
+      input.segments.filter((segment) => segment.content.trim()).map((segment) => segment.act)
+    )
+  )
+  const requiredActs: DetailedOutlineSegmentDto['act'][] = [
+    'opening',
+    'midpoint',
+    'climax',
+    'ending'
+  ]
   const missingActs = requiredActs.filter((act) => !structuralActs.includes(act))
   const mergedSegments = input.segments.map((segment) => segment.content).join('\n')
   const confirmedFormalFacts = getConfirmedFormalFacts(input.outline)

@@ -1,5 +1,5 @@
-import type { ScriptSegmentDto } from '../../../../../shared/contracts/workflow'
-import { inspectScreenplayQualityEpisode } from '../../../../../shared/domain/script/screenplay-quality'
+import type { ScriptSegmentDto } from '../../../../../shared/contracts/workflow.ts'
+import { inspectScreenplayQualityEpisode } from '../../../../../shared/domain/script/screenplay-quality.ts'
 
 // 质量审计结果 - 按需使用
 export interface ScriptSceneQuality {

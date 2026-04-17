@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { inspectSceneQuality } from './script-scene-quality-audit'
+import { inspectSceneQuality } from './script-scene-quality-audit.ts'
 
 describe('inspectSceneQuality', () => {
   it('returns expected shape { qualityPass: boolean, qualityProblem: string | null }', () => {

@@ -10,6 +10,22 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
+function resolveBatchRange(
+  episodeStatuses: ScriptGenerationProgressBoardDto['episodeStatuses'],
+  batchIndex: number
+): { startEpisode: number; endEpisode: number } {
+  const batchEpisodes = episodeStatuses.filter((item) => item.batchIndex === batchIndex)
+  const actionableEpisodes = batchEpisodes.filter(
+    (item) => item.status === 'pending' || item.status === 'running' || item.status === 'failed'
+  )
+  const visibleEpisodes = actionableEpisodes.length > 0 ? actionableEpisodes : batchEpisodes
+
+  return {
+    startEpisode: visibleEpisodes[0]?.episodeNo ?? 1,
+    endEpisode: visibleEpisodes.at(-1)?.episodeNo ?? visibleEpisodes[0]?.episodeNo ?? 1
+  }
+}
+
 function syncBatchWindow(
   board: ScriptGenerationProgressBoardDto,
   episodeNo: number
@@ -17,9 +33,7 @@ function syncBatchWindow(
   const episode = board.episodeStatuses.find((item) => item.episodeNo === episodeNo)
   if (!episode) return board.batchContext
 
-  const currentBatchEpisodes = board.episodeStatuses.filter((item) => item.batchIndex === episode.batchIndex)
-  const startEpisode = currentBatchEpisodes[0]?.episodeNo ?? board.batchContext.startEpisode
-  const endEpisode = currentBatchEpisodes.at(-1)?.episodeNo ?? board.batchContext.endEpisode
+  const { startEpisode, endEpisode } = resolveBatchRange(board.episodeStatuses, episode.batchIndex)
 
   return {
     ...board.batchContext,
@@ -27,7 +41,8 @@ function syncBatchWindow(
     startEpisode,
     endEpisode,
     resumeFromEpisode:
-      board.episodeStatuses.find((item) => item.status === 'pending')?.episodeNo ?? board.batchContext.resumeFromEpisode
+      board.episodeStatuses.find((item) => item.status === 'pending')?.episodeNo ??
+      board.batchContext.resumeFromEpisode
   }
 }
 
@@ -36,26 +51,36 @@ export function createInitialProgressBoard(
   stageContractFingerprint: string | null
 ): ScriptGenerationProgressBoardDto {
   const batchSize = Math.min(plan.runtimeProfile.recommendedBatchSize, plan.targetEpisodes)
-  const endEpisode = Math.min(batchSize, plan.targetEpisodes)
-  return {
-    episodeStatuses: plan.episodePlans.map((episode) => ({
+  const episodeStatuses = plan.episodePlans.map((episode) => {
+    const initialStatus: ScriptEpisodeRuntimeStatus =
+      episode.status === 'ready' ? 'pending' : episode.status === 'blocked' ? 'failed' : 'skipped'
+
+    const baseReason = episode.runtimeHints?.recoveryMode
+      ? `${episode.reason}（恢复档位：${episode.runtimeHints.recoveryMode}）`
+      : episode.reason
+
+    return {
       episodeNo: episode.episodeNo,
-      status: episode.status === 'blocked' ? 'failed' : 'pending',
+      status: initialStatus,
       batchIndex: Math.floor((episode.episodeNo - 1) / Math.max(1, batchSize)) + 1,
-      reason: episode.runtimeHints?.recoveryMode
-        ? `${episode.reason}（恢复档位：${episode.runtimeHints.recoveryMode}）`
-        : episode.reason
-    })),
+      reason:
+        initialStatus === 'skipped' ? `${baseReason}（已有内容直接沿用，不重复生成。）` : baseReason
+    }
+  })
+  const firstPendingEpisode = episodeStatuses.find((episode) => episode.status === 'pending')
+  const currentBatchIndex = firstPendingEpisode?.batchIndex ?? episodeStatuses[0]?.batchIndex ?? 1
+  const { startEpisode, endEpisode } = resolveBatchRange(episodeStatuses, currentBatchIndex)
+
+  return {
+    episodeStatuses,
     batchContext: {
       batchSize,
-      currentBatchIndex: 1,
-      startEpisode: 1,
+      currentBatchIndex,
+      startEpisode,
       endEpisode,
-      status: plan.ready ? 'idle' : 'failed',
-      resumeFromEpisode: plan.ready ? 1 : null,
-      reason: plan.ready
-        ? `执行计划已建立，首批按 ${batchSize} 集推进，运行时档位 ${plan.runtimeProfile.profileLabel}。`
-        : '输入合同未通过，进度板仅用于展示阻塞状态。',
+      status: 'idle',
+      resumeFromEpisode: firstPendingEpisode?.episodeNo ?? null,
+      reason: `执行计划已建立，当前按 ${batchSize} 集一批自动推进；运行时档位 ${plan.runtimeProfile.profileLabel}。`,
       stageContractFingerprint,
       updatedAt: nowIso()
     }
@@ -104,15 +129,6 @@ export function createFailureResolution(input: {
     kind: input.kind,
     reason: input.reason,
     errorMessage: input.errorMessage,
-    board: {
-      ...input.board,
-      batchContext: {
-        ...input.board.batchContext,
-        status: input.kind === 'stopped' ? 'paused' : 'failed',
-        reason: input.reason,
-        updatedAt: nowIso()
-      }
-    },
     eventId: input.kind === 'failed' ? `failure_${Date.now().toString(36)}` : undefined,
     lockRecoveryAttempted: Boolean(input.lockRecoveryAttempted)
   }

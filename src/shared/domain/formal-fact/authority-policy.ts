@@ -13,5 +13,5 @@ export function canRemoveFormalFact(stage: string, actor: 'user' | 'system'): bo
 }
 
 export function canInferFormalFactIntoMainline(fact: FormalFact): boolean {
-  return fact.authorityType === 'user_declared' && fact.status === 'confirmed' && fact.declaredStage === 'outline'
+  return fact.status === 'confirmed' && fact.declaredStage === 'outline'
 }

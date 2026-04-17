@@ -1,5 +1,5 @@
 import type { AiGenerateRequestDto, ModelRouteLane } from '../../../shared/contracts/ai'
-import { decideRuntimePolicyOrder } from '../../../shared/domain/policy/runtime/runtime-policy'
+import { decideRuntimePolicyOrder } from '../../../shared/domain/policy/runtime/runtime-policy.ts'
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 
 interface RuntimeRouteDecision {
@@ -15,11 +15,20 @@ function readOptionalEnvString(key: string): string | undefined {
 }
 
 function enabledLanes(runtimeConfig: RuntimeProviderConfig): ModelRouteLane[] {
-  return [
-    runtimeConfig.lanes.deepseek && runtimeConfig.deepseek.apiKey ? 'deepseek' : null,
-    runtimeConfig.lanes.geminiFlash && runtimeConfig.geminiFlash.apiKey ? 'gemini_flash' : null,
-    runtimeConfig.lanes.geminiPro && runtimeConfig.geminiPro.apiKey ? 'gemini_pro' : null
-  ].filter(Boolean) as ModelRouteLane[]
+  const lanes: ModelRouteLane[] = []
+  if (
+    runtimeConfig.lanes.openrouterGeminiFlashLite &&
+    runtimeConfig.openrouterGeminiFlashLite.apiKey
+  ) {
+    lanes.push('openrouter_gemini_flash_lite')
+  }
+  if (runtimeConfig.lanes.openrouterQwenFree && runtimeConfig.openrouterQwenFree.apiKey) {
+    lanes.push('openrouter_qwen_free')
+  }
+  if (runtimeConfig.lanes.deepseek && runtimeConfig.deepseek.apiKey) {
+    lanes.push('deepseek')
+  }
+  return lanes
 }
 
 export function decideRuntimeRoute(
@@ -39,7 +48,8 @@ export function decideRuntimeRoute(
 }
 
 export function shouldFallbackForError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error || '').toLowerCase()
+  const message =
+    error instanceof Error ? error.message.toLowerCase() : String(error || '').toLowerCase()
   return [
     'model_not_found',
     'service unavailable',
@@ -57,27 +67,25 @@ export function resolveLaneSystemInstruction(
   lane: ModelRouteLane,
   runtimeConfig: RuntimeProviderConfig
 ): string | undefined {
-  if (lane === 'gemini_flash') {
-    return (
-      readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_GEMINI_FLASH') ||
-      readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_GEMINI') ||
-      runtimeConfig.geminiFlash.systemInstruction ||
-      undefined
-    )
+  switch (lane) {
+    case 'openrouter_gemini_flash_lite':
+      return (
+        readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_OPENROUTER_GEMINI_FLASH_LITE') ||
+        runtimeConfig.openrouterGeminiFlashLite.systemInstruction ||
+        undefined
+      )
+    case 'openrouter_qwen_free':
+      return (
+        readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_OPENROUTER_QWEN_FREE') ||
+        runtimeConfig.openrouterQwenFree.systemInstruction ||
+        undefined
+      )
+    case 'deepseek':
+    default:
+      return (
+        readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_DEEPSEEK') ||
+        runtimeConfig.deepseek.systemInstruction ||
+        undefined
+      )
   }
-
-  if (lane === 'gemini_pro') {
-    return (
-      readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_GEMINI_PRO') ||
-      readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_GEMINI') ||
-      runtimeConfig.geminiPro.systemInstruction ||
-      undefined
-    )
-  }
-
-  return (
-    readOptionalEnvString('MODEL_ROUTER_SYSTEM_INSTRUCTION_DEEPSEEK') ||
-    runtimeConfig.deepseek.systemInstruction ||
-    undefined
-  )
 }

@@ -8,13 +8,12 @@ export interface ProviderFamilyConfig {
 
 export interface RuntimeProviderConfig {
   deepseek: ProviderFamilyConfig
-  geminiFlash: ProviderFamilyConfig
-  geminiPro: ProviderFamilyConfig
-  activeLaneStrategy: 'single_deepseek'
+  openrouterGeminiFlashLite: ProviderFamilyConfig
+  openrouterQwenFree: ProviderFamilyConfig
   lanes: {
     deepseek: boolean
-    geminiFlash: boolean
-    geminiPro: boolean
+    openrouterGeminiFlashLite: boolean
+    openrouterQwenFree: boolean
   }
   runtimeFetchTimeoutMs: number
 }
@@ -38,25 +37,28 @@ export function loadRuntimeProviderConfig(): RuntimeProviderConfig {
       systemInstruction: process.env.DEEPSEEK_SYSTEM_INSTRUCTION || '',
       timeoutMs: readNumber(process.env.DEEPSEEK_TIMEOUT_MS, 45000)
     },
-    geminiFlash: {
-      apiKey: process.env.GEMINI_API_KEY || '',
-      baseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com',
-      model: process.env.GEMINI_FLASH_MODEL || 'gemini-2.5-flash',
-      systemInstruction: process.env.GEMINI_SYSTEM_INSTRUCTION || '',
-      timeoutMs: readNumber(process.env.GEMINI_TIMEOUT_MS, 45000)
+    openrouterGeminiFlashLite: {
+      apiKey: process.env.OPENROUTER_API_KEY || '',
+      baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+      model:
+        process.env.OPENROUTER_MODEL_GEMINI_FLASH_LITE || 'google/gemini-3.1-flash-lite-preview',
+      systemInstruction: process.env.OPENROUTER_SYSTEM_INSTRUCTION_GEMINI_FLASH_LITE || '',
+      timeoutMs: readNumber(process.env.OPENROUTER_TIMEOUT_MS, 45000)
     },
-    geminiPro: {
-      apiKey: process.env.GEMINI_API_KEY || '',
-      baseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com',
-      model: process.env.GEMINI_PRO_MODEL || 'gemini-2.5-pro',
-      systemInstruction: process.env.GEMINI_SYSTEM_INSTRUCTION || '',
-      timeoutMs: readNumber(process.env.GEMINI_TIMEOUT_MS, 45000)
+    openrouterQwenFree: {
+      apiKey: process.env.OPENROUTER_API_KEY || '',
+      baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+      model: process.env.OPENROUTER_MODEL_QWEN_FREE || 'qwen/qwen3.6-plus-preview:free',
+      systemInstruction: process.env.OPENROUTER_SYSTEM_INSTRUCTION_QWEN_FREE || '',
+      timeoutMs: readNumber(process.env.OPENROUTER_TIMEOUT_MS, 45000)
     },
-    activeLaneStrategy: 'single_deepseek',
     lanes: {
       deepseek: readFlag(process.env.MODEL_ROUTER_ENABLE_DEEPSEEK, true),
-      geminiFlash: readFlag(process.env.MODEL_ROUTER_ENABLE_GEMINI_FLASH, true),
-      geminiPro: readFlag(process.env.MODEL_ROUTER_ENABLE_GEMINI_PRO, true)
+      openrouterGeminiFlashLite: readFlag(
+        process.env.MODEL_ROUTER_ENABLE_OPENROUTER_GEMINI_FLASH_LITE,
+        true
+      ),
+      openrouterQwenFree: readFlag(process.env.MODEL_ROUTER_ENABLE_OPENROUTER_QWEN_FREE, true)
     },
     runtimeFetchTimeoutMs: readNumber(process.env.RUNTIME_FETCH_TIMEOUT_MS, 15000)
   }

@@ -1,6 +1,6 @@
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
 import type { CharacterDraftDto } from '../../../shared/contracts/workflow'
-import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support'
+import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support.ts'
 
 type BriefCharacterCard = { name?: string; summary?: string }
 type BriefCharacterLayer = { name?: string; layer?: string; duty?: string }
@@ -22,7 +22,18 @@ const GENERIC_FIELD_PATTERNS = [
   /不再只当别人推动剧情的背景板/,
   /会从被局势裹着走，变成能把局面往前拱一把/,
   /^对主线有独特作用$/,
-  /^一旦站位被看穿就容易反噬$/
+  /^一旦站位被看穿就容易反噬$/,
+  /表面像一股越来越近的外压/,
+  /不是站队角色/,
+  /不会替任何人守体面/,
+  /把外压推上台面/,
+  /实质灾难/,
+  /不需要讲情分也不需要讲规矩/,
+  /把这条线里的漏洞和代价全部逼出来/,
+  /最怕的不是输赢/,
+  /被提前压回去/,
+  /真正受什么吸引/,
+  /凶性就能被提前引爆或反关/
 ]
 
 function cleanText(value: string): string {
@@ -119,28 +130,6 @@ function buildGeneralLeverDraft(input: {
   }
 }
 
-function buildExternalPressureDraft(input: {
-  name: string
-  summary: string
-  protagonist: string
-  antagonist: string
-  generationBriefText: string
-  layer?: string
-}): Partial<CharacterDraftDto> {
-  const asset = pickKeyAsset(input.generationBriefText)
-  return {
-    publicMask: `${input.name}表面像一股越来越近的外压，不跟任何人讲道理。`,
-    hiddenPressure: `${input.name}不是站队角色，而是会顺着${asset}和局势裂口不断放大代价，谁失手它就咬谁。`,
-    fear: `${input.name}最怕的不是输赢，而是自己真正被看穿和被提前压回去。`,
-    protectTarget: `${input.name}只会守自己的扩张节奏和外压边界，不会替任何人守体面。`,
-    conflictTrigger: `只要${input.antagonist || '对手'}继续逼近${asset}，或${input.protagonist || '主角'}亮底过猛，${input.name}就会立刻把外压推上台面。`,
-    advantage: `${input.name}的优势，是不需要讲情分也不需要讲规矩，只要局面露缝就能顺势把代价越撕越大。`,
-    weakness: `${input.name}的短板，是一旦被人摸清它真正受什么吸引、又被什么压制，它的凶性就能被提前引爆或反关。`,
-    goal: `${input.name}要把这条线里的漏洞和代价全部逼出来，让所有人都没法只靠嘴硬撑过去。`,
-    arc: `${input.name}会从远处逼近的危险，变成主线后段必须正面处理的实质灾难。`
-  }
-}
-
 function buildSynthesizedDraft(input: {
   name: string
   summary: string
@@ -155,20 +144,12 @@ function buildSynthesizedDraft(input: {
   if (input.layer.includes('规则')) {
     return buildRuleLeverDraft(input)
   }
-  if (input.layer.includes('外压')) {
-    return buildExternalPressureDraft(input)
-  }
   return buildGeneralLeverDraft(input)
 }
 
 function shouldForceEmotionRewrite(character: CharacterDraftDto, summary: string): boolean {
   const text = `${character.name} ${character.biography} ${summary}`
   return /少女|小柔|苏婉/.test(text) || /筹码/.test(text)
-}
-
-function shouldForceExternalRewrite(character: CharacterDraftDto, summary: string, layer: string): boolean {
-  const text = `${character.name} ${character.biography} ${summary} ${layer}`
-  return /妖|蛇|兽|鬼|外压/.test(text) || /不是背景板/.test(text)
 }
 
 export function enrichCharacterDrafts(input: {
@@ -196,10 +177,15 @@ export function enrichCharacterDrafts(input: {
     const isProtagonist = cleanText(character.name) === cleanText(input.storyIntent.protagonist || '')
     const isAntagonist = cleanText(character.name) === cleanText(input.storyIntent.antagonist || '')
     const rewriteAsEmotion = !isProtagonist && !isAntagonist && shouldForceEmotionRewrite(character, summary)
-    const rewriteAsExternal = !isProtagonist && !isAntagonist && shouldForceExternalRewrite(character, summary, layer)
 
-    const synthesized = rewriteAsExternal
-      ? buildExternalPressureDraft({
+    const synthesized = rewriteAsEmotion
+      ? buildEmotionLeverDraft({
+            name: character.name,
+            summary,
+            protagonist: input.storyIntent.protagonist || '',
+            antagonist: input.storyIntent.antagonist || ''
+          })
+      : buildSynthesizedDraft({
           name: character.name,
           summary,
           layer,
@@ -207,49 +193,29 @@ export function enrichCharacterDrafts(input: {
           antagonist: input.storyIntent.antagonist || '',
           generationBriefText: input.generationBriefText
         })
-      : rewriteAsEmotion
-        ? buildEmotionLeverDraft({
-            name: character.name,
-            summary,
-            protagonist: input.storyIntent.protagonist || '',
-            antagonist: input.storyIntent.antagonist || ''
-          })
-        : buildSynthesizedDraft({
-      name: character.name,
-      summary,
-      layer,
-      protagonist: input.storyIntent.protagonist || '',
-      antagonist: input.storyIntent.antagonist || '',
-      generationBriefText: input.generationBriefText
-    })
 
     return {
       ...character,
       biography: cleanText(character.biography) || summary,
       publicMask:
-        rewriteAsEmotion || rewriteAsExternal || isGenericField(character.publicMask)
+        rewriteAsEmotion || isGenericField(character.publicMask)
           ? cleanText(synthesized.publicMask || '')
           : character.publicMask,
-      hiddenPressure: isGenericField(character.hiddenPressure)
-        || rewriteAsEmotion
-        || rewriteAsExternal
+      hiddenPressure: isGenericField(character.hiddenPressure) || rewriteAsEmotion
         ? cleanText(synthesized.hiddenPressure || '')
         : character.hiddenPressure,
-      fear: isGenericField(character.fear) || rewriteAsEmotion || rewriteAsExternal ? cleanText(synthesized.fear || '') : character.fear,
+      fear: isGenericField(character.fear) || rewriteAsEmotion ? cleanText(synthesized.fear || '') : character.fear,
       protectTarget: isGenericField(character.protectTarget)
         || rewriteAsEmotion
-        || rewriteAsExternal
         ? cleanText(synthesized.protectTarget || '')
         : character.protectTarget,
-      conflictTrigger: isGenericField(character.conflictTrigger)
-        || rewriteAsEmotion
-        || rewriteAsExternal
+      conflictTrigger: isGenericField(character.conflictTrigger) || rewriteAsEmotion
         ? cleanText(synthesized.conflictTrigger || '')
         : character.conflictTrigger,
-      advantage: isGenericField(character.advantage) || rewriteAsEmotion || rewriteAsExternal ? cleanText(synthesized.advantage || '') : character.advantage,
-      weakness: isGenericField(character.weakness) || rewriteAsEmotion || rewriteAsExternal ? cleanText(synthesized.weakness || '') : character.weakness,
-      goal: isGenericField(character.goal) || rewriteAsEmotion || rewriteAsExternal ? cleanText(synthesized.goal || '') : character.goal,
-      arc: isGenericField(character.arc) || rewriteAsEmotion || rewriteAsExternal ? cleanText(synthesized.arc || '') : character.arc
+      advantage: isGenericField(character.advantage) || rewriteAsEmotion ? cleanText(synthesized.advantage || '') : character.advantage,
+      weakness: isGenericField(character.weakness) || rewriteAsEmotion ? cleanText(synthesized.weakness || '') : character.weakness,
+      goal: isGenericField(character.goal) || rewriteAsEmotion ? cleanText(synthesized.goal || '') : character.goal,
+      arc: isGenericField(character.arc) || rewriteAsEmotion ? cleanText(synthesized.arc || '') : character.arc
     }
   })
 }

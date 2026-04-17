@@ -7,7 +7,9 @@ export function ProjectGenerationBanner(props: { status: ProjectGenerationStatus
   const notice = useWorkflowStore((state) => state.generationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
-  const { elapsedSeconds } = useProjectGenerationProgress(props.status)
+  const { elapsedSeconds, estimatedSeconds, progressPercent } = useProjectGenerationProgress(
+    props.status
+  )
 
   async function handleSwitch(
     stage: NonNullable<NonNullable<typeof notice>['primaryAction']>['stage']
@@ -33,11 +35,14 @@ export function ProjectGenerationBanner(props: { status: ProjectGenerationStatus
             <p className="text-sm font-black text-white/90">这一步还在处理中，请先别切来切去。</p>
           </div>
           <p className="shrink-0 text-[11px] text-orange-200/85 font-bold">
-            已处理 {elapsedSeconds} 秒
+            已处理 {elapsedSeconds}/{estimatedSeconds} 秒 · {progressPercent}%
           </p>
         </div>
         <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
-          <div className="h-full w-1/3 rounded-full bg-orange-500 animate-pulse" />
+          <div
+            className="h-full rounded-full bg-orange-500 transition-[width] duration-700"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
         <p className="text-[11px] text-white/70 leading-relaxed">{props.status.detail}</p>
       </div>

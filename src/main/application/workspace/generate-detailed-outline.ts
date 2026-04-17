@@ -1,304 +1,489 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import { generateTextWithRuntimeRouter } from '../ai/generate-text'
+import { generateTextWithRuntimeRouter } from '../ai/generate-text.ts'
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { ProjectEntityStoreDto } from '../../../shared/contracts/entities.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineEpisodeBeatDto,
   DetailedOutlineSegmentDto,
-  OutlineDraftDto
+  OutlineDraftDto,
+  OutlineEpisodeDto
 } from '../../../shared/contracts/workflow'
-import { ensureOutlineEpisodeShape } from '../../../shared/domain/workflow/outline-episodes'
-import { buildFourActEpisodeRanges } from '../../../shared/domain/workflow/episode-count'
-import { buildDetailedOutlinePrompt } from './generation-stage-prompts'
+import {
+  buildFourActEpisodeRanges,
+  deriveOutlineEpisodeCount
+} from '../../../shared/domain/workflow/episode-count.ts'
+import { deriveActiveCharacterPackage } from '../../../shared/domain/workflow/active-character-package.ts'
+import { ensureOutlineEpisodeShape } from '../../../shared/domain/workflow/outline-episodes.ts'
+import { buildDetailedOutlineActPrompt } from './generation-stage-prompts.ts'
+import { generateEpisodeControlCardsForSegment } from './episode-control-agent.ts'
+import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout.ts'
+import { tryParseObject } from './summarize-chat-for-generation-json.ts'
 
-interface DetailedOutlinePayload {
-  opening?: string | DetailedOutlineActPayload
-  midpoint?: string | DetailedOutlineActPayload
-  climax?: string | DetailedOutlineActPayload
-  ending?: string | DetailedOutlineActPayload
+type DetailedOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
+type DetailedOutlineSource = 'model'
+
+const DETAILED_OUTLINE_ACT_ORDER: DetailedOutlineAct[] = ['opening', 'midpoint', 'climax', 'ending']
+
+const DETAILED_OUTLINE_ACT_HOOK_TYPE: Record<DetailedOutlineAct, string> = {
+  opening: '入局钩子',
+  midpoint: '升级钩子',
+  climax: '反转钩子',
+  ending: '收束钩子'
 }
 
-type DetailedAct = 'opening' | 'midpoint' | 'climax' | 'ending'
+// With 30 episodes, acts can have 7-8 episodes each (vs 2-3 for 10-ep).
+// Output tokens must scale to fit the larger act payloads.
+const DETAILED_OUTLINE_ACT_MAX_OUTPUT_TOKENS = 6000
+
+// Batch size for detailed outline generation (matches script generation batch)
+const DETAILED_OUTLINE_BATCH_SIZE = 5
+
+interface DetailedOutlineActPlan {
+  act: DetailedOutlineAct
+  startEpisode: number
+  endEpisode: number
+  episodes: OutlineEpisodeDto[]
+}
 
 interface DetailedOutlineActPayload {
   summary?: string
-  episodes?: Array<{ episodeNo?: number; summary?: string }>
+  episodes?: Array<{
+    episodeNo?: number
+    summary?: string
+    sceneByScene?: Array<{
+      sceneNo?: number
+      location?: string
+      timeOfDay?: string
+      setup?: string
+      tension?: string
+      hookEnd?: string
+    }>
+  }>
 }
 
-function normalizeWhitespace(text: string): string {
-  return text.replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim()
-}
-
-function countSentenceLikeParts(text: string): number {
-  return text
-    .split(/[。！？!?]\s*/)
-    .map((part) => part.trim())
-    .filter(Boolean).length
-}
-
-function safeJsonParse(text: string): unknown {
-  const start = text.indexOf('{')
-  const end = text.lastIndexOf('}')
-  const slice = start >= 0 && end >= 0 ? text.slice(start, end + 1) : text
-  const normalized = slice
-    .replace(/```json|```/gi, '')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/：/g, ':')
-    .replace(/，/g, ',')
-    .replace(/\u00A0/g, ' ')
-    .replace(/,\s*([}\]])/g, '$1')
-
-  return JSON.parse(normalized)
-}
-
-function pickConflictAsset(text: string): string {
-  if (text.includes('密库钥匙')) return '密库钥匙'
-  if (text.includes('钥匙')) return '钥匙'
-  if (text.includes('戏本秘密')) return '戏本秘密'
-  if (text.includes('源代码')) return '源代码'
-  if (text.includes('证据')) return '关键证据'
-  return '关键底牌'
-}
-
-function pickCharacter(input: {
-  characters: CharacterDraftDto[]
-  preferredName?: string
-  matcher: (character: CharacterDraftDto) => boolean
-}): CharacterDraftDto | null {
-  const exact = input.preferredName
-    ? input.characters.find((character) => character.name.trim() === input.preferredName?.trim())
-    : null
-  if (exact) return exact
-  return input.characters.find(input.matcher) || null
-}
-
-function cleanName(value: string | undefined, fallback: string): string {
-  return value?.trim() || fallback
-}
-
-function buildFallbackSegments(input: {
+type InvokeDetailedOutlineActFn = (input: {
   outline: OutlineDraftDto
   characters: CharacterDraftDto[]
   storyIntent?: StoryIntentPackageDto | null
-}): DetailedOutlineSegmentDto[] {
-  const normalizedOutline = ensureOutlineEpisodeShape(input.outline)
-  const protagonist = cleanName(input.storyIntent?.protagonist || normalizedOutline.protagonist, '主角')
-  const antagonist = cleanName(input.storyIntent?.antagonist, '对手')
-  const emotionCharacter = pickCharacter({
-    characters: input.characters,
-    preferredName: input.storyIntent?.officialKeyCharacters?.find((name) => /少女|师妹|前女友|苏婉|小柔/.test(name)),
-    matcher: (character) => /筹码|情感|关系变化|看不懂|信人/.test(`${character.biography} ${character.arc} ${character.hiddenPressure}`)
-  })
-  const externalCharacter = pickCharacter({
-    characters: input.characters,
-    preferredName: input.storyIntent?.officialKeyCharacters?.find((name) => /妖|冤魂|系统|异动|外压/.test(name)),
-    matcher: (character) => /外部危险|外压|妖|冤魂|系统|失控|放大代价/.test(`${character.name} ${character.biography} ${character.hiddenPressure}`)
-  })
-  const protectTarget = cleanName(emotionCharacter?.name, '关键关系')
-  const worldThreat = cleanName(externalCharacter?.name, '外部压力')
-  const asset = pickConflictAsset(`${normalizedOutline.mainConflict} ${input.storyIntent?.coreConflict || ''}`)
-  const theme = input.storyIntent?.themeAnchors?.[0] || normalizedOutline.theme || '当前选择的代价'
+  plan: DetailedOutlineActPlan
+  previousActSummary?: string
+  runtimeConfig: RuntimeProviderConfig
+  diagnosticLogger?: DetailedOutlineDiagnosticLogger
+  signal?: AbortSignal
+}) => Promise<DetailedOutlineSegmentDto>
 
-  return [
-    {
-      act: 'opening',
-      content: `${protagonist}这一段最先想守住的是${protectTarget}和${asset}，但${antagonist}先把第一轮压力正面压下来，逼他当场表态。${protagonist}只能先压住自己，边守边试，故事也从这里正式点燃。`,
-      hookType: '入局钩子'
-    },
-    {
-      act: 'midpoint',
-      content: `${antagonist}继续加码，${worldThreat}也开始把局面往更险处推，${protagonist}不得不从单纯硬扛改成边查边反手布局。到了这一段，代价不再只是吃亏，而是${protectTarget}、身份和局面控制权一起变重。`,
-      hookType: '升级钩子'
-    },
-    {
-      act: 'climax',
-      content: `${protectTarget}和${asset}这两条线一起被逼到最痛的位置，${protagonist}再不亮底就守不住眼前这一轮。真正的高潮不是继续加压，而是${protagonist}被逼着把最深的底牌和误判一起翻到台前。`,
-      hookType: '反转钩子'
-    },
-    {
-      act: 'ending',
-      content: `${protagonist}在这一段必须先把这一轮真正落定：做出不能回头的决定，让代价明确落到自己和${protectTarget}身上，并让局面正式变成新的状态。等这一轮收口成立后，${worldThreat}和“${theme}”背后的更大账再继续压到下一轮。`,
-      hookType: '收束钩子'
-    }
-  ]
+type DecorateSegmentWithEpisodeControlCardsFn = (input: {
+  storyIntent?: StoryIntentPackageDto | null
+  outline: OutlineDraftDto
+  segment: DetailedOutlineSegmentDto
+  characters: CharacterDraftDto[]
+  runtimeConfig: RuntimeProviderConfig
+  signal?: AbortSignal
+}) => Promise<DetailedOutlineSegmentDto>
+
+export type DetailedOutlineDiagnosticLogger = (message: string) => Promise<void>
+
+function emitDetailedOutlineDiagnostic(
+  logger: DetailedOutlineDiagnosticLogger | undefined,
+  message: string
+): void {
+  if (!logger) return
+
+  try {
+    void Promise.resolve(logger(message)).catch(() => undefined)
+  } catch {
+    // 诊断日志只能旁路记录，不能反过来打断正式生成链。
+  }
+}
+
+function normalizeWhitespace(text: string): string {
+  return text
+    .replace(/\r/g, '')
+    .replace(/[ \t]+/g, ' ')
+    .trim()
+}
+
+function parseDetailedOutlinePayload(text: string): DetailedOutlineActPayload | null {
+  const parsed = tryParseObject(text)
+  if (!parsed) return null
+  return parsed as DetailedOutlineActPayload
 }
 
 function normalizeSegmentContent(value: unknown, fallback: string): string {
   return normalizeWhitespace(typeof value === 'string' ? value : '') || fallback
 }
 
+function normalizeSceneText(value: unknown): string {
+  return normalizeWhitespace(typeof value === 'string' ? value : '')
+}
+
+function normalizeSceneByScene(value: unknown): DetailedOutlineEpisodeBeatDto['sceneByScene'] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item, index) => {
+      const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
+      return {
+        sceneNo:
+          Number.isFinite(Number(record.sceneNo)) && Number(record.sceneNo) > 0
+            ? Math.floor(Number(record.sceneNo))
+            : index + 1,
+        location: normalizeSceneText(record.location),
+        timeOfDay: normalizeSceneText(record.timeOfDay),
+        setup: normalizeSceneText(record.setup),
+        tension: normalizeSceneText(record.tension),
+        hookEnd: normalizeSceneText(record.hookEnd)
+      }
+    })
+    .filter(
+      (scene) => scene.setup || scene.tension || scene.hookEnd || scene.location || scene.timeOfDay
+    )
+}
+
 function normalizeEpisodeBeats(value: unknown): DetailedOutlineEpisodeBeatDto[] {
   if (!Array.isArray(value)) return []
+
   return value
     .map((item, index) => {
       const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
       const rawEpisodeNo = Number(record.episodeNo)
-      const episodeNo = Number.isFinite(rawEpisodeNo) && rawEpisodeNo > 0 ? Math.floor(rawEpisodeNo) : index + 1
+      const episodeNo =
+        Number.isFinite(rawEpisodeNo) && rawEpisodeNo > 0 ? Math.floor(rawEpisodeNo) : index + 1
       const summary = normalizeWhitespace(typeof record.summary === 'string' ? record.summary : '')
-      return { episodeNo, summary }
+      const sceneByScene = normalizeSceneByScene(record.sceneByScene)
+      return { episodeNo, summary, sceneByScene }
     })
-    .filter((item) => item.summary)
+    .filter((item) => item.summary || item.sceneByScene?.length)
     .sort((left, right) => left.episodeNo - right.episodeNo)
 }
 
-function buildFallbackEpisodeSummary(input: {
-  act: DetailedAct
-  episodeSummary: string
-  overview: string
-}): string {
-  const summary = normalizeWhitespace(input.episodeSummary)
-  const overview = normalizeWhitespace(input.overview)
-  if (!summary && !overview) return ''
-
-  const suffixByAct: Record<DetailedAct, string> = {
-    opening: '这一集先把人物拖进局里，让第一层压力当场落下，结尾必须挂出马上要来的下一刀。',
-    midpoint: '这一集不能只重复前情，要把代价继续抬高，让主角被逼着换打法，结尾留下更险的口子。',
-    climax: '这一集要逼到最痛的位置，让底牌、误判或关系翻面真的落地，结尾不能收虚。',
-    ending: '这一集先把这一轮选择和代价落定，再把下一轮余波轻轻挂出去，不要重新开新题。'
-  }
-
-  return [summary, suffixByAct[input.act], overview ? `这一集仍然要吃住本段主任务：${overview}` : '']
-    .filter(Boolean)
-    .join(' ')
-}
-
-function buildFallbackEpisodeBeats(input: {
-  outline: OutlineDraftDto
-  fallbackSegments: DetailedOutlineSegmentDto[]
-}): Record<DetailedAct, DetailedOutlineEpisodeBeatDto[]> {
-  const ranges = buildFourActEpisodeRanges(input.outline.summaryEpisodes.length)
-  const acts: DetailedAct[] = ['opening', 'midpoint', 'climax', 'ending']
-  const result: Record<DetailedAct, DetailedOutlineEpisodeBeatDto[]> = {
-    opening: [],
-    midpoint: [],
-    climax: [],
-    ending: []
-  }
-
-  acts.forEach((act, index) => {
-    const range = ranges[index]
-    const overview = input.fallbackSegments[index]?.content || ''
-    result[act] = input.outline.summaryEpisodes
-      .filter((episode) => episode.episodeNo >= range.startEpisode && episode.episodeNo <= range.endEpisode)
-      .map((episode) => ({
-        episodeNo: episode.episodeNo,
-        summary: buildFallbackEpisodeSummary({
-          act,
-          episodeSummary: episode.summary,
-          overview
-        })
-      }))
-      .filter((episode) => episode.summary)
-  })
-
-  return result
-}
-
-function extractActSummary(payload: string | DetailedOutlineActPayload | undefined, fallback: string): string {
-  if (typeof payload === 'string') return normalizeSegmentContent(payload, fallback)
+function extractActSummary(
+  payload: DetailedOutlineActPayload | undefined,
+  fallback: string
+): string {
   return normalizeSegmentContent(payload?.summary, fallback)
 }
 
 function extractActEpisodes(
-  payload: string | DetailedOutlineActPayload | undefined,
+  payload: DetailedOutlineActPayload | undefined,
   fallback: DetailedOutlineEpisodeBeatDto[]
 ): DetailedOutlineEpisodeBeatDto[] {
-  if (!payload || typeof payload === 'string') return fallback
-  const normalized = normalizeEpisodeBeats(payload.episodes)
-  return normalized.length > 0 ? normalized : fallback
+  const normalized = normalizeEpisodeBeats(payload?.episodes)
+  const hasStructuredScenes = normalized.some((episode) => (episode.sceneByScene?.length || 0) > 0)
+  return normalized.length > 0 && hasStructuredScenes ? normalized : fallback
 }
 
-function segmentHasStageDuty(act: DetailedAct, content: string): boolean {
-  const text = normalizeWhitespace(content)
-  if (!text) return false
-  if (/这一段主要讲的是|这一段说明了|这一段展示了|这一段是/.test(text)) return false
+function normalizeEpisodeNo(value: number | undefined, fallback: number): number {
+  return Number.isFinite(value) && (value || 0) > 0 ? Math.floor(value as number) : fallback
+}
 
-  const sentenceCount = countSentenceLikeParts(text)
-  if (sentenceCount < 2 || sentenceCount > 6) return false
+function hasExactEpisodeCoverage(
+  episodeBeats: DetailedOutlineEpisodeBeatDto[],
+  startEpisode: number,
+  endEpisode: number
+): boolean {
+  const expectedEpisodeNos = Array.from(
+    { length: endEpisode - startEpisode + 1 },
+    (_, index) => startEpisode + index
+  )
+  if (episodeBeats.length !== expectedEpisodeNos.length) return false
 
-  const rules: Record<DetailedAct, RegExp[]> = {
-    opening: [/想守|守住/, /压力|逼|点燃|入局/],
-    midpoint: [/更难|升级|加码|变重/, /应对|布局|反手|代价/],
-    climax: [/最痛|亮底|退路|翻面|逼到/, /底牌|真相|误判/],
-    ending: [/收口|收束|落定|决定|新状态/, /代价|下一轮|继续/]
+  const actualEpisodeNos = episodeBeats
+    .map((episode, index) => normalizeEpisodeNo(episode.episodeNo, startEpisode + index))
+    .sort((left, right) => left - right)
+
+  return expectedEpisodeNos.every((episodeNo, index) => actualEpisodeNos[index] === episodeNo)
+}
+
+export function isDetailedOutlineActResultComplete(input: {
+  segment: DetailedOutlineSegmentDto
+  startEpisode: number
+  endEpisode: number
+}): boolean {
+  if (!normalizeWhitespace(input.segment.content)) return false
+
+  const episodeBeats = Array.isArray(input.segment.episodeBeats) ? input.segment.episodeBeats : []
+  if (!hasExactEpisodeCoverage(episodeBeats, input.startEpisode, input.endEpisode)) return false
+
+  return episodeBeats.every((episode) => {
+    if (!normalizeWhitespace(episode.summary)) return false
+    return Array.isArray(episode.sceneByScene) && episode.sceneByScene.length > 0
+  })
+}
+
+export function isDetailedOutlineModelResultComplete(
+  segments: DetailedOutlineSegmentDto[]
+): boolean {
+  if (!Array.isArray(segments) || segments.length !== 4) return false
+
+  return segments.every((segment) => {
+    if (!normalizeWhitespace(segment.content)) return false
+    if (!Array.isArray(segment.episodeBeats) || segment.episodeBeats.length === 0) return false
+
+    return segment.episodeBeats.every((episode) => {
+      if (!normalizeWhitespace(episode.summary)) return false
+      return Array.isArray(episode.sceneByScene) && episode.sceneByScene.length > 0
+    })
+  })
+}
+
+interface DetailedOutlineBatchPlan {
+  act: DetailedOutlineAct
+  actIndex: number
+  startEpisode: number
+  endEpisode: number
+  episodes: OutlineEpisodeDto[]
+  isLastBatchInAct: boolean
+}
+
+function buildDetailedOutlineBatchPlans(outline: OutlineDraftDto): DetailedOutlineBatchPlan[] {
+  const totalEpisodes = deriveOutlineEpisodeCount(outline, outline.summaryEpisodes.length || 0)
+  const actRanges = buildFourActEpisodeRanges(totalEpisodes)
+  const batchPlans: DetailedOutlineBatchPlan[] = []
+
+  actRanges.forEach((range, actIndex) => {
+    const act = DETAILED_OUTLINE_ACT_ORDER[actIndex]
+    let batchStart = range.startEpisode
+
+    while (batchStart <= range.endEpisode) {
+      const batchEnd = Math.min(batchStart + DETAILED_OUTLINE_BATCH_SIZE - 1, range.endEpisode)
+      const episodes = outline.summaryEpisodes.filter(
+        (episode) => episode.episodeNo >= batchStart && episode.episodeNo <= batchEnd
+      )
+      batchPlans.push({
+        act,
+        actIndex,
+        startEpisode: batchStart,
+        endEpisode: batchEnd,
+        episodes,
+        isLastBatchInAct: batchEnd === range.endEpisode
+      })
+      batchStart = batchEnd + 1
+    }
+  })
+
+  return batchPlans
+}
+
+export function normalizeDetailedOutlineSourceOutline(outline: OutlineDraftDto): OutlineDraftDto {
+  const totalEpisodes = deriveOutlineEpisodeCount(outline, outline.summaryEpisodes.length || 0)
+  return ensureOutlineEpisodeShape(outline, totalEpisodes)
+}
+
+async function invokeDetailedOutlineAct(input: {
+  outline: OutlineDraftDto
+  characters: CharacterDraftDto[]
+  storyIntent?: StoryIntentPackageDto | null
+  plan: DetailedOutlineActPlan
+  previousActSummary?: string
+  runtimeConfig: RuntimeProviderConfig
+  diagnosticLogger?: DetailedOutlineDiagnosticLogger
+  signal?: AbortSignal
+}): Promise<DetailedOutlineSegmentDto> {
+  const timeoutMs = resolveAiStageTimeoutMs('detailed_outline')
+  const prompt = buildDetailedOutlineActPrompt({
+    outline: input.outline,
+    characters: input.characters,
+    storyIntent: input.storyIntent,
+    act: input.plan.act,
+    startEpisode: input.plan.startEpisode,
+    endEpisode: input.plan.endEpisode,
+    episodes: input.plan.episodes,
+    previousActSummary: input.previousActSummary
+  })
+  const startedAt = Date.now()
+  let responseChars = 0
+  let responseHead = ''
+  let responseTail = ''
+  let lane = 'unknown'
+  let model = 'unknown'
+  let finishReason = 'unknown'
+
+  emitDetailedOutlineDiagnostic(
+    input.diagnosticLogger,
+    `act_start act=${input.plan.act} range=${input.plan.startEpisode}-${input.plan.endEpisode} promptChars=${prompt.length} timeoutMs=${timeoutMs} maxOutputTokens=${DETAILED_OUTLINE_ACT_MAX_OUTPUT_TOKENS}`
+  )
+
+  try {
+    const result = await generateTextWithRuntimeRouter(
+      {
+        task: 'detailed_outline',
+        prompt,
+        allowFallback: false,
+        responseFormat: 'json_object',
+        temperature: 0.45,
+        timeoutMs,
+        maxOutputTokens: DETAILED_OUTLINE_ACT_MAX_OUTPUT_TOKENS,
+        runtimeHints: {
+          totalEpisodes: input.outline.summaryEpisodes.length,
+          episode: input.plan.startEpisode,
+          strictness: 'strict'
+        }
+      },
+      input.runtimeConfig,
+      { signal: input.signal }
+    )
+
+    lane = result.lane
+    model = result.model
+    finishReason = result.finishReason || 'unknown'
+    responseChars = result.text.length
+    const normalizedResponse = result.text.replace(/\s+/g, ' ').trim()
+    responseHead = normalizedResponse.slice(0, 240)
+    responseTail = normalizedResponse.slice(-240)
+
+    let payload: DetailedOutlineActPayload
+    const parsedPayload = parseDetailedOutlinePayload(result.text)
+    if (!parsedPayload) {
+      throw new Error(`detailed_outline_parse_failed:${input.plan.act}`)
+    }
+    payload = parsedPayload
+
+    const segment: DetailedOutlineSegmentDto = {
+      act: input.plan.act,
+      startEpisode: input.plan.startEpisode,
+      endEpisode: input.plan.endEpisode,
+      content: extractActSummary(payload, ''),
+      hookType: DETAILED_OUTLINE_ACT_HOOK_TYPE[input.plan.act],
+      episodeBeats: extractActEpisodes(payload, [])
+    }
+
+    if (
+      !isDetailedOutlineActResultComplete({
+        segment,
+        startEpisode: input.plan.startEpisode,
+        endEpisode: input.plan.endEpisode
+      })
+    ) {
+      throw new Error(`detailed_outline_model_incomplete:${input.plan.act}`)
+    }
+
+    emitDetailedOutlineDiagnostic(
+      input.diagnosticLogger,
+      `act_finish act=${input.plan.act} range=${input.plan.startEpisode}-${input.plan.endEpisode} elapsedMs=${Date.now() - startedAt} lane=${lane} model=${model} finishReason=${finishReason} responseChars=${responseChars} responseHead=${responseHead} responseTail=${responseTail}`
+    )
+
+    return segment
+  } catch (error) {
+    emitDetailedOutlineDiagnostic(
+      input.diagnosticLogger,
+      `act_fail act=${input.plan.act} range=${input.plan.startEpisode}-${input.plan.endEpisode} elapsedMs=${Date.now() - startedAt} lane=${lane} model=${model} finishReason=${finishReason} responseChars=${responseChars} responseHead=${responseHead} responseTail=${responseTail} error=${error instanceof Error ? error.message : String(error)}`
+    )
+    throw error instanceof Error ? error : new Error(String(error || 'detailed_outline_failed'))
   }
-
-  return rules[act].every((pattern) => pattern.test(text))
 }
 
 export async function generateDetailedOutlineFromContext(input: {
   outline: OutlineDraftDto
   characters: CharacterDraftDto[]
+  entityStore?: ProjectEntityStoreDto | null
   storyIntent?: StoryIntentPackageDto | null
   runtimeConfig: RuntimeProviderConfig
-}): Promise<DetailedOutlineSegmentDto[]> {
-  const normalizedOutline = ensureOutlineEpisodeShape(input.outline)
-  const fallback = buildFallbackSegments({
-    outline: normalizedOutline,
-    characters: input.characters,
-    storyIntent: input.storyIntent
-  })
-  const fallbackEpisodeBeats = buildFallbackEpisodeBeats({
-    outline: normalizedOutline,
-    fallbackSegments: fallback
-  })
-  const prompt = buildDetailedOutlinePrompt({
-    outline: normalizedOutline,
-    characters: input.characters,
-    storyIntent: input.storyIntent
-  })
+  diagnosticLogger?: DetailedOutlineDiagnosticLogger
+  signal?: AbortSignal
+}, deps: {
+  invokeAct?: InvokeDetailedOutlineActFn
+  decorateSegmentWithEpisodeControlCards?: DecorateSegmentWithEpisodeControlCardsFn
+} = {}): Promise<{
+  segments: DetailedOutlineSegmentDto[]
+  source: DetailedOutlineSource
+  diagnostic: string
+}> {
+  const normalizedOutline = normalizeDetailedOutlineSourceOutline(input.outline)
+  const batchPlans = buildDetailedOutlineBatchPlans(normalizedOutline)
+  const invokeAct = deps.invokeAct ?? invokeDetailedOutlineAct
+  const decorateSegmentWithEpisodeControlCards =
+    deps.decorateSegmentWithEpisodeControlCards ?? generateEpisodeControlCardsForSegment
 
   try {
-    const result = await generateTextWithRuntimeRouter(
-      {
-        task: 'decision_assist',
-        prompt,
-        allowFallback: true,
-        temperature: 0.5
-      },
-      input.runtimeConfig
-    )
-    const payload = safeJsonParse(result.text) as DetailedOutlinePayload
-    const opening = extractActSummary(payload.opening, fallback[0].content)
-    const midpoint = extractActSummary(payload.midpoint, fallback[1].content)
-    const climax = extractActSummary(payload.climax, fallback[2].content)
-    const ending = extractActSummary(payload.ending, fallback[3].content)
-    const openingEpisodes = extractActEpisodes(payload.opening, fallbackEpisodeBeats.opening)
-    const midpointEpisodes = extractActEpisodes(payload.midpoint, fallbackEpisodeBeats.midpoint)
-    const climaxEpisodes = extractActEpisodes(payload.climax, fallbackEpisodeBeats.climax)
-    const endingEpisodes = extractActEpisodes(payload.ending, fallbackEpisodeBeats.ending)
+    const actRanges = buildFourActEpisodeRanges(deriveOutlineEpisodeCount(normalizedOutline))
+    const actEpisodeBeats: Array<DetailedOutlineEpisodeBeatDto[]> = [[], [], [], []]
+    const actSummaries: string[] = ['', '', '', '']
 
-    return [
-      {
-        act: 'opening',
-        content: segmentHasStageDuty('opening', opening) ? opening : fallback[0].content,
-        hookType: '入局钩子',
-        episodeBeats: openingEpisodes
-      },
-      {
-        act: 'midpoint',
-        content: segmentHasStageDuty('midpoint', midpoint) ? midpoint : fallback[1].content,
-        hookType: '升级钩子',
-        episodeBeats: midpointEpisodes
-      },
-      {
-        act: 'climax',
-        content: segmentHasStageDuty('climax', climax) ? climax : fallback[2].content,
-        hookType: '反转钩子',
-        episodeBeats: climaxEpisodes
-      },
-      {
-        act: 'ending',
-        content: segmentHasStageDuty('ending', ending) ? ending : fallback[3].content,
-        hookType: '收束钩子',
-        episodeBeats: endingEpisodes
+    for (const batch of batchPlans) {
+      if (batch.episodes.length === 0) {
+        throw new Error(
+          `detailed_outline_missing_batch_range:${batch.act}-${batch.startEpisode}-${batch.endEpisode}`
+        )
       }
-    ]
-  } catch {
-    return fallback.map((segment) => ({
-      ...segment,
-      episodeBeats: fallbackEpisodeBeats[segment.act]
-    }))
+
+      const previousActSummary = batch.actIndex > 0 ? actSummaries[batch.actIndex - 1] : ''
+      const activeCharacterPackage = deriveActiveCharacterPackage({
+        outline: normalizedOutline,
+        characterDrafts: input.characters,
+        entityStore: input.entityStore,
+        startEpisode: batch.startEpisode,
+        endEpisode: batch.endEpisode,
+        batchNo: batch.actIndex + 1
+      })
+
+      const segment = await invokeAct({
+        outline: normalizedOutline,
+        characters:
+          activeCharacterPackage.characters.length > 0
+            ? activeCharacterPackage.characters
+            : input.characters,
+        storyIntent: input.storyIntent,
+        plan: {
+          act: batch.act,
+          startEpisode: batch.startEpisode,
+          endEpisode: batch.endEpisode,
+          episodes: batch.episodes
+        },
+        previousActSummary,
+        runtimeConfig: input.runtimeConfig,
+        diagnosticLogger: input.diagnosticLogger,
+        signal: input.signal
+      })
+      const segmentWithControlCards = await decorateSegmentWithEpisodeControlCards({
+        storyIntent: input.storyIntent,
+        outline: normalizedOutline,
+        segment,
+        characters:
+          activeCharacterPackage.characters.length > 0
+            ? activeCharacterPackage.characters
+            : input.characters,
+        runtimeConfig: input.runtimeConfig,
+        signal: input.signal
+      })
+
+      // Merge episodeBeats into the act
+      if (segmentWithControlCards.episodeBeats) {
+        actEpisodeBeats[batch.actIndex].push(...segmentWithControlCards.episodeBeats)
+      }
+
+      // Update act summary if this is the last batch in the act
+      if (batch.isLastBatchInAct && segmentWithControlCards.content) {
+        actSummaries[batch.actIndex] = segmentWithControlCards.content
+      }
+    }
+
+    // Build final segments from merged batches
+    const segments: DetailedOutlineSegmentDto[] = DETAILED_OUTLINE_ACT_ORDER.map((act, index) => {
+      const range = actRanges[index]
+      return {
+        act,
+        startEpisode: range.startEpisode,
+        endEpisode: range.endEpisode,
+        content: actSummaries[index],
+        hookType: DETAILED_OUTLINE_ACT_HOOK_TYPE[act],
+        episodeBeats: actEpisodeBeats[index]
+      }
+    })
+
+    if (!isDetailedOutlineModelResultComplete(segments)) {
+      throw new Error('detailed_outline_model_incomplete')
+    }
+
+    return {
+      segments,
+      source: 'model',
+      diagnostic: `router_ok:model:batches=${batchPlans.length}`
+    }
+  } catch (error) {
+    throw new Error(
+      `detailed_outline_generation_failed:${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }

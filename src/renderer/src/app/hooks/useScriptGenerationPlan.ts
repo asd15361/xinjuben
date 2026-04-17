@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
-import type { BuildScriptGenerationPlanInputDto, ScriptGenerationExecutionPlanDto } from '../../../../shared/contracts/script-generation'
+import type {
+  BuildScriptGenerationPlanInputDto,
+  ScriptGenerationExecutionPlanDto
+} from '../../../../shared/contracts/script-generation'
 import { useWorkflowStore } from '../store/useWorkflowStore'
 import { useStageStore } from '../../store/useStageStore'
+import { getScriptGenerationPlan } from '../services/script-plan-service'
 
-export function useScriptGenerationPlan(planInput: BuildScriptGenerationPlanInputDto): ScriptGenerationExecutionPlanDto | null {
+export function useScriptGenerationPlan(
+  planInput: BuildScriptGenerationPlanInputDto
+): ScriptGenerationExecutionPlanDto | null {
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const scriptRuntimeFailureHistory = useWorkflowStore((s) => s.scriptRuntimeFailureHistory)
   const outline = useStageStore((s) => s.outline)
@@ -16,8 +22,8 @@ export function useScriptGenerationPlan(planInput: BuildScriptGenerationPlanInpu
     let active = true
 
     async function buildPlan(): Promise<void> {
-      const next = await window.api.workflow.buildScriptGenerationPlan({
-        plan: {
+      const next = await getScriptGenerationPlan({
+        planInput: {
           ...planInput,
           runtimeFailureHistory: scriptRuntimeFailureHistory
         },
@@ -25,7 +31,8 @@ export function useScriptGenerationPlan(planInput: BuildScriptGenerationPlanInpu
         outline,
         characters,
         segments,
-        script
+        script,
+        failureHistory: scriptRuntimeFailureHistory
       })
 
       if (active) {

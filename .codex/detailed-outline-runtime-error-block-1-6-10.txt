@@ -1,0 +1,6 @@
+AbortError: This operation was aborted
+    at new DOMException (node:internal/per_context/domexception:76:18)
+    at AbortController.abort (node:internal/abort_controller:504:18)
+    at Timeout._onTimeout (D:\project\xinjuben\out\main\index.js:59:31)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7)

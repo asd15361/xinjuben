@@ -4,21 +4,53 @@ import { createWindow } from './app/bootstrap/create-window'
 import { registerIpcHandlers } from './app/bootstrap/register-ipc'
 import { loadRuntimeEnv } from './infrastructure/runtime-env/load-runtime-env'
 import { loadRuntimeProviderConfig } from './infrastructure/runtime-env/provider-config'
+import { resolveStorageRuntime } from './infrastructure/storage/storage-runtime'
+import {
+  appendRuntimeDiagnosticLog,
+  getRuntimeDiagnosticLogPath
+} from './infrastructure/diagnostics/runtime-diagnostic-log'
+import {
+  runtimeConsoleError,
+  runtimeConsoleWarn,
+  runtimeConsoleLog
+} from './infrastructure/diagnostics/runtime-console'
+
+process.on('uncaughtException', (error) => {
+  void appendRuntimeDiagnosticLog(
+    'main',
+    `uncaughtException ${error instanceof Error ? error.stack || error.message : String(error)}`
+  )
+  runtimeConsoleError('[main] uncaughtException', error)
+})
+
+process.on('unhandledRejection', (reason) => {
+  void appendRuntimeDiagnosticLog(
+    'main',
+    `unhandledRejection ${reason instanceof Error ? reason.stack || reason.message : String(reason)}`
+  )
+  runtimeConsoleError('[main] unhandledRejection', reason)
+})
 
 loadRuntimeEnv()
 const runtimeProviderConfig = loadRuntimeProviderConfig()
-
-// E2E (and power users) can isolate storage to avoid cross-app collisions on Windows,
-// where the default "Electron" userData path is shared and can be locked by other instances.
-const userDataOverride = process.env.E2E_USER_DATA_DIR || process.env.XINJUBEN_USER_DATA_DIR
-if (userDataOverride && userDataOverride.trim()) {
-  app.setPath('userData', userDataOverride.trim())
-}
+const storageRuntime = resolveStorageRuntime(process.env, app.getPath('appData'))
+app.setPath('userData', storageRuntime.userDataPath)
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  void appendRuntimeDiagnosticLog(
+    'main',
+    `app ready mode=${storageRuntime.mode} userData=${app.getPath('userData')} log=${getRuntimeDiagnosticLogPath()}`
+  )
+  if (storageRuntime.ignoredOverride) {
+    void appendRuntimeDiagnosticLog(
+      'main',
+      `ignored_e2e_user_data_dir_outside_e2e_mode path=${storageRuntime.ignoredOverride}`
+    )
+    runtimeConsoleWarn('[main] ignored E2E_USER_DATA_DIR outside e2e mode', storageRuntime.ignoredOverride)
+  }
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.xinjuben.app')
 
@@ -27,6 +59,25 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+    void appendRuntimeDiagnosticLog('main', 'browser-window-created')
+    runtimeConsoleLog('[main] browser-window-created')
+  })
+
+  app.on('render-process-gone', (_, webContents, details) => {
+    void appendRuntimeDiagnosticLog(
+      'main',
+      `render-process-gone reason=${details.reason} exitCode=${details.exitCode} url=${webContents.getURL()}`
+    )
+    runtimeConsoleError('[main] render-process-gone', {
+      url: webContents.getURL(),
+      reason: details.reason,
+      exitCode: details.exitCode
+    })
+  })
+
+  app.on('child-process-gone', (_, details) => {
+    void appendRuntimeDiagnosticLog('main', `child-process-gone ${JSON.stringify(details)}`)
+    runtimeConsoleError('[main] child-process-gone', details)
   })
 
   registerIpcHandlers({

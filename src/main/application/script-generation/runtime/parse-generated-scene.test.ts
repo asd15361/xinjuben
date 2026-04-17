@@ -283,6 +283,53 @@ const BOLD_MARKDOWN_HEADINGS_ADE_FORMAT = `**6-1 日**
 **Emotion:**
 看到空荡荡的暗格，脑子里"嗡"了一声。`
 
+test('FIXED: Bold-markdown scene headings with bare time marker 晨 → 3 scenes preserved (regression)', () => {
+  // Bug: matchSceneHeading did not recognize bare time marker "晨" (only 日/夜).
+  // "**2-3 晨**" was detected as heading in Route 1 regex but then lost in parseScreenplayScenes
+  // because matchSceneHeading returned null for single-segment "晨".
+  const BOLD_晨_HEADINGS = `**2-1 夜**
+
+Action:
+第一场内容。
+
+Dialogue:
+对白内容。
+
+Emotion:
+情绪内容。
+
+**2-2 夜**
+
+Action:
+第二场内容。
+
+Dialogue:
+对白内容。
+
+Emotion:
+情绪内容。
+
+**2-3 晨**
+
+Action:
+第三场内容。
+
+Dialogue:
+对白内容。
+
+Emotion:
+情绪内容。`
+
+  const scene = parseGeneratedScene(BOLD_晨_HEADINGS, 2)
+
+  // Route 1: ≥2 bold headings after ** strip → screenplay path
+  assert.equal(scene.screenplayScenes!.length, 3, '3 bold headings with 晨 → 3 scenes')
+  assert.equal(scene.screenplayScenes![0]!.sceneCode, '2-1')
+  assert.equal(scene.screenplayScenes![1]!.sceneCode, '2-2')
+  assert.equal(scene.screenplayScenes![2]!.sceneCode, '2-3', '3rd scene with 晨 must not be lost')
+  assert.equal(scene.screenplayScenes![2]!.sceneHeading, '2-3 晨')
+})
+
 test('FIXED: Bold-markdown scene headings + A/D/E → Route 1.5 → 3 scenes preserved', () => {
   const scene = parseGeneratedScene(BOLD_MARKDOWN_HEADINGS_ADE_FORMAT, 6)
 

@@ -1,5 +1,5 @@
 import type { FormalFact } from '../../../shared/contracts/workflow'
-import { canConfirmFormalFact } from '../../../shared/domain/formal-fact/authority-policy'
+import { canConfirmFormalFact } from '../../../shared/domain/formal-fact/authority-policy.ts'
 
 export function confirmFormalFact(input: {
   actor: 'user' | 'system'

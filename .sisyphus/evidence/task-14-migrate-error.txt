@@ -1,0 +1,64 @@
+# Task 14 Evidence: Migrate Error Scenario
+
+## Scenario
+Legacy project has empty screenplay AND empty legacy fields (action/dialogue/emotion all empty).
+
+## Expected Behavior
+- Migration fails: nothing to migrate from
+- Error thrown: "screenplay为空且旧格式字段也为空，无法迁移到正式剧本格式"
+- Execution blocked: scene is not modified
+
+## Code Path
+
+### fallback-rule-repair.ts (applyFallbackRuleRepair)
+
+1. Scene has empty screenplay AND empty legacy fields:
+   - screenplay = "" (empty)
+   - action = "" (empty)
+   - dialogue = "" (empty)
+   - emotion = "" (empty)
+
+2. Function processes scene:
+   - Lines 230-233: Calls buildLegacyScreenplaySegment(input.targetScene)
+   - buildLegacyScreenplaySegment returns screenplay = "" (empty, nothing to migrate)
+
+3. Migration check (line 238):
+   ```typescript
+   if (!hasText(input.targetScene.screenplay)) {
+     throw new Error(
+       `scene_${input.targetScene.sceneNo}_migration_failed:` +
+       `screenplay为空且旧格式字段也为空，无法迁移到正式剧本格式。` +
+       `必须先生成正式剧本正文才能继续。`
+     )
+   }
+   ```
+
+4. Error thrown:
+   - scene_X_migration_failed: screenplay为空且旧格式字段也为空，无法迁移到正式剧本格式。必须先生成正式剧本正文才能继续。
+
+## Error Classification
+
+- Error code: scene_X_migration_failed
+- Severity: Blocks execution
+- Notice key: authority.fallback_forbidden (no silent fallback pattern)
+
+## execute-script-repair.ts Error Handling
+
+When AI repair fails and applyFallbackRuleRepair would be called:
+
+```typescript
+// No fallback repair - if AI repair failed, propagate error to block execution
+// Legacy compatibility path removed: cannot "fallback then continue"
+throw new Error(
+  `script_repair_blocked:scene_${target.sceneNo}:` +
+  `AI修复失败且无运行时配置，无法完成修复。` +
+  `必须提供运行时配置使AI修复能正常完成。`
+)
+```
+
+## Verification
+
+- Typecheck passes
+- Error thrown when migration fails
+- No "fallback then continue" pattern in any modified files
+- Compat never acts as authority fallback

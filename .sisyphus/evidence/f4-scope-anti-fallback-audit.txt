@@ -1,0 +1,90 @@
+# F4: Scope Fidelity + Anti-Fallback Audit
+Date: 2026-03-23
+Task: Verify scope is limited to authority/fallback/orchestrator/error-surface; no "for smoothness" fallback logic
+
+---
+
+## Scope Verification
+
+### Modified Code Files (by category)
+
+**Authority/Error Surface (CLEAN):**
+- `src/shared/contracts/authority-failure.ts` — Unified failure DTO contract (NEW)
+- `src/shared/domain/workflow/truth-authority.ts` — Single source of truth for authority boundaries (NEW)
+- `src/shared/domain/workflow/authority-constitution.ts` — Authority constitution rules (NEW/MODIFIED)
+- `src/shared/domain/workflow/script-generation-orchestrator.ts` — Single entry point orchestrator (NEW)
+- `src/shared/domain/workflow/stage-derivation.ts` — Stage derivation (NEW)
+- `src/shared/domain/runtime/failure-history-queue.ts` — Failure history queue (NEW)
+- `src/shared/contracts/authority-failure.test.ts` — Regression tests (NEW)
+
+**Renderer Updates (Authority Enforcement — CLEAN):**
+- `src/renderer/src/app/utils/authority-failure-notice.ts` — Maps authority failures to UI notices (NEW)
+- `src/renderer/src/app/utils/authority-failure-regression.test.ts` — Regression tests (NEW)
+- `src/renderer/src/app/store/useWorkflowStore.ts` — Updated to consume authority failures
+- `src/renderer/src/features/script/ui/useScriptStageActions.ts` — Removed optimistic updates, added authority-aware handlers
+
+**Deleted Files (Cleanup — CLEAN):**
+- `src/main/application/script-generation/prompt/build-*.ts` — Old prompt builders removed
+- `src/main/ipc/workflow/stage-contract-handlers.ts` — Deprecated handlers removed
+- `src/renderer/src/app/hooks/useProjectAutoGeneration.ts` — Removed
+- `src/renderer/src/app/hooks/useStageReadiness.ts` — Removed
+- `tools/e2e/electron_*.mjs` — Old E2E tools removed
+
+**Config/Doc Changes:**
+- `package.json`, `tsconfig.*.json`, `electron.vite.config.ts` — Build config updates
+- `2.rules.md`, `3.agents.md`, `4.worklog.md`, `AGENTS.md` — Rule/guideline updates
+- `docs/system-authority(系统定义权与主权规则).md` — Authority documentation
+
+### Scope Creep Assessment: CLEAN
+All modified code files are within the allowed scope:
+- Authority contract and error DTOs ✓
+- Renderer fallback removal ✓
+- Orchestrator integration ✓
+- Error surface unification ✓
+- Legacy compat migration ✓
+- Documentation updates ✓
+- Regression tests ✓
+
+No unrelated features, UI enhancements, or business logic additions.
+
+---
+
+## Anti-Fallback Verification
+
+### Pattern Search Results
+
+| Pattern | Searched | Found | Status |
+|---------|----------|-------|--------|
+| "顺滑" | All code | 0 | CLEAN |
+| "为了顺滑" / "for smooth" | All code | 0 | CLEAN |
+| "先*再修正" / "fix later" | All code | 0 | CLEAN |
+| "暂时*兜底" / "temp fallback" | All code | 0 | CLEAN |
+| "optimistic" (justification) | All code | 0 | CLEAN |
+
+### "为了" Usage Analysis
+Found 5 matches for "为了" in 4 files:
+1. `input-contract.ts:10` — Comment explaining DTO purity (not fallback justification)
+2. `summarize-chat-for-generation-fallback-facts.ts:36` — Regex pattern for Chinese text parsing
+3. `summarize-chat-for-generation-shared.ts:57,122` — Regex patterns for Chinese text parsing
+4. `build-repair-prompt.ts:63` — Prompt instruction "不要为了修一点把主链修歪" (business logic, not smoothness fallback)
+
+All "为了" usages are legitimate (regex patterns or business logic instructions), not "为了顺滑" justifications.
+
+### F1 Violations (Prior Sprint)
+- 2 optimistic setStage violations were found and addressed in this sprint:
+  - `ProjectGenerationBanner.tsx:136` — Removed optimistic setStage
+  - `DetailedOutlineStage.tsx:127` — Removed optimistic setStage
+
+### Anti-Fallback Assessment: CLEAN
+No "for smoothness" fallback logic remains. All fallback patterns found are either:
+- Standard React Suspense fallbacks (loading states)
+- Variable names for data shape validation
+- Business logic instructions in AI prompts
+
+---
+
+## Verdict
+
+**Scope [CLEAN] | Anti-fallback [CLEAN] | VERDICT: PASS**
+
+All changes in this sprint are within the defined scope (authority/fallback/orchestrator/error-surface). No unrelated features were added. No "for smoothness" fallback justifications were found. The F1 optimistic setStage violations have been addressed.

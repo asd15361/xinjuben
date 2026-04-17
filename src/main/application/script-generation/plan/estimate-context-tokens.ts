@@ -1,5 +1,10 @@
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow'
-import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto,
+  ScriptSegmentDto
+} from '../../../../shared/contracts/workflow'
+import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors.ts'
 
 export function estimateEpisodeContextTokens(input: {
   outline: OutlineDraftDto
@@ -15,7 +20,10 @@ export function estimateEpisodeContextTokens(input: {
     input.outline.theme.length +
     input.outline.mainConflict.length +
     input.outline.protagonist.length +
-    confirmedFormalFacts.reduce((total, fact) => total + fact.label.length + fact.description.length, 0)
+    confirmedFormalFacts.reduce(
+      (total, fact) => total + fact.label.length + fact.description.length,
+      0
+    )
   const characterWeight = input.characters.reduce(
     (total, character) =>
       total +
@@ -27,16 +35,19 @@ export function estimateEpisodeContextTokens(input: {
     0
   )
   const segmentWeight = input.segments.reduce(
-    (total, segment) => total + segment.content.length + segment.hookType.length + segment.act.length,
+    (total, segment) =>
+      total + segment.content.length + segment.hookType.length + segment.act.length,
     0
   )
   const scriptWeight = input.script.reduce(
     (total, scene) => total + scene.action.length + scene.dialogue.length + scene.emotion.length,
     0
   )
-  const episodePressure = input.targetEpisodes >= 20 ? 12000 : input.targetEpisodes >= 12 ? 7000 : 3500
+  const episodePressure =
+    input.targetEpisodes >= 20 ? 12000 : input.targetEpisodes >= 12 ? 7000 : 3500
   const lateEpisodePressure = input.episodeNo >= Math.max(3, input.targetEpisodes - 2) ? 5000 : 0
-  const denseStructurePressure = input.segments.filter((segment) => segment.content.trim().length > 0).length >= 3 ? 4000 : 0
+  const denseStructurePressure =
+    input.segments.filter((segment) => segment.content.trim().length > 0).length >= 3 ? 4000 : 0
   const cumulativeScriptPressure = Math.min(30000, input.script.length * 1800)
 
   return (

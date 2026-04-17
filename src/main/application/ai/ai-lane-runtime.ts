@@ -1,5 +1,10 @@
 import type { ModelRouteLane } from '../../../shared/contracts/ai'
-import type { RuntimeProviderConfig, ProviderFamilyConfig } from '../../infrastructure/runtime-env/provider-config'
+import type {
+  RuntimeProviderConfig,
+  ProviderFamilyConfig
+} from '../../infrastructure/runtime-env/provider-config'
+
+export const AI_REQUEST_TIMEOUT_PREFIX = 'ai_request_timeout:'
 
 export interface LaneRuntime {
   lane: ModelRouteLane
@@ -10,13 +15,54 @@ export function resolveLaneRuntime(
   lane: ModelRouteLane,
   runtimeConfig: RuntimeProviderConfig
 ): LaneRuntime {
-  if (lane === 'deepseek') return { lane, config: runtimeConfig.deepseek }
-  if (lane === 'gemini_flash') return { lane, config: runtimeConfig.geminiFlash }
-  return { lane, config: runtimeConfig.geminiPro }
+  switch (lane) {
+    case 'openrouter_gemini_flash_lite':
+      return { lane, config: runtimeConfig.openrouterGeminiFlashLite }
+    case 'openrouter_qwen_free':
+      return { lane, config: runtimeConfig.openrouterQwenFree }
+    case 'deepseek':
+    default:
+      return { lane, config: runtimeConfig.deepseek }
+  }
 }
 
-export function createAbortSignal(timeoutMs: number): AbortSignal {
+export function createAbortSignal(timeoutMs: number, parentSignal?: AbortSignal): AbortSignal {
   const controller = new AbortController()
-  setTimeout(() => controller.abort(), timeoutMs)
+
+  if (parentSignal?.aborted) {
+    controller.abort(parentSignal.reason)
+    return controller.signal
+  }
+
+  const timeoutHandle = setTimeout(
+    () => controller.abort(`${AI_REQUEST_TIMEOUT_PREFIX}${timeoutMs}ms`),
+    timeoutMs
+  )
+
+  parentSignal?.addEventListener(
+    'abort',
+    () => {
+      clearTimeout(timeoutHandle)
+      controller.abort(parentSignal.reason)
+    },
+    { once: true }
+  )
+
   return controller.signal
+}
+
+export function normalizeAbortError(error: Error, signal: AbortSignal): Error {
+  const reason = signal.reason
+  const normalized = new Error(
+    typeof reason === 'string' && reason.startsWith(AI_REQUEST_TIMEOUT_PREFIX)
+      ? reason
+      : reason instanceof Error
+        ? reason.message
+        : error.message
+  )
+  normalized.name =
+    typeof reason === 'string' && reason.startsWith(AI_REQUEST_TIMEOUT_PREFIX)
+      ? 'TimeoutError'
+      : error.name
+  return normalized
 }

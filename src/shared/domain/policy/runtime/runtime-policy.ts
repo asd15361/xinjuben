@@ -35,7 +35,8 @@ export const runtimePolicyName = 'runtime_route_policy_v1'
 export const runtimePolicyMetadata: PolicyMetadata = {
   name: runtimePolicyName,
   version: 'v1.3',
-  lineage: 'stage6-runtime-routing -> stage7-policy-assets -> stage7-execution-snapshot -> stage7-policy-lineage',
+  lineage:
+    'stage6-runtime-routing -> stage7-policy-assets -> stage7-execution-snapshot -> stage7-policy-lineage',
   source: '旧项目模型路由经验 + 新仓库执行计划主链'
 }
 
@@ -48,17 +49,19 @@ export function isRuntimeKeyEpisode(episode: number, totalEpisodes: number): boo
 export function buildRuntimePolicySnapshot(request: AiGenerateRequestDto): RuntimePolicySnapshot {
   const estimatedContextTokens = request.runtimeHints?.estimatedContextTokens ?? 0
   const strictMode = request.runtimeHints?.strictness === 'strict'
-  const highRiskMode = Boolean(request.runtimeHints?.hasP0Risk || request.runtimeHints?.hasHardAlignerRisk)
+  const highRiskMode = Boolean(
+    request.runtimeHints?.hasP0Risk || request.runtimeHints?.hasHardAlignerRisk
+  )
   const rewriteMode = Boolean(request.runtimeHints?.isRewriteMode)
 
   return {
     metadata: runtimePolicyMetadata,
     summary:
       estimatedContextTokens >= SOFT_CONTEXT_LIMIT
-        ? '长上下文优先，必要时提升到 Gemini 通道。'
+        ? '当前优先走 OpenRouter Gemini Flash Lite，其次 OpenRouter Qwen Free，最后 DeepSeek；长上下文直接按高预算执行。'
         : highRiskMode
-          ? '高风险批次优先走更稳的高质量通道。'
-          : '默认以低成本主通道为先，失败再回退。',
+          ? '当前优先走 OpenRouter Gemini Flash Lite，其次 OpenRouter Qwen Free，最后 DeepSeek；高风险任务不再切激进路由。'
+          : '当前优先走 OpenRouter Gemini Flash Lite，其次 OpenRouter Qwen Free，最后 DeepSeek。',
     softContextLimit: SOFT_CONTEXT_LIMIT,
     hardContextLimit: HARD_CONTEXT_LIMIT,
     keyEpisodeInterval: KEY_EPISODE_INTERVAL,
@@ -74,25 +77,14 @@ export function decideRuntimePolicyOrder(input: {
 }): RuntimeRouteDecisionSignal {
   const { request, enabledLanes } = input
   const reasons: string[] = []
-  const activeLanes = enabledLanes.filter((lane): lane is ModelRouteLane => lane === 'deepseek')
-
-  if (activeLanes.length > 0) {
-    const preferredActiveLane =
-      request.preferredLane && activeLanes.includes(request.preferredLane) ? request.preferredLane : activeLanes[0]
-    reasons.push('single_deepseek_runtime')
-    if (request.preferredLane && request.preferredLane !== preferredActiveLane) {
-      reasons.push('preferred_lane_standby_ignored')
-    }
-    return {
-      orderedLanes: [preferredActiveLane],
-      reasonCodes: reasons
-    }
-  }
 
   if (request.preferredLane && enabledLanes.includes(request.preferredLane)) {
     reasons.push('preferred_lane')
     return {
-      orderedLanes: [request.preferredLane, ...enabledLanes.filter((lane) => lane !== request.preferredLane)],
+      orderedLanes: [
+        request.preferredLane,
+        ...enabledLanes.filter((lane) => lane !== request.preferredLane)
+      ],
       reasonCodes: reasons
     }
   }
@@ -113,25 +105,8 @@ export function decideRuntimePolicyOrder(input: {
   if (isKeyEpisode) reasons.push('key_episode')
   if (snapshot.rewriteMode) reasons.push('rewrite_mode')
 
-  let orderedLanes: ModelRouteLane[]
-  if ((hasP0Risk || (hasHardAlignerRisk && isKeyEpisode) || request.task === 'quality_audit') && enabledLanes.includes('gemini_pro')) {
-    orderedLanes = ['gemini_pro', 'gemini_flash', 'deepseek']
-  } else if (
-    (estimatedContextTokens >= snapshot.softContextLimit ||
-      request.task === 'rough_outline' ||
-      request.task === 'character_profile' ||
-      request.task === 'detailed_outline' ||
-      snapshot.strictMode) &&
-    enabledLanes.includes('gemini_flash')
-  ) {
-    orderedLanes = ['gemini_flash', 'deepseek', 'gemini_pro']
-  } else {
-    orderedLanes = ['deepseek', 'gemini_flash', 'gemini_pro']
-    reasons.push('deepseek_default_lane')
-  }
-
   return {
-    orderedLanes: orderedLanes.filter((lane) => enabledLanes.includes(lane)),
+    orderedLanes: enabledLanes,
     reasonCodes: reasons
   }
 }
@@ -151,7 +126,9 @@ export function buildRuntimeExecutionSnapshot(
     }
   }
 
-  const strictEpisodeCount = plan.episodePlans.filter((episode) => episode.runtimeHints?.strictness === 'strict').length
+  const strictEpisodeCount = plan.episodePlans.filter(
+    (episode) => episode.runtimeHints?.strictness === 'strict'
+  ).length
   const highRiskEpisodeCount = plan.episodePlans.filter(
     (episode) => episode.runtimeHints?.hasP0Risk || episode.runtimeHints?.hasHardAlignerRisk
   ).length

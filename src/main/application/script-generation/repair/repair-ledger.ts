@@ -1,7 +1,7 @@
 import type { ExecuteScriptRepairInputDto } from '../../../../shared/contracts/script-audit'
 import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
 import type { ScriptSegmentDto } from '../../../../shared/contracts/workflow'
-import { buildScriptStateLedger } from '../ledger/build-script-ledger'
+import { buildScriptStateLedger } from '../ledger/build-script-ledger.ts'
 
 export function buildRepairLedger(
   input: ExecuteScriptRepairInputDto,

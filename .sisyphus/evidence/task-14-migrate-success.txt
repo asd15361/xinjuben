@@ -1,0 +1,62 @@
+# Task 14 Evidence: Migrate Success Scenario
+
+## Scenario
+Legacy project has action/dialogue/emotion fields populated but screenplay is empty.
+
+## Expected Behavior
+- Migration succeeds: buildLegacyScreenplaySegment converts legacy fields to screenplay format
+- Execution continues: scene has valid screenplay after migration
+- No error thrown
+
+## Code Path
+
+### fallback-rule-repair.ts (applyFallbackRuleRepair)
+
+1. Scene has empty screenplay but populated legacy fields:
+   - action = "角色A走向角色B"
+   - dialogue = "角色A：我们必须离开这里。"
+   - emotion = "紧张气氛加剧"
+
+2. Function processes scene:
+   - Lines 230-233: Calls buildLegacyScreenplaySegment(input.targetScene)
+   - buildLegacyScreenplaySegment converts legacy fields to screenplay format
+   - Returns screenplay with content derived from action/dialogue/emotion
+
+3. After migration:
+   - input.targetScene.screenplay = migrated screenplay content
+   - input.targetScene.legacyFormat = true
+   - input.targetScene.screenplayScenes = parsed scenes
+
+4. hasText check passes (line 238):
+   - hasText(input.targetScene.screenplay) = true
+   - No error thrown
+   - Migration success → continue
+
+## Migration Logic (screenplay-format.ts buildLegacyScreenplaySegment)
+
+```typescript
+export function buildLegacyScreenplaySegment(
+  scene: Pick<ScriptSegmentDto, 'sceneNo' | 'action' | 'dialogue' | 'emotion'>
+): Pick<ScriptSegmentDto, 'screenplay' | 'screenplayScenes' | 'action' | 'dialogue' | 'emotion' | 'legacyFormat'> {
+  const screenplay = buildScreenplayFromStructuredScene({
+    ...scene,
+    screenplay: '',
+    screenplayScenes: []
+  })
+
+  return {
+    screenplay,
+    screenplayScenes: parseScreenplayScenes(screenplay),
+    legacyFormat: true,  // Mark as legacy-migrated
+    action: scene.action,
+    dialogue: scene.dialogue,
+    emotion: scene.emotion
+  }
+}
+```
+
+## Verification
+
+- Typecheck passes
+- No fallback repair call in execute-script-repair.ts (removed)
+- Legacy fallback pattern removed from audit-policy.ts and progression-policy.ts

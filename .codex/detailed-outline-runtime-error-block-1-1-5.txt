@@ -1,0 +1,8 @@
+Error: deepseek_request_failed:401
+    at invokeDeepSeek (D:\project\xinjuben\out\main\index.js:586:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateTextWithRuntimeRouter (D:\project\xinjuben\out\main\index.js:791:44)
+    at async generateBlockEpisodeBeats (D:\project\xinjuben\out\main\index.js:1469:24)
+    at async generateDetailedOutlineFromContext (D:\project\xinjuben\out\main\index.js:1529:26)
+    at async D:\project\xinjuben\out\main\index.js:4151:29
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:113091)

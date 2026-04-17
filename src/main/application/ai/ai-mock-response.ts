@@ -6,6 +6,69 @@ export function mockAiEnabled(): boolean {
   return raw === '1' || raw.toLowerCase() === 'true'
 }
 
+function buildMockOutlineOverviewResponse(): string {
+  return JSON.stringify(
+    {
+      outline: {
+        title: '《婚约风暴》',
+        genre: '现代都市·情感逆袭',
+        theme: '自我价值觉醒·阶层突围',
+        protagonist: '苏棠',
+        mainConflict:
+          '女主带着婚约原件回城自证身份，秦曼联手陆家与舆论把她往骗子位置上钉死。',
+        summary:
+          '苏棠带着婚约原件回到权力中心，先要在众人质疑里证明自己不是骗子。她越想守住身份和尊严，秦曼越把名誉、亲情和继承权三线一起压下来。中段开始，苏棠必须边自证边反打，把一层层旧账和证据搬到台面。临近终局时，婚约真相会把继承链彻底掀翻，也逼所有人公开站队。最后真相公开，但旧情和家族裂口不会被轻易抹平。',
+        facts: [
+          {
+            label: '婚约原件',
+            description: '苏棠手里握着能改写继承权归属的婚约原件。',
+            level: 'core',
+            linkedToPlot: true,
+            linkedToTheme: true
+          }
+        ],
+        actSummaries: [
+          {
+            act: 'opening',
+            summary: '苏棠刚回城就被当成骗子围剿，第一段先把婚约原件和身份自证这把火点起来。'
+          },
+          {
+            act: 'midpoint',
+            summary: '秦曼把名誉、亲情和继承权一起升级成围杀，苏棠被逼着从自保转成公开反打。'
+          },
+          {
+            act: 'climax',
+            summary: '最狠的旧账和证据同时翻面，苏棠必须拿出最后底牌，把所有人拖上桌。'
+          },
+          {
+            act: 'ending',
+            summary: '真相被公开后，这一轮继承链正式重排，但情感和代价都被留在台面上。'
+          }
+        ]
+      }
+    },
+    null,
+    2
+  )
+}
+
+function buildMockOutlineBatchResponse(startEpisode: number, endEpisode: number): string {
+  return JSON.stringify(
+    {
+      batchSummary: `第${startEpisode}-${endEpisode}集主要写苏棠这一轮怎么守、怎么反打、怎么把下一轮更狠的压力挂出去。`,
+      episodes: Array.from({ length: endEpisode - startEpisode + 1 }, (_, index) => {
+        const episodeNo = startEpisode + index
+        return {
+          episodeNo,
+          summary: `【起】第${episodeNo}集一开场，苏棠先被秦曼和陆家当众施压，婚约原件与身份真假一起被推上桌面。【承】对手顺着名誉、亲情和继承权继续加码，让她连退路都被一点点封死。【转】苏棠被逼着换打法，不再只解释自己，而是主动掀出这一集最关键的一块证据或关系反咬回去。【钩子】她刚抢回一点主动，下一轮更狠的围杀已经顺着旧账或站队问题追上来。`
+        }
+      })
+    },
+    null,
+    2
+  )
+}
+
 export function createMockResponse(request: AiGenerateRequestDto): AiGenerateResponseDto {
   const header = `mock_ai_enabled:${request.task}`
 
@@ -14,6 +77,104 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
     const episode = Number(request.runtimeHints?.episode ?? 0)
     if (forced > 0 && episode === forced) {
       throw new Error(`mock_ai_forced_failure:episode_${episode}`)
+    }
+  }
+
+  if (request.task === 'story_intake') {
+    return {
+      text: JSON.stringify(
+        {
+          projectTitle: '她带着婚约归来',
+          episodeCount: 30,
+          genreAndStyle: '都市情感逆袭',
+          tone: '强对抗·快节奏·高反转',
+          audience: '女性向',
+          sellingPremise: '她带着婚约原件回城，所有人都想把她当骗子按死。',
+          coreDislocation: '最该被赶出门的人，偏偏握着能改写继承权的真凭实据。',
+          emotionalPayoff: '先让观众吃到她被围攻时突然掀桌反打的那口爽。',
+          worldAndBackground: '豪门继承、职场权力和舆论审判一起压下来。',
+          protagonist: '苏棠',
+          antagonist: '秦曼',
+          coreConflict: '婚约真相逼迫继承权重排，女主必须在众目睽睽下自证。',
+          endingDirection: '公开真相并完成自我价值觉醒',
+          keyCharacters: ['苏棠', '陆峥', '秦曼'],
+          chainSynopsis:
+            '苏棠带着婚约原件回到权力中心，先要在众人质疑里证明自己不是骗子。中段她会被名誉、亲情和继承权三线同时围剿，被迫一次次拿出更硬的证据。临近终局时，婚约真相会把继承链彻底掀翻，也逼男主和反派站队。最后真相公开，但代价和情感裂痕不会被轻易抹平。',
+          characterCards: [
+            { name: '苏棠', summary: '握着婚约原件回城，用自证和反打夺回身份。' },
+            { name: '陆峥', summary: '继承链核心人物，被旧情和家族责任同时撕扯。' },
+            { name: '秦曼', summary: '擅长操盘舆论和家族秩序，最怕真相公开核验。' }
+          ],
+          characterLayers: [
+            { name: '苏棠', layer: '主驱动层', duty: '扛住自证主线并持续反打' },
+            { name: '陆峥', layer: '摇摆杠杆层', duty: '决定继承链最终站队' },
+            { name: '秦曼', layer: '主阻力层', duty: '持续用名誉和亲情施压' }
+          ],
+          themeAnchors: ['自我价值觉醒', '身份真相', '破局'],
+          worldAnchors: ['豪门继承', '职场权力', '舆论审判'],
+          relationAnchors: ['旧情与利益冲突', '亲情绑架', '权力压迫'],
+          dramaticMovement: [
+            '苏棠要在众目睽睽下守住婚约原件和真实身份。',
+            '秦曼会联手家族和舆论把她往骗子位置上钉死。',
+            '她每次往前一步，都要赔上名誉、旧情和亲情裂口。',
+            '陆峥的站队会不断改写她和反派的力量平衡。',
+            '每次证据掀开一点，都会把下一轮更大的围剿逼出来。'
+          ],
+          relationSummary: ['苏棠和陆峥有旧情', '秦曼拿亲情和名誉压苏棠'],
+          softUnderstanding: ['女主越被围攻越要当众反打', '真相公开不会没有代价'],
+          pendingConfirmations: ['男主最终站队方式']
+        },
+        null,
+        2
+      ),
+      lane: 'deepseek',
+      model: 'mock',
+      usedFallback: false,
+      finishReason: 'stop',
+      routeReasonCodes: [header]
+    }
+  }
+
+  if (request.task === 'short_drama_showrunner') {
+    return {
+      text: JSON.stringify(
+        {
+          corePrinciple: '快节奏、强冲突、稳情绪',
+          coreEmotion: '一路反咬的爽感',
+          incitingIncident: {
+            timingRequirement: '30 秒炸场，最晚不超过第 1 集结尾',
+            disruption: '对手先把主角拖进主冲突',
+            mainLine: '主角必须先守住眼前人和关键筹码'
+          },
+          protagonistArc: {
+            flawBelief: '主角以为一直忍就能保全一切',
+            growthMode: '每集被逼着改一次打法',
+            payoff: '最后把旧账狠狠干回去'
+          },
+          povPolicy: {
+            mode: 'single_protagonist',
+            allowedAuxiliaryViewpoints: ['对手'],
+            restriction: '默认单主角视角，其他视角只能补主线必要信息。'
+          },
+          climaxPolicy: {
+            episodeHookRule: '集集有小高潮，集尾必须留强钩子。',
+            finalePayoffRule: '结局总爆发，并回打开篇激励事件。',
+            callbackRequirement: '结局必须回打第一刀。'
+          },
+          characterPolicy: {
+            stateDrivenConflictRule: '一切冲突升级都必须基于人物当下心理状态和当前压力触发。',
+            noForcedStupidityRule: '严禁为了强行反转让人物突然降智、突然看不见明牌风险。',
+            noAbruptMutationRule: '严禁人物无铺垫性格突变；真要变招，必须先有欲望、恐惧或压强升级。'
+          }
+        },
+        null,
+        2
+      ),
+      lane: 'deepseek',
+      model: 'mock',
+      usedFallback: false,
+      finishReason: 'stop',
+      routeReasonCodes: [header]
     }
   }
 
@@ -90,6 +251,307 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
       lane: 'deepseek',
       model: 'mock',
       usedFallback: false,
+      finishReason: 'stop',
+      routeReasonCodes: [header]
+    }
+  }
+
+  if (request.task === 'rough_outline') {
+    const rangeMatch = request.prompt.match(/当前只生成第\s*(\d+)\s*-\s*(\d+)\s*集/)
+    const isOverviewPrompt = request.prompt.includes('"actSummaries"')
+    return {
+      text: isOverviewPrompt
+        ? buildMockOutlineOverviewResponse()
+        : buildMockOutlineBatchResponse(
+            Number(rangeMatch?.[1] || 1),
+            Number(rangeMatch?.[2] || 10)
+          ),
+      lane: 'deepseek',
+      model: 'mock',
+      usedFallback: false,
+      finishReason: 'stop',
+      routeReasonCodes: [header]
+    }
+  }
+
+  if (request.task === 'character_profile') {
+    return {
+      text: JSON.stringify(
+        {
+          characters: [
+            {
+              name: '苏棠',
+              biography:
+                '前集团秘书，手里握着婚约原件，看似回来自证身份，实际是在赌自己还能不能把被碾碎的尊严拿回来。',
+              publicMask: '冷静克制，像只是来核验事实。',
+              hiddenPressure: '怕自己再次被亲情和旧情一起压回去。',
+              fear: '最怕真相公开前先被舆论钉死。',
+              protectTarget: '自己最后一点尊严',
+              conflictTrigger: '任何人试图公开否定她的婚约和身份',
+              advantage: '握有婚约原件，敢当众反打。',
+              weakness: '仍会被父亲评价和旧情牵动。',
+              goal: '夺回身份与尊严，逼对方承认真相。',
+              arc: '被动承受→主动反击→价值觉醒。'
+            },
+            {
+              name: '陆峥',
+              biography:
+                '继承链核心人物，表面冷硬克制，实际被旧情、家族责任和权力布局同时撕扯。',
+              publicMask: '掌控全局、不会失态的继承人。',
+              hiddenPressure: '越想压住苏棠，越怕真相核验时自己先崩。',
+              fear: '最怕继承链公开翻盘。',
+              protectTarget: '家族秩序和自己掌控的局面',
+              conflictTrigger: '苏棠公开逼他承认婚约',
+              advantage: '资源、人脉、舆论都在手里。',
+              weakness: '对旧情有裂缝，压得越狠越心虚。',
+              goal: '稳住继承权，逼苏棠退场。',
+              arc: '冷硬压制→事实动摇→被迫站队。'
+            },
+            {
+              name: '秦曼',
+              biography:
+                '最擅长操盘名誉和家族秩序的人，习惯把亲情、舆论和规则一起变成武器。',
+              publicMask: '体面、稳重、为家族大局着想。',
+              hiddenPressure: '真正的继承链路经不起公开核验。',
+              fear: '最怕苏棠把证据搬到所有人面前。',
+              protectTarget: '自己布好的继承权局',
+              conflictTrigger: '苏棠获得任何一次公开发言机会',
+              advantage: '会用名誉、亲情和规矩一起压人。',
+              weakness: '太相信自己能永远把真相按住。',
+              goal: '守住既有布局，让苏棠在众目睽睽下自毁信用。',
+              arc: '稳压局面→破绽外露→孤注一掷反扑。'
+            }
+          ]
+        },
+        null,
+        2
+      ),
+      lane: 'deepseek',
+      model: 'mock',
+      usedFallback: false,
+      finishReason: 'stop',
+      routeReasonCodes: [header]
+    }
+  }
+
+  if (request.task === 'episode_control') {
+    return {
+      text: JSON.stringify(
+        {
+          cards: [
+            {
+              episodeNo: request.runtimeHints?.episode || 1,
+              episodeMission: '这一集先把当前主线继续往前推。',
+              openingBomb: '开场先把当集最狠的冲突甩到脸上。',
+              conflictUpgrade: '把这层冲突再压重一格。',
+              arcBeat: '主角被逼着改一次打法。',
+              emotionBeat: '稳住一路反咬的爽感。',
+              hookLanding: '尾场必须把下一步动作挂出来。',
+              povConstraint: '只准跟着主角往前走。',
+              forbiddenDrift: ['不要铺背景', '不要切旁支视角']
+            }
+          ]
+        },
+        null,
+        2
+      ),
+      lane: 'deepseek',
+      model: 'mock',
+      usedFallback: false,
+      finishReason: 'stop',
+      routeReasonCodes: [header]
+    }
+  }
+
+  if (request.task === 'faction_matrix') {
+    return {
+      text: JSON.stringify(
+        {
+          title: '《婚约风暴》势力矩阵',
+          totalEpisodes: 20,
+          factions: [
+            {
+              id: 'faction_01',
+              name: '陆家主系',
+              positioning: '旧秩序掌权方',
+              coreDemand: '守住继承链',
+              coreValues: '体面、掌控、稳定',
+              mainMethods: ['封口', '舆论操盘'],
+              vulnerabilities: ['婚约真相经不起公开核验'],
+              branches: [
+                {
+                  id: 'faction_01_branch_01',
+                  name: '家族核心',
+                  parentFactionId: 'faction_01',
+                  positioning: '拍板层',
+                  coreDemand: '压住真相',
+                  characters: [
+                    {
+                      id: 'char_01',
+                      name: '陆峥',
+                      roleInFaction: 'leader',
+                      branchId: 'faction_01_branch_01',
+                      depthLevel: 'core',
+                      identity: '继承链核心人物',
+                      coreMotivation: '保住家族秩序',
+                      plotFunction: '掌控局势',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    },
+                    {
+                      id: 'char_02',
+                      name: '秦曼',
+                      roleInFaction: 'enforcer',
+                      branchId: 'faction_01_branch_01',
+                      depthLevel: 'core',
+                      identity: '家族操盘者',
+                      coreMotivation: '守住既得利益',
+                      plotFunction: '持续施压',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    }
+                  ]
+                },
+                {
+                  id: 'faction_01_branch_02',
+                  name: '舆论外线',
+                  parentFactionId: 'faction_01',
+                  positioning: '执行层',
+                  coreDemand: '塑造骗子叙事',
+                  characters: [
+                    {
+                      id: 'char_03',
+                      name: '公关总监',
+                      roleInFaction: 'leader',
+                      branchId: 'faction_01_branch_02',
+                      depthLevel: 'mid',
+                      identity: '公关负责人',
+                      coreMotivation: '完成封口任务',
+                      plotFunction: '扩散舆论',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    },
+                    {
+                      id: 'char_04',
+                      name: '媒体眼线',
+                      roleInFaction: 'variable',
+                      branchId: 'faction_01_branch_02',
+                      depthLevel: 'extra',
+                      identity: '媒体联系人',
+                      coreMotivation: '两边押宝',
+                      plotFunction: '制造变数',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'faction_02',
+              name: '苏棠一线',
+              positioning: '真相反打方',
+              coreDemand: '夺回身份与尊严',
+              coreValues: '真相、自证、反咬',
+              mainMethods: ['公开反打', '逼对手失态'],
+              vulnerabilities: ['旧情和亲情会拖慢出手'],
+              branches: [
+                {
+                  id: 'faction_02_branch_01',
+                  name: '自证主线',
+                  parentFactionId: 'faction_02',
+                  positioning: '主驱动层',
+                  coreDemand: '守住婚约原件',
+                  characters: [
+                    {
+                      id: 'char_05',
+                      name: '苏棠',
+                      roleInFaction: 'leader',
+                      branchId: 'faction_02_branch_01',
+                      depthLevel: 'core',
+                      identity: '婚约持有者',
+                      coreMotivation: '夺回身份',
+                      plotFunction: '主角反打',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    },
+                    {
+                      id: 'char_06',
+                      name: '老律师',
+                      roleInFaction: 'enforcer',
+                      branchId: 'faction_02_branch_01',
+                      depthLevel: 'mid',
+                      identity: '证据顾问',
+                      coreMotivation: '还真相一个说法',
+                      plotFunction: '撑住公开场',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    }
+                  ]
+                },
+                {
+                  id: 'faction_02_branch_02',
+                  name: '暗线协力',
+                  parentFactionId: 'faction_02',
+                  positioning: '辅助层',
+                  coreDemand: '盯住反派破绽',
+                  characters: [
+                    {
+                      id: 'char_07',
+                      name: '旧同事',
+                      roleInFaction: 'leader',
+                      branchId: 'faction_02_branch_02',
+                      depthLevel: 'mid',
+                      identity: '内部知情人',
+                      coreMotivation: '补偿过去的沉默',
+                      plotFunction: '递关键口风',
+                      isSleeper: false,
+                      sleeperForFactionId: null
+                    },
+                    {
+                      id: 'char_08',
+                      name: '秘书眼线',
+                      roleInFaction: 'variable',
+                      branchId: 'faction_02_branch_02',
+                      depthLevel: 'extra',
+                      identity: '办公室眼线',
+                      coreMotivation: '保住自己',
+                      plotFunction: '临场倒戈',
+                      isSleeper: true,
+                      sleeperForFactionId: 'faction_01'
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          crossRelations: [
+            {
+              id: 'cross_01',
+              relationType: 'double_agent',
+              fromFactionId: 'faction_02',
+              toFactionId: 'faction_01',
+              involvedCharacterIds: ['char_08'],
+              description: '秘书眼线表面替陆家递话，实际也把破绽回流给苏棠。',
+              revealEpisodeRange: { start: 6, end: 8 }
+            }
+          ],
+          landscapeSummary: '旧秩序掌权方和真相反打方围绕婚约与继承链公开缠斗。',
+          factionTimetable: [
+            {
+              factionId: 'faction_01',
+              entryEpisode: 1,
+              entryDescription: '陆家先手压场'
+            }
+          ]
+        },
+        null,
+        2
+      ),
+      lane: 'deepseek',
+      model: 'mock',
+      usedFallback: false,
+      finishReason: 'stop',
       routeReasonCodes: [header]
     }
   }
@@ -105,6 +567,7 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
       lane: 'deepseek',
       model: 'mock',
       usedFallback: false,
+      finishReason: 'stop',
       routeReasonCodes: [header]
     }
   }
@@ -114,6 +577,7 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
     lane: 'deepseek',
     model: 'mock',
     usedFallback: false,
+    finishReason: 'stop',
     routeReasonCodes: [header]
   }
 }

@@ -6,16 +6,24 @@ import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
 import { useChatStageActions } from './useChatStageActions'
 import { createInitialChatMessages } from '../../workspace/ui/chat/ChatTypes'
+import { isConfirmedStoryIntentForTranscript } from '../../../../../shared/domain/workflow/confirmed-story-intent'
 
 export function ChatStage() {
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
+  const storyIntent = useWorkflowStore((s) => s.storyIntent)
+  const chatMessages = useWorkflowStore((s) => s.chatMessages)
   const setChatMessages = useWorkflowStore((s) => s.setChatMessages)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)
-  const { projectId, status, handleGenerate } = useChatStageActions()
+  const { projectId, status, handleConfirmIntent } = useChatStageActions()
   const [sessionKey, setSessionKey] = useState(0)
 
   const projectLocked = !projectId
+  const truthTranscript = chatMessages
+    .filter((message) => message.role === 'user' && message.text.trim())
+    .map((message) => `用户：${message.text.trim()}`)
+    .join('\n')
+  const hasConfirmedCurrentInfo = isConfirmedStoryIntentForTranscript(storyIntent, truthTranscript)
 
   async function handleGoToOutline(): Promise<void> {
     if (!projectId) return
@@ -54,6 +62,17 @@ export function ChatStage() {
               去粗纲确认
             </button>
           )}
+          {storyIntent && (
+            <button
+              onClick={() => {
+                if (!projectId) return
+                void switchStageSession(projectId, 'seven_questions')
+              }}
+              className="rounded-lg px-3 py-1.5 text-[10px] font-black border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all"
+            >
+              七问确认
+            </button>
+          )}
           <button
             onClick={() => {
               setChatMessages(createInitialChatMessages())
@@ -74,7 +93,14 @@ export function ChatStage() {
           disabled={projectLocked}
           status={status}
           generationStatus={generationStatus}
-          onGenerate={(chatTranscript) => handleGenerate(chatTranscript)}
+          onConfirmIntent={(chatTranscript) => handleConfirmIntent(chatTranscript)}
+          onGenerate={async () => {
+            if (!hasConfirmedCurrentInfo) {
+              throw new Error('confirmed_story_intent_missing')
+            }
+            if (!projectId) return
+            await switchStageSession(projectId, 'seven_questions')
+          }}
         />
       </div>
     </div>

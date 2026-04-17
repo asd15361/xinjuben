@@ -5,13 +5,9 @@ import type { AiGenerateRequestDto } from '../../shared/contracts/ai'
 
 export function registerAiHandlers(runtimeProviderConfig: RuntimeProviderConfig): void {
   ipcMain.handle('ai:get-provider-summary', () => {
-    const configuredLanes = [
-      runtimeProviderConfig.lanes.deepseek && runtimeProviderConfig.deepseek.apiKey ? 'deepseek' : null,
-      runtimeProviderConfig.lanes.geminiFlash && runtimeProviderConfig.geminiFlash.apiKey ? 'gemini_flash' : null,
-      runtimeProviderConfig.lanes.geminiPro && runtimeProviderConfig.geminiPro.apiKey ? 'gemini_pro' : null
-    ].filter(Boolean)
-    const activeLanes = configuredLanes.filter((lane) => lane === 'deepseek')
-    const standbyLanes = configuredLanes.filter((lane) => lane !== 'deepseek')
+    const configuredLanes = runtimeProviderConfig.lanes.deepseek && runtimeProviderConfig.deepseek.apiKey ? ['deepseek'] : []
+    const activeLanes = configuredLanes
+    const standbyLanes: [] = []
 
     return {
       configuredLanes,

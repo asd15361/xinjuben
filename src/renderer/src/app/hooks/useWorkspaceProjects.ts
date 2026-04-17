@@ -3,8 +3,6 @@ import type { CreateProjectInputDto, ProjectSummaryDto } from '../../../../share
 import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
 import type {
   OutlineSeedDto,
-  GenerateOutlineAndCharactersInputDto,
-  GenerateOutlineAndCharactersResultDto,
   SaveCharacterDraftsInputDto,
   SaveDetailedOutlineSegmentsInputDto,
   SaveOutlineDraftInputDto,
@@ -25,7 +23,6 @@ interface WorkspaceProjectsState {
   saveScriptDraft: (input: SaveScriptDraftInputDto) => Promise<ProjectSnapshotDto | null>
   saveScriptRuntimeState: (input: SaveScriptRuntimeStateInputDto) => Promise<ProjectSnapshotDto | null>
   createOutlineSeed: (projectId: string) => Promise<OutlineSeedDto | null>
-  generateOutlineAndCharacters: (input: GenerateOutlineAndCharactersInputDto) => Promise<GenerateOutlineAndCharactersResultDto>
   reload: () => Promise<void>
 }
 
@@ -97,15 +94,6 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     return window.api.workspace.createOutlineSeed({ projectId })
   }
 
-  async function generateOutlineAndCharacters(
-    input: GenerateOutlineAndCharactersInputDto
-  ): Promise<GenerateOutlineAndCharactersResultDto> {
-    const result = await window.api.workspace.generateOutlineAndCharacters(input)
-    setActiveProject(result.project)
-    await reload()
-    return result
-  }
-
   useEffect(() => {
     void reload()
   }, [])
@@ -122,7 +110,6 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     saveScriptDraft,
     saveScriptRuntimeState,
     createOutlineSeed,
-    generateOutlineAndCharacters,
     reload
   }
 }

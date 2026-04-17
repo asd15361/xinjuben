@@ -1,4 +1,9 @@
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import {
+  cleanCharacterLikeName,
+  normalizeCharacterLikeName
+} from '../../../shared/domain/workflow/character-draft-normalization.ts'
+export { tryParseObject } from './summarize-chat-for-generation-json.ts'
 
 export const NAME_STOP_WORDS = new Set([
   '主角',
@@ -26,36 +31,6 @@ export const NAME_STOP_WORDS = new Set([
   '安仁'
 ])
 
-export function cleanJsonLikeText(text: string): string {
-  return text
-    .replace(/```json|```/gi, '')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/：/g, ':')
-    .replace(/，/g, ',')
-    .replace(/\u00A0/g, ' ')
-    .replace(/,\s*([}\]])/g, '$1')
-    .trim()
-}
-
-export function tryParseObject(text: string): Record<string, unknown> | null {
-  const normalized = cleanJsonLikeText(text)
-  const firstBrace = normalized.indexOf('{')
-  if (firstBrace < 0) return null
-  for (let end = normalized.lastIndexOf('}'); end > firstBrace; end = normalized.lastIndexOf('}', end - 1)) {
-    const slice = normalized.slice(firstBrace, end + 1)
-    try {
-      const parsed = JSON.parse(slice)
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>
-      }
-    } catch {
-      continue
-    }
-  }
-  return null
-}
-
 export function toText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -78,33 +53,11 @@ export function uniqueList(values: string[], limit = 8): string[] {
 }
 
 export function cleanPossibleName(value: string): string {
-  const trimmed = value.trim().replace(/[：:]/g, '')
-  if (!trimmed) return ''
-  if (NAME_STOP_WORDS.has(trimmed)) return ''
-  if (/[《》【】]/.test(trimmed)) return ''
-  if (/[，,。；、\s]/.test(trimmed)) return ''
-  if (
-    [
-      '盯上',
-      '被当',
-      '异动',
-      '越来越',
-      '逼出',
-      '后果',
-      '选择',
-      '守约',
-      '救人',
-      '主线',
-      '反转'
-    ].some((token) => trimmed.includes(token))
-  ) {
-    return ''
-  }
-  return trimmed
+  return cleanCharacterLikeName(value)
 }
 
 export function normalizeAnchorName(value: string): string {
-  const direct = cleanPossibleName(value)
+  const direct = normalizeCharacterLikeName(value)
   if (direct) return direct
 
   const normalized = value.trim()
@@ -112,11 +65,11 @@ export function normalizeAnchorName(value: string): string {
   if (roleMatch) return roleMatch[1]
 
   const tailMatch = normalized.match(/([一-龥]{2,8})(?:的|被|正|会|先|拿|逼|盯)/)
-  return cleanPossibleName(tailMatch?.[1] || '')
+  return normalizeCharacterLikeName(tailMatch?.[1] || '')
 }
 
 export function normalizeNameList(values: string[], limit = 8): string[] {
-  return uniqueList(values.map((value) => cleanPossibleName(value)).filter(Boolean), limit)
+  return uniqueList(values.map((value) => normalizeAnchorName(value)).filter(Boolean), limit)
 }
 
 export function splitBulletLines(text: string): string[] {

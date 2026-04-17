@@ -1,0 +1,44 @@
+# Task 13 Evidence: 统一失败/中断/部分完成时的持久化与错误输出
+
+## 问题描述
+禁止"运行失败但 UI/notice 看起来像成功或已推进"
+
+## 根因分析
+
+### 问题 1: _persistState 没有错误处理
+**文件**: `src/shared/domain/workflow/script-generation-orchestrator.ts`
+
+**原始代码问题**:
+- `atomicSaveGenerationState` 抛出时错误向上传播
+- 如果在 catch block 中 `_persistState` 再次抛出，`return` 永远不会执行
+
+### 问题 2: 成功路径没有检查持久化失败
+**位置**: Phase 5 persist final state
+
+### 问题 3: 运行时处理器 catch 块没有持久化失败状态
+**文件**: `src/main/ipc/workflow/script-generation-runtime-handlers.ts`
+
+## 修复方案
+
+### 1. _persistState 返回持久化结果
+- 返回 `{ persistenceFailed: boolean; persistenceError?: string }`
+- 捕获 `atomicSaveGenerationState` 异常
+- 记录错误但继续执行
+
+### 2. 成功路径检查持久化失败
+- 如果 `persistResult.persistenceFailed`，返回 `success: false`
+- 添加 `persistenceError` 到返回值
+
+### 3. catch 块持久化失败状态
+- 在 catch 中调用 `atomicSaveGenerationState` 持久化失败
+- 如果持久化也失败，记录 `persistenceError`
+
+### 4. 添加 persistenceError 到 DTO
+- `StartScriptGenerationResultDto` 添加可选字段
+
+## 验证
+
+- `npm run typecheck` 通过
+- 所有 `_persistState` 调用都处理返回值
+- catch block 确保失败状态被持久化
+- split-brain 模式已消除

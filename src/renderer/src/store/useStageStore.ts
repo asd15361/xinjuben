@@ -7,7 +7,7 @@ import type {
   ScriptSegmentDto
 } from '../../../shared/contracts/workflow'
 import type { OutlineSeedDto } from '../../../shared/contracts/workspace'
-import { ensureOutlineEpisodeShape } from '../../../shared/domain/workflow/outline-episodes'
+import { ensureOutlineEpisodeShape } from '../../../shared/domain/workflow/outline-episodes.ts'
 
 export interface OutlineData extends OutlineDraftDto {}
 export interface CharacterData extends CharacterDraftDto {}
@@ -18,9 +18,22 @@ function normalizeDetailedOutlineEpisodeBeats(input?: DetailedOutlineEpisodeBeat
   return (input ?? [])
     .map((item, index) => ({
       episodeNo: Number.isFinite(Number(item?.episodeNo)) && Number(item.episodeNo) > 0 ? Math.floor(Number(item.episodeNo)) : index + 1,
-      summary: item?.summary?.trim() || ''
+      summary: item?.summary?.trim() || '',
+      sceneByScene: (item?.sceneByScene ?? [])
+        .map((scene, sceneIndex) => ({
+          sceneNo:
+            Number.isFinite(Number(scene?.sceneNo)) && Number(scene.sceneNo) > 0
+              ? Math.floor(Number(scene.sceneNo))
+              : sceneIndex + 1,
+          location: scene?.location?.trim() || '',
+          timeOfDay: scene?.timeOfDay?.trim() || '',
+          setup: scene?.setup?.trim() || '',
+          tension: scene?.tension?.trim() || '',
+          hookEnd: scene?.hookEnd?.trim() || ''
+        }))
+        .filter((scene) => scene.location || scene.timeOfDay || scene.setup || scene.tension || scene.hookEnd)
     }))
-    .filter((item) => item.summary)
+    .filter((item) => item.summary || item.sceneByScene.length > 0)
     .sort((left, right) => left.episodeNo - right.episodeNo)
 }
 
@@ -45,7 +58,9 @@ function normalizeCharacter(input?: Partial<CharacterData> | null): CharacterDat
     advantage: input?.advantage?.trim() || '',
     weakness: input?.weakness?.trim() || '',
     goal: input?.goal?.trim() || '',
-    arc: input?.arc?.trim() || ''
+    arc: input?.arc?.trim() || '',
+    roleLayer: input?.roleLayer,
+    activeBlockNos: Array.isArray(input?.activeBlockNos) ? input!.activeBlockNos : undefined
   }
 }
 
@@ -59,6 +74,22 @@ function createEmptyOutline(): OutlineData {
     summary: '',
     summaryEpisodes: [],
     facts: []
+  }
+}
+
+function normalizeHydratedOutline(input?: OutlineData | null): OutlineData {
+  if (!input) return createEmptyOutline()
+
+  return {
+    ...createEmptyOutline(),
+    ...input,
+    planningUnitEpisodes:
+      typeof input.planningUnitEpisodes === 'number' && input.planningUnitEpisodes > 0
+        ? Math.floor(input.planningUnitEpisodes)
+        : undefined,
+    summaryEpisodes: Array.isArray(input.summaryEpisodes) ? [...input.summaryEpisodes] : [],
+    outlineBlocks: Array.isArray(input.outlineBlocks) ? [...input.outlineBlocks] : input.outlineBlocks,
+    facts: Array.isArray(input.facts) ? [...input.facts] : []
   }
 }
 
@@ -101,7 +132,9 @@ export const useStageStore = create<StageStore>((set) => ({
 
   hydrateProjectDrafts: (input) =>
     set(() => ({
-      outline: input.outline ? ensureOutlineEpisodeShape(input.outline) : createEmptyOutline(),
+      // Hydration must preserve persisted truth exactly as read; episode expansion belongs to
+      // explicit edit flows, not project-open time.
+      outline: normalizeHydratedOutline(input.outline),
       characters: (input.characters ?? []).map((item) => normalizeCharacter(item)),
       segments: normalizeSegments(input.segments),
       script: input.script ?? []
@@ -173,7 +206,11 @@ export const useStageStore = create<StageStore>((set) => ({
 
       if (beatIndex >= 0) {
         if (normalizedSummary) {
-          currentBeats[beatIndex] = { episodeNo, summary: normalizedSummary }
+          currentBeats[beatIndex] = {
+            ...currentBeats[beatIndex],
+            episodeNo,
+            summary: normalizedSummary
+          }
         } else {
           currentBeats.splice(beatIndex, 1)
         }

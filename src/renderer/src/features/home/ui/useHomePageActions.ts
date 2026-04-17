@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ProjectSnapshotDto, ProjectSummaryDto } from '../../../../../shared/contracts/project'
-import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
-import { useStageStore } from '../../../store/useStageStore'
+import type { ProjectSummaryDto } from '../../../../../shared/contracts/project'
+import { openProjectSession } from '../../../app/services/stage-session-service'
 
 export function formatProjectTime(iso: string): string {
   try {
@@ -12,41 +11,17 @@ export function formatProjectTime(iso: string): string {
 }
 
 export function useHomePageActions() {
-  const setProjectId = useWorkflowStore((state) => state.setProjectId)
-  const setProjectNameInShell = useWorkflowStore((state) => state.setProjectName)
-  const setChatMessages = useWorkflowStore((state) => state.setChatMessages)
-  const setGenerationStatus = useWorkflowStore((state) => state.setGenerationStatus)
-  const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
-  const setStage = useWorkflowStore((state) => state.setStage)
-  const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
-  const hydrateProjectDrafts = useStageStore((state) => state.hydrateProjectDrafts)
-
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([])
   const [busy, setBusy] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('第 1 步：先创建或打开一个项目。进入项目后，默认就是和 AI 聊天。')
+  const [status, setStatus] = useState(
+    '第 1 步：先创建或打开一个项目。进入项目后，默认就是和 AI 聊天。'
+  )
 
   async function reload(): Promise<void> {
     const list = await window.api.workspace.listProjects()
     setProjects(list.projects)
-  }
-
-  function enterProject(project: ProjectSnapshotDto): void {
-    setProjectId(project.id)
-    setProjectNameInShell(project.name)
-    setChatMessages(project.chatMessages || [])
-    setGenerationStatus(project.generationStatus || null)
-    clearGenerationNotice()
-    setStoryIntent(project.storyIntent)
-    hydrateProjectDrafts({
-      outline: project.outlineDraft,
-      characters: project.characterDrafts,
-      segments: project.detailedOutlineSegments,
-      script: project.scriptDraft
-    })
-    setStage('chat')
-    setStatus(`已进入项目「${project.name}」。`)
   }
 
   async function removeProject(projectId: string, name: string): Promise<void> {
@@ -66,13 +41,17 @@ export function useHomePageActions() {
   async function openProject(projectId: string): Promise<void> {
     setBusy(true)
     try {
-      const project = await window.api.workspace.getProject(projectId)
-      if (!project) {
+      const result = await openProjectSession(projectId)
+      if (!result) {
         setStatus('打开失败：项目不存在或已损坏。')
         return
       }
 
-      enterProject(project)
+      const openedProjectName =
+        result.project?.name ??
+        projects.find((project) => project.id === projectId)?.name ??
+        '未命名项目'
+      setStatus(`已进入项目「${openedProjectName}」。`)
     } finally {
       setBusy(false)
     }
@@ -94,7 +73,6 @@ export function useHomePageActions() {
     }
   }
 
-
   useEffect(() => {
     void reload()
   }, [])
@@ -103,7 +81,9 @@ export function useHomePageActions() {
   const visibleProjects = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return projects
-    return projects.filter((project) => `${project.name} ${project.genre} ${project.stage}`.toLowerCase().includes(q))
+    return projects.filter((project) =>
+      `${project.name} ${project.genre} ${project.stage}`.toLowerCase().includes(q)
+    )
   }, [projects, query])
 
   return {

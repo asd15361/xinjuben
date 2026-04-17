@@ -1,231 +1,416 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import { generateTextWithRuntimeRouter } from '../ai/generate-text'
+import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
+import { generateTextWithRuntimeRouter } from '../ai/generate-text.ts'
+import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout.ts'
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { CharacterDraftDto } from '../../../shared/contracts/workflow'
-import { parseCharacterBundleText } from './parse-character-bundle'
-import { buildCharacterGenerationPrompt, buildOutlineGenerationPrompt } from './generation-stage-prompts'
-import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support'
+import type { CharacterDraftDto, OutlineEpisodeDto } from '../../../shared/contracts/workflow.ts'
+import type { CharacterProfileV2Dto } from '../../../shared/contracts/character-profile-v2.ts'
+import type { FactionMatrixDto } from '../../../shared/contracts/faction-matrix.ts'
+import { getGovernanceOutlineBlockSize } from '../../../shared/domain/workflow/batching-contract.ts'
+import { buildFourActEpisodeRanges } from '../../../shared/domain/workflow/episode-count.ts'
+import { parseCharacterBundleText } from './parse-character-bundle.ts'
+import { buildCharacterGenerationPrompt } from './generation-stage-prompts.ts'
+import {
+  buildOutlineEpisodeBatchPrompt,
+  buildOutlineOverviewPrompt,
+  type RoughOutlineAct,
+  type RoughOutlineActPlan,
+  type RoughOutlineOverviewInput,
+  type RoughOutlineEpisodeBatchInput
+} from './rough-outline-stage-prompts.ts'
+import {
+  type RoughOutlineFailureCode,
+  validateOutlineEpisodeBatch
+} from './rough-outline-validation.ts'
+import {
+  assembleOutlineBundleFromStages,
+  type OutlineBundlePayload,
+  type OutlineEpisodeBatchPayload,
+  type OutlineOverviewPayload,
+  type RoughOutlineActSummaryPayload
+} from './rough-outline-assembly.ts'
+import { tryParseObject } from './summarize-chat-for-generation-json.ts'
+import {
+  buildRoughOutlineParseRetryPrompt,
+  isLikelyTruncatedJsonResponse
+} from './rough-outline-parse-retry.ts'
+import { runRoughOutlineStageWithRetries } from './rough-outline-retry-policy.ts'
 
-const OUTLINE_BUNDLE_STAGE_TIMEOUT_MS = 45_000
-const CHARACTER_BUNDLE_STAGE_TIMEOUT_MS = 45_000
+const OUTLINE_OVERVIEW_MAX_OUTPUT_TOKENS = 2200
+const OUTLINE_BATCH_MAX_OUTPUT_TOKENS = 3200
+const CHARACTER_BUNDLE_MAX_OUTPUT_TOKENS = 3000
+const ROUGH_OUTLINE_PARSE_RETRY_MAX_OUTPUT_TOKENS = 2000
 
-export interface OutlineBundlePayload {
-  storyIntent?: Partial<StoryIntentPackageDto>
-  outline?: {
-    title?: string
-    genre?: string
-    theme?: string
-    protagonist?: string
-    mainConflict?: string
-    summary?: string
-    episodes?: Array<{
-      episodeNo?: number
-      summary?: string
-    }>
-    facts?: Array<{
-      label?: string
-      description?: string
-      level?: 'core' | 'supporting'
-      linkedToPlot?: boolean
-      linkedToTheme?: boolean
-    }>
-  }
-}
+const ROUGH_OUTLINE_ACT_ORDER: RoughOutlineAct[] = ['opening', 'midpoint', 'climax', 'ending']
 
 interface CharacterBundlePayload {
   characters?: CharacterDraftDto[]
-}
-
-function cleanJsonLikeText(text: string): string {
-  return text
-    .replace(/```json|```/gi, '')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/：/g, ':')
-    .replace(/，/g, ',')
-    .replace(/\u00A0/g, ' ')
-    .replace(/,\s*([}\]])/g, '$1')
-    .trim()
-}
-
-function tryParseObject(text: string): Record<string, unknown> | null {
-  const normalized = cleanJsonLikeText(text)
-  const firstBrace = normalized.indexOf('{')
-  if (firstBrace < 0) return null
-
-  for (let end = normalized.lastIndexOf('}'); end > firstBrace; end = normalized.lastIndexOf('}', end - 1)) {
-    const slice = normalized.slice(firstBrace, end + 1)
-    try {
-      const parsed = JSON.parse(slice)
-      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>
-      }
-    } catch {
-      continue
-    }
-  }
-
-  return null
 }
 
 function toStringOrEmpty(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function toStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.map((item) => toStringOrEmpty(item)).filter(Boolean)
+function normalizeActPlans(totalEpisodes: number): RoughOutlineActPlan[] {
+  const ranges = buildFourActEpisodeRanges(totalEpisodes)
+  return ROUGH_OUTLINE_ACT_ORDER.map((act, index) => ({
+    act,
+    startEpisode: ranges[index]?.startEpisode ?? index + 1,
+    endEpisode: ranges[index]?.endEpisode ?? index + 1
+  }))
 }
 
-function pickFirstMatch(text: string, patterns: RegExp[]): string {
-  for (const pattern of patterns) {
-    const hit = text.match(pattern)?.[1]?.trim()
-    if (hit) return hit
-  }
-  return ''
-}
+function resolveOverviewFailureCode(
+  outline: OutlineOverviewPayload['outline']
+): RoughOutlineFailureCode | 'act_summaries_missing' | null {
+  if (!outline || typeof outline !== 'object') return 'missing_title'
+  if (!toStringOrEmpty(outline.title)) return 'missing_title'
+  if (!toStringOrEmpty(outline.genre)) return 'missing_genre'
+  if (!toStringOrEmpty(outline.theme)) return 'missing_theme'
+  if (!toStringOrEmpty(outline.protagonist)) return 'missing_protagonist'
+  if (!toStringOrEmpty(outline.mainConflict)) return 'missing_main_conflict'
+  if (!toStringOrEmpty(outline.summary)) return 'missing_summary'
 
-function normalizePossibleName(raw: string): string {
-  const text = raw.trim()
-  if (!text) return ''
-  const exact = text.match(/^([一-龥]{2,3}?)(曾|是|被|要|拿|压|想|手|藏|表|实|让|给)/)
-  if (exact?.[1]) return exact[1]
-  const short = text.match(/^([一-龥]{2,3})/)
-  if (short?.[1]) return short[1]
-  return text.split(/[，,。；、\s]/)[0]?.trim() || ''
-}
-
-function inferProtectTarget(text: string): string {
-  if (text.includes('小姨') && text.includes('弟弟')) return '小姨和弟弟'
-  if (text.includes('小柔')) return '小柔'
-  if (text.includes('家人')) return '家人'
-  return ''
-}
-
-function inferKeyAsset(text: string): string {
-  if (text.includes('原始证据')) return '原始证据'
-  if (text.includes('U盘') || text.includes('u盘')) return 'U盘证据'
-  if (text.includes('钥匙')) return '密库钥匙'
-  if (text.includes('婚约')) return '婚约真相'
-  return ''
-}
-
-function inferFromTranscript(chatTranscript: string): Partial<StoryIntentPackageDto> {
-  const lines = chatTranscript
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-  const merged = lines.join(' ')
-  const protagonist = normalizePossibleName(
-    pickFirstMatch(merged, [
-      /主角[：: ]*([^\n]+)/,
-      /男主[：: ]*([^\n]+)/,
-      /女主[：: ]*([^\n]+)/,
-      /男主([^\n]+)/,
-      /女主([^\n]+)/
-    ])
-  )
-  const antagonist = normalizePossibleName(
-    pickFirstMatch(merged, [/反派[：: ]*([^\n]+)/, /反派([^\n]+)/])
-  )
-  const genre = merged.includes('古装')
-    ? '古装'
-    : merged.includes('都市')
-      ? '都市'
-      : merged.includes('悬疑')
-        ? '悬疑'
-        : ''
-  const protectTarget = inferProtectTarget(merged)
-  const keyAsset = inferKeyAsset(merged)
-  const conflictSummary =
-    protagonist && antagonist
-      ? `${protagonist}${keyAsset ? `手里握着${keyAsset}，` : ''}却被${antagonist}${protectTarget ? `拿${protectTarget}` : '持续'}施压，必须在守住重要的人和启动翻盘之间做选择。`
-      : merged.slice(0, 120)
-
-  return {
-    titleHint: protagonist ? `《${protagonist}》` : '',
-    genre,
-    tone: '',
-    audience: '',
-    protagonist,
-    antagonist,
-    coreConflict: conflictSummary,
-    endingDirection: '',
-    officialKeyCharacters: toStringArray([protagonist, antagonist, protectTarget]),
-    lockedCharacterNames: toStringArray([protagonist, antagonist]),
-    themeAnchors: [],
-    worldAnchors: [],
-    relationAnchors: toStringArray([protectTarget ? `${protagonist}想守住${protectTarget}` : '']),
-    dramaticMovement: [],
-    manualRequirementNotes: '',
-    freeChatFinalSummary: [merged.slice(0, 220), conflictSummary].filter(Boolean).join(' ')
-  }
-}
-
-export function buildFallbackStoryIntent(chatTranscript: string): StoryIntentPackageDto {
-  const structured = parseStructuredGenerationBrief(chatTranscript)
-  if (structured?.storyIntent && typeof structured.storyIntent === 'object') {
-    const storyIntent = structured.storyIntent as Partial<StoryIntentPackageDto>
-    return {
-      titleHint: storyIntent.titleHint || '',
-      genre: storyIntent.genre || '',
-      tone: storyIntent.tone || '',
-      audience: storyIntent.audience || '',
-      protagonist: storyIntent.protagonist || '',
-      antagonist: storyIntent.antagonist || '',
-      coreConflict: storyIntent.coreConflict || '',
-      endingDirection: storyIntent.endingDirection || '',
-      officialKeyCharacters: storyIntent.officialKeyCharacters || [],
-      lockedCharacterNames: storyIntent.lockedCharacterNames || [],
-      themeAnchors: storyIntent.themeAnchors || [],
-      worldAnchors: storyIntent.worldAnchors || [],
-      relationAnchors: storyIntent.relationAnchors || [],
-      dramaticMovement: storyIntent.dramaticMovement || [],
-      manualRequirementNotes: storyIntent.manualRequirementNotes || '',
-      freeChatFinalSummary: storyIntent.freeChatFinalSummary || ''
+  const actSummaries = Array.isArray(outline.actSummaries) ? outline.actSummaries : []
+  const seenActs = new Set<RoughOutlineAct>()
+  for (const act of ROUGH_OUTLINE_ACT_ORDER) {
+    const matched = actSummaries.find((item) => item?.act === act)
+    if (!matched?.act || !toStringOrEmpty(matched.summary) || seenActs.has(matched.act)) {
+      return 'act_summaries_missing'
     }
+    seenActs.add(matched.act)
   }
 
-  const inferred = inferFromTranscript(chatTranscript)
-  return {
-    titleHint: inferred.titleHint || '',
-    genre: inferred.genre || '',
-    tone: inferred.tone || '',
-    audience: inferred.audience || '',
-    protagonist: inferred.protagonist || '',
-    antagonist: inferred.antagonist || '',
-    coreConflict: inferred.coreConflict || '',
-    endingDirection: inferred.endingDirection || '',
-    officialKeyCharacters: inferred.officialKeyCharacters || [],
-    lockedCharacterNames: inferred.lockedCharacterNames || [],
-    themeAnchors: inferred.themeAnchors || [],
-    worldAnchors: inferred.worldAnchors || [],
-    relationAnchors: inferred.relationAnchors || [],
-    dramaticMovement: inferred.dramaticMovement || [],
-    manualRequirementNotes: inferred.manualRequirementNotes || '',
-    freeChatFinalSummary: inferred.freeChatFinalSummary || chatTranscript.slice(0, 220)
+  return actSummaries.length === ROUGH_OUTLINE_ACT_ORDER.length ? null : 'act_summaries_missing'
+}
+
+function mergeActSummariesIntoPlans(
+  basePlans: RoughOutlineActPlan[],
+  actSummaries: RoughOutlineActSummaryPayload[] | undefined
+): RoughOutlineActPlan[] {
+  const actSummaryMap = new Map<RoughOutlineAct, string>()
+  for (const item of actSummaries || []) {
+    if (!item?.act) continue
+    const summary = toStringOrEmpty(item.summary)
+    if (!summary) continue
+    actSummaryMap.set(item.act, summary)
   }
+
+  return basePlans.map((plan) => ({
+    ...plan,
+    summary: actSummaryMap.get(plan.act) || ''
+  }))
+}
+
+function pickBatchActPlans(
+  actPlans: RoughOutlineActPlan[],
+  startEpisode: number,
+  endEpisode: number
+): RoughOutlineActPlan[] {
+  return actPlans.filter(
+    (plan) => plan.endEpisode >= startEpisode && plan.startEpisode <= endEpisode
+  )
+}
+
+function formatOutlineValidationDetails(input: {
+  code: string
+  actualEpisodeCount: number
+  missingEpisodeNos: number[]
+  duplicateEpisodeNos: number[]
+  emptyEpisodeNos: number[]
+}): string {
+  return `code=${input.code} actualEpisodeCount=${input.actualEpisodeCount} missing=[${input.missingEpisodeNos.join(',')}] duplicate=[${input.duplicateEpisodeNos.join(',')}] empty=[${input.emptyEpisodeNos.join(',')}]`
+}
+
+async function invokeRoughOutlineStage<T>(input: {
+  prompt: string
+  runtimeConfig: RuntimeProviderConfig
+  signal?: AbortSignal
+  stage: 'rough_outline_overview' | 'rough_outline_batch'
+  logContext: string
+  maxOutputTokens: number
+  runtimeHints?: {
+    episode?: number
+    totalEpisodes?: number
+  }
+}): Promise<T> {
+  const timeoutMs = resolveAiStageTimeoutMs('rough_outline')
+  const startedAt = Date.now()
+  await appendRuntimeDiagnosticLog(
+    'rough_outline',
+    `${input.stage}_start ${input.logContext} promptChars=${input.prompt.length} timeoutMs=${timeoutMs} maxOutputTokens=${input.maxOutputTokens}`
+  )
+
+  try {
+    const result = await generateTextWithRuntimeRouter(
+      {
+        task: 'rough_outline',
+        prompt: input.prompt,
+        allowFallback: false,
+        responseFormat: 'json_object',
+        temperature: 0.45,
+        timeoutMs,
+        maxOutputTokens: input.maxOutputTokens,
+        runtimeHints: {
+          totalEpisodes: input.runtimeHints?.totalEpisodes,
+          episode: input.runtimeHints?.episode,
+          strictness: 'strict'
+        }
+      },
+      input.runtimeConfig,
+      { signal: input.signal }
+    )
+
+    const parsed = tryParseObject(result.text)
+    const parsedOk = Boolean(parsed)
+    const normalizedResponsePreview = result.text.replace(/\s+/g, ' ').trim()
+    await appendRuntimeDiagnosticLog(
+      'rough_outline',
+      `${input.stage}_finish ${input.logContext} elapsedMs=${Date.now() - startedAt} lane=${result.lane} model=${result.model} finishReason=${result.finishReason || 'unknown'} responseChars=${result.text.length} parsed=${parsedOk ? 'yes' : 'no'} responseHead=${normalizedResponsePreview.slice(0, 240)} responseTail=${normalizedResponsePreview.slice(-240)}`
+    )
+
+    if (!parsedOk) {
+      if (input.stage === 'rough_outline_overview' && isLikelyTruncatedJsonResponse(result.text)) {
+        await appendRuntimeDiagnosticLog(
+          'rough_outline',
+          `${input.stage}_retry_parse ${input.logContext} reason=truncated_json retryMaxOutputTokens=${ROUGH_OUTLINE_PARSE_RETRY_MAX_OUTPUT_TOKENS}`
+        )
+        const retryPrompt = buildRoughOutlineParseRetryPrompt(input.prompt)
+        const retryResult = await generateTextWithRuntimeRouter(
+          {
+            task: 'rough_outline',
+            prompt: retryPrompt,
+            allowFallback: false,
+            responseFormat: 'json_object',
+            temperature: 0.2,
+            timeoutMs,
+            maxOutputTokens: ROUGH_OUTLINE_PARSE_RETRY_MAX_OUTPUT_TOKENS,
+            runtimeHints: {
+              totalEpisodes: input.runtimeHints?.totalEpisodes,
+              episode: input.runtimeHints?.episode,
+              strictness: 'strict',
+              recoveryMode: 'retry_parse'
+            }
+          },
+          input.runtimeConfig,
+          { signal: input.signal }
+        )
+        const retryParsed = tryParseObject(retryResult.text)
+        const retryPreview = retryResult.text.replace(/\s+/g, ' ').trim()
+        await appendRuntimeDiagnosticLog(
+          'rough_outline',
+          `${input.stage}_retry_finish ${input.logContext} elapsedMs=${Date.now() - startedAt} lane=${retryResult.lane} model=${retryResult.model} finishReason=${retryResult.finishReason || 'unknown'} responseChars=${retryResult.text.length} parsed=${retryParsed ? 'yes' : 'no'} responseHead=${retryPreview.slice(0, 240)} responseTail=${retryPreview.slice(-240)}`
+        )
+        if (retryParsed) {
+          return retryParsed as T
+        }
+      }
+      throw new Error(`${input.stage}_parse_failed`)
+    }
+
+    return parsed as T
+  } catch (error) {
+    await appendRuntimeDiagnosticLog(
+      'rough_outline',
+      `${input.stage}_fail ${input.logContext} elapsedMs=${Date.now() - startedAt} error=${error instanceof Error ? error.message : String(error)}`
+    )
+    throw error instanceof Error ? error : new Error(String(error || `${input.stage}_failed`))
+  }
+}
+
+async function generateOutlineOverview(input: {
+  generationBriefText: string
+  totalEpisodes: number
+  runtimeConfig: RuntimeProviderConfig
+  signal?: AbortSignal
+  sevenQuestions?: RoughOutlineOverviewInput['sevenQuestions']
+  characterProfiles?: RoughOutlineOverviewInput['characterProfiles']
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
+}): Promise<{
+  overview: OutlineOverviewPayload
+  actPlans: RoughOutlineActPlan[]
+}> {
+  const baseActPlans = normalizeActPlans(input.totalEpisodes)
+  return runRoughOutlineStageWithRetries({
+    stage: 'rough_outline_overview',
+    logContext: `totalEpisodes=${input.totalEpisodes}`,
+    log: (message) => appendRuntimeDiagnosticLog('rough_outline', message),
+    run: async () => {
+      const prompt = buildOutlineOverviewPrompt({
+        generationBriefText: input.generationBriefText,
+        totalEpisodes: input.totalEpisodes,
+        actPlans: baseActPlans,
+        sevenQuestions: input.sevenQuestions,
+        characterProfiles: input.characterProfiles,
+        characterProfilesV2: input.characterProfilesV2,
+        factionMatrix: input.factionMatrix
+      })
+      const overview = await invokeRoughOutlineStage<OutlineOverviewPayload>({
+        prompt,
+        runtimeConfig: input.runtimeConfig,
+        signal: input.signal,
+        stage: 'rough_outline_overview',
+        logContext: `totalEpisodes=${input.totalEpisodes}`,
+        maxOutputTokens: OUTLINE_OVERVIEW_MAX_OUTPUT_TOKENS,
+        runtimeHints: {
+          totalEpisodes: input.totalEpisodes
+        }
+      })
+
+      const failureCode = resolveOverviewFailureCode(overview?.outline)
+      if (failureCode) {
+        const errorCode =
+          failureCode === 'act_summaries_missing'
+            ? 'rough_outline_overview_incomplete:act_summaries_missing'
+            : `rough_outline_incomplete:${failureCode}`
+        await appendRuntimeDiagnosticLog(
+          'rough_outline',
+          `rough_outline_overview_incomplete totalEpisodes=${input.totalEpisodes} code=${failureCode}`
+        )
+        throw new Error(errorCode)
+      }
+
+      return {
+        overview,
+        actPlans: mergeActSummariesIntoPlans(baseActPlans, overview.outline?.actSummaries)
+      }
+    }
+  })
+}
+
+async function generateOutlineEpisodeBatch(input: {
+  generationBriefText: string
+  totalEpisodes: number
+  startEpisode: number
+  endEpisode: number
+  overviewSummary: string
+  actPlans: RoughOutlineActPlan[]
+  previousEpisodes: OutlineEpisodeDto[]
+  runtimeConfig: RuntimeProviderConfig
+  signal?: AbortSignal
+  sevenQuestions?: RoughOutlineEpisodeBatchInput['sevenQuestions']
+  characterProfiles?: RoughOutlineEpisodeBatchInput['characterProfiles']
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
+}): Promise<OutlineEpisodeBatchPayload> {
+  return runRoughOutlineStageWithRetries({
+    stage: 'rough_outline_batch',
+    logContext: `range=${input.startEpisode}-${input.endEpisode}`,
+    log: (message) => appendRuntimeDiagnosticLog('rough_outline', message),
+    run: async () => {
+      const prompt = buildOutlineEpisodeBatchPrompt({
+        generationBriefText: input.generationBriefText,
+        totalEpisodes: input.totalEpisodes,
+        startEpisode: input.startEpisode,
+        endEpisode: input.endEpisode,
+        overviewSummary: input.overviewSummary,
+        actPlans: pickBatchActPlans(input.actPlans, input.startEpisode, input.endEpisode),
+        previousEpisodes: input.previousEpisodes,
+        sevenQuestions: input.sevenQuestions,
+        characterProfiles: input.characterProfiles,
+        characterProfilesV2: input.characterProfilesV2,
+        factionMatrix: input.factionMatrix
+      })
+      const batch = await invokeRoughOutlineStage<OutlineEpisodeBatchPayload>({
+        prompt,
+        runtimeConfig: input.runtimeConfig,
+        signal: input.signal,
+        stage: 'rough_outline_batch',
+        logContext: `range=${input.startEpisode}-${input.endEpisode}`,
+        maxOutputTokens: OUTLINE_BATCH_MAX_OUTPUT_TOKENS,
+        runtimeHints: {
+          totalEpisodes: input.totalEpisodes,
+          episode: input.startEpisode
+        }
+      })
+
+      const validation = validateOutlineEpisodeBatch({
+        episodes: Array.isArray(batch?.episodes) ? batch.episodes : [],
+        startEpisode: input.startEpisode,
+        endEpisode: input.endEpisode
+      })
+      if (!validation.ok) {
+        await appendRuntimeDiagnosticLog(
+          'rough_outline',
+          `rough_outline_batch_incomplete range=${input.startEpisode}-${input.endEpisode} ${formatOutlineValidationDetails(
+            {
+              code: validation.code || 'unknown',
+              actualEpisodeCount: validation.actualEpisodeCount,
+              missingEpisodeNos: validation.missingEpisodeNos,
+              duplicateEpisodeNos: validation.duplicateEpisodeNos,
+              emptyEpisodeNos: validation.emptyEpisodeNos
+            }
+          )}`
+        )
+        throw new Error(`rough_outline_incomplete:${validation.code || 'episode_numbers_invalid'}`)
+      }
+
+      return batch
+    }
+  })
 }
 
 export async function generateOutlineBundle(input: {
   generationBriefText: string
+  totalEpisodes: number
   runtimeConfig: RuntimeProviderConfig
+  signal?: AbortSignal
+  sevenQuestions?: RoughOutlineOverviewInput['sevenQuestions']
+  characterProfiles?: RoughOutlineOverviewInput['characterProfiles']
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
 }): Promise<OutlineBundlePayload | null> {
-  const prompt = buildOutlineGenerationPrompt(input.generationBriefText)
+  const overviewStage = await generateOutlineOverview({
+    generationBriefText: input.generationBriefText,
+    totalEpisodes: input.totalEpisodes,
+    runtimeConfig: input.runtimeConfig,
+    signal: input.signal,
+    sevenQuestions: input.sevenQuestions,
+    characterProfiles: input.characterProfiles,
+    characterProfilesV2: input.characterProfilesV2,
+    factionMatrix: input.factionMatrix
+  })
 
-  const result = await generateTextWithRuntimeRouter(
-    {
-      task: 'decision_assist',
-      prompt,
-      allowFallback: true,
-      temperature: 0.5,
-      timeoutMs: OUTLINE_BUNDLE_STAGE_TIMEOUT_MS
-    },
-    input.runtimeConfig
+  const batchSize = getGovernanceOutlineBlockSize()
+  const batches: OutlineEpisodeBatchPayload[] = []
+  const assembledEpisodes: OutlineEpisodeDto[] = []
+
+  for (let startEpisode = 1; startEpisode <= input.totalEpisodes; startEpisode += batchSize) {
+    const endEpisode = Math.min(input.totalEpisodes, startEpisode + batchSize - 1)
+    const batch = await generateOutlineEpisodeBatch({
+      generationBriefText: input.generationBriefText,
+      totalEpisodes: input.totalEpisodes,
+      startEpisode,
+      endEpisode,
+      overviewSummary: overviewStage.overview.outline?.summary?.trim() || '',
+      actPlans: overviewStage.actPlans,
+      previousEpisodes: assembledEpisodes.slice(-4),
+      runtimeConfig: input.runtimeConfig,
+      signal: input.signal,
+      sevenQuestions: input.sevenQuestions,
+      characterProfiles: input.characterProfiles,
+      characterProfilesV2: input.characterProfilesV2,
+      factionMatrix: input.factionMatrix
+    })
+    batches.push(batch)
+    for (const episode of batch.episodes || []) {
+      assembledEpisodes.push({
+        episodeNo: Number(episode?.episodeNo) || assembledEpisodes.length + 1,
+        summary: toStringOrEmpty(episode?.summary)
+      })
+    }
+  }
+
+  const assembled = assembleOutlineBundleFromStages({
+    overview: overviewStage.overview,
+    batches
+  })
+  await appendRuntimeDiagnosticLog(
+    'rough_outline',
+    `rough_outline_assembled totalEpisodes=${input.totalEpisodes} batchCount=${batches.length} episodeCount=${assembled.outline?.episodes?.length || 0}`
   )
-
-  const parsed = tryParseObject(result.text)
-  return parsed as OutlineBundlePayload | null
+  return assembled
 }
 
 export async function generateCharacterBundle(input: {
@@ -233,25 +418,55 @@ export async function generateCharacterBundle(input: {
   runtimeConfig: RuntimeProviderConfig
   storyIntent: StoryIntentPackageDto
   outlineSummary: string
+  signal?: AbortSignal
 }): Promise<CharacterBundlePayload | null> {
   const prompt = buildCharacterGenerationPrompt({
     generationBriefText: input.generationBriefText,
     protagonist: input.storyIntent.protagonist || '',
     antagonist: input.storyIntent.antagonist || '',
+    keyCharacters: input.storyIntent.officialKeyCharacters || [],
     conflict: input.storyIntent.coreConflict || '',
     outlineSummary: input.outlineSummary
   })
-
-  const result = await generateTextWithRuntimeRouter(
-    {
-      task: 'decision_assist',
-      prompt,
-      allowFallback: true,
-      temperature: 0.5,
-      timeoutMs: CHARACTER_BUNDLE_STAGE_TIMEOUT_MS
-    },
-    input.runtimeConfig
+  const timeoutMs = resolveAiStageTimeoutMs('character_profile')
+  const startedAt = Date.now()
+  await appendRuntimeDiagnosticLog(
+    'character_profile',
+    `start briefChars=${input.generationBriefText.length} outlineSummaryChars=${input.outlineSummary.length} promptChars=${prompt.length} timeoutMs=${timeoutMs} maxOutputTokens=${CHARACTER_BUNDLE_MAX_OUTPUT_TOKENS}`
   )
 
-  return parseCharacterBundleText(result.text)
+  try {
+    const result = await generateTextWithRuntimeRouter(
+      {
+        task: 'character_profile',
+        prompt,
+        allowFallback: false,
+        responseFormat: 'json_object',
+        temperature: 0.5,
+        timeoutMs,
+        maxOutputTokens: CHARACTER_BUNDLE_MAX_OUTPUT_TOKENS
+      },
+      input.runtimeConfig,
+      { signal: input.signal }
+    )
+
+    const parsed = parseCharacterBundleText(result.text)
+    const parsedOk = Boolean(parsed?.characters?.length)
+    const normalizedResponsePreview = result.text.replace(/\s+/g, ' ').trim()
+    await appendRuntimeDiagnosticLog(
+      'character_profile',
+      `finish elapsedMs=${Date.now() - startedAt} lane=${result.lane} model=${result.model} finishReason=${result.finishReason || 'unknown'} responseChars=${result.text.length} parsed=${parsedOk ? 'yes' : 'no'} responseHead=${normalizedResponsePreview.slice(0, 240)} responseTail=${normalizedResponsePreview.slice(-240)}`
+    )
+    if (!parsedOk) {
+      throw new Error('character_profile_parse_failed')
+    }
+
+    return parsed
+  } catch (error) {
+    await appendRuntimeDiagnosticLog(
+      'character_profile',
+      `fail elapsedMs=${Date.now() - startedAt} error=${error instanceof Error ? error.message : String(error)}`
+    )
+    throw error instanceof Error ? error : new Error(String(error || 'character_profile_failed'))
+  }
 }

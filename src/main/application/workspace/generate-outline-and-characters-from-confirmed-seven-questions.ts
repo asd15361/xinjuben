@@ -18,6 +18,8 @@
 
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { CharacterProfileV2Dto } from '../../../shared/contracts/character-profile-v2.ts'
+import type { FactionMatrixDto } from '../../../shared/contracts/faction-matrix.ts'
 import type {
   OutlineDraftDto,
   CharacterDraftDto,
@@ -37,6 +39,7 @@ import {
   isCharacterBundleStructurallyComplete,
   resolveCharacterContractAnchors
 } from '../../../shared/domain/workflow/character-contract.ts'
+import { mapV2ToLegacyCharacterDraft } from '../../../shared/contracts/character-profile-v2.ts'
 import { normalizeOutlineStoryIntent } from './outline-story-intent.ts'
 import { validateStructuredOutline } from './rough-outline-validation.ts'
 import { toDraftFacts, type OutlineFactCandidate } from './outline-facts.ts'
@@ -55,7 +58,11 @@ interface ConfirmedSevenQuestionsGenerationDeps {
     totalEpisodes: number
     runtimeConfig: RuntimeProviderConfig
     signal?: AbortSignal
-  }) => Promise<{ characters: CharacterDraftDto[] }>
+  }) => Promise<{
+    characters: CharacterDraftDto[]
+    characterProfilesV2?: CharacterProfileV2Dto[]
+    factionMatrix?: FactionMatrixDto
+  }>
   generateOutlineBundle?: (input: {
     generationBriefText: string
     totalEpisodes: number
@@ -63,6 +70,8 @@ interface ConfirmedSevenQuestionsGenerationDeps {
     signal?: AbortSignal
     sevenQuestions: SevenQuestionsResultDto
     characterProfiles: { characters: CharacterDraftDto[] }
+    characterProfilesV2?: CharacterProfileV2Dto[]
+    factionMatrix?: FactionMatrixDto
   }) => Promise<{
     outline?: {
       title?: string
@@ -102,16 +111,72 @@ async function appendConfirmedSevenQuestionsDiagnosticLog(message: string): Prom
   await appendRuntimeDiagnosticLog('rough_outline', message)
 }
 
+function buildConfirmedSevenQuestionsHandshakeSummary(
+  confirmedSevenQuestions: SevenQuestionsResultDto
+): string {
+  return confirmedSevenQuestions.sections
+    .map((section, index) => {
+      const questions = section.sevenQuestions
+      const hasValue = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+      return [
+        `section=${index + 1}`,
+        `episodes=${section.startEpisode}-${section.endEpisode}`,
+        `goal=${hasValue(questions.goal) ? '1' : '0'}`,
+        `obstacle=${hasValue(questions.obstacle) ? '1' : '0'}`,
+        `effort=${hasValue(questions.effort) ? '1' : '0'}`,
+        `result=${hasValue(questions.result) ? '1' : '0'}`,
+        `twist=${hasValue(questions.twist) ? '1' : '0'}`,
+        `turnaround=${hasValue(questions.turnaround) ? '1' : '0'}`,
+        `ending=${hasValue(questions.ending) ? '1' : '0'}`
+      ].join(' ')
+    })
+    .join(' | ')
+}
+
 async function generateCharacterProfilesFromConfirmedSevenQuestionsDefault(input: {
   storyIntent: StoryIntentPackageDto
   totalEpisodes: number
   runtimeConfig: RuntimeProviderConfig
   signal?: AbortSignal
-}): Promise<{ characters: CharacterDraftDto[] }> {
-  const { generateCharacterProfilesFromStoryIntent } = await import(
-    './orchestrate-parallel-agents.ts'
-  )
-  return generateCharacterProfilesFromStoryIntent(input)
+}): Promise<{
+  characters: CharacterDraftDto[]
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
+}> {
+  const { generateFactionMatrix } = await import('./faction-matrix-agent.ts')
+  const { generateCharacterProfileV2 } = await import('./character-profile-v2-agent.ts')
+  let factionMatrix: FactionMatrixDto
+  try {
+    factionMatrix = await generateFactionMatrix({
+      storyIntent: input.storyIntent,
+      totalEpisodes: input.totalEpisodes,
+      runtimeConfig: input.runtimeConfig,
+      signal: input.signal
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || 'unknown')
+    if (
+      /^faction_matrix_timeout:/i.test(message) ||
+      /^faction_matrix_parse_failed:/i.test(message) ||
+      /^faction_matrix_generation_failed:/i.test(message)
+    ) {
+      throw error
+    }
+    throw new Error(`faction_matrix_generation_failed:${message}`)
+  }
+
+  const v2Result = await generateCharacterProfileV2({
+    storyIntent: input.storyIntent,
+    factionMatrix,
+    runtimeConfig: input.runtimeConfig,
+    signal: input.signal
+  })
+
+  return {
+    characters: v2Result.characters.map((item) => mapV2ToLegacyCharacterDraft(item)),
+    characterProfilesV2: v2Result.characters,
+    factionMatrix
+  }
 }
 
 async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
@@ -121,6 +186,8 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   signal?: AbortSignal
   sevenQuestions: SevenQuestionsResultDto
   characterProfiles: { characters: CharacterDraftDto[] }
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
 }) {
   const { generateOutlineBundle } = await import('./generate-outline-and-characters-support.ts')
   return generateOutlineBundle(input)
@@ -174,6 +241,9 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
   await appendDiagnosticLog(
     `rough_outline_start from_confirmed_seven_questions sectionCount=${confirmedSevenQuestions.sectionCount} totalEpisodes=${targetEpisodeCount}`
   )
+  await appendDiagnosticLog(
+    `rough_outline_confirmed_seven_questions_handshake ${buildConfirmedSevenQuestionsHandshakeSummary(confirmedSevenQuestions)}`
+  )
 
   const baseStoryIntent = normalizeOutlineStoryIntent(input.storyIntent)
   const generateCharacterProfiles =
@@ -196,7 +266,9 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     runtimeConfig: input.runtimeConfig,
     signal: input.signal,
     sevenQuestions: confirmedSevenQuestions,
-    characterProfiles: characterProfilesResult
+    characterProfiles: { characters: characterProfilesResult.characters },
+    characterProfilesV2: characterProfilesResult.characterProfilesV2,
+    factionMatrix: characterProfilesResult.factionMatrix
   })
 
   const outlinePayload = outlineBundle?.outline
@@ -274,9 +346,25 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
 
   const normalizedCharacters = normalizeCharacterDrafts(rawCharacters)
   const characterCardAuthorityNames = resolveCharacterCardAuthorityNames(generationBriefText)
+
+  // 【第一刀】主角与反派免死金牌：无论 characterCards 是否列出，都必须强制保留
+  const protagonistName = baseStoryIntent.protagonist?.trim() || ''
+  const antagonistName = baseStoryIntent.antagonist?.trim() || ''
+  const anchorNames = [protagonistName, antagonistName].filter(Boolean)
+
   const preEnrichedCharacters =
     characterCardAuthorityNames.length > 0
-      ? normalizedCharacters.filter((character) => characterCardAuthorityNames.includes(character.name))
+      ? normalizedCharacters.filter((character) => {
+          // 如果在卡片名单里，保留
+          if (characterCardAuthorityNames.includes(character.name)) return true
+          // 如果名字模糊匹配主角或反派，强制保留（免死金牌）
+          for (const anchorName of anchorNames) {
+            if (character.name.includes(anchorName) || anchorName.includes(character.name)) {
+              return true
+            }
+          }
+          return false
+        })
       : normalizedCharacters
 
   // 兜底补全：AI 生成的人物字段可能为空字符串或模板化套话，

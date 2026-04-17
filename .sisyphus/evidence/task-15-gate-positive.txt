@@ -1,0 +1,28 @@
+=== Authority Gate: Anti-Pattern Scanner ===
+Source: D:/project/xinjuben/src
+
+Looking for forbidden authority fallback patterns...
+
+--- Pattern 1: catch { setStage(...) } ---
+FOUND: catch block with setStage:
+D:/project/xinjuben/src/renderer/src/test-anti-pattern.ts:4:// ANTI-PATTERN 1: catch block with setStage (FORBIDDEN)
+D:/project/xinjuben/src/renderer/src/test-anti-pattern.ts-9-    setStage('chat');
+
+--- Pattern 2: Optimistic setStage on missing result ---
+  ✓ No optimistic stage update patterns found
+
+==========================================
+=== Authority Gate Summary ===
+==========================================
+
+✗ RESULT: VIOLATIONS FOUND (exit 1)
+
+Authority anti-patterns detected: 1 pattern(s)
+
+These patterns violate the authority constitution:
+  • catch { setStage(...) } — FORBIDDEN fallback in catch blocks
+  • Optimistic setStage on missing result — FORBIDDEN
+
+Stage must come from main process authority, not local interpretation.
+Reference: src/shared/domain/workflow/authority-constitution.ts
+

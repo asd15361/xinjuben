@@ -2,6 +2,7 @@ import type { ChatMessageDto, ChatRoleDto } from '../../../../../../shared/contr
 
 export type ChatRole = ChatRoleDto
 export type ChatMessage = ChatMessageDto
+export const CHAT_PENDING_MESSAGE_TEXT = '__pending_ai_reply__'
 
 export function createInitialChatMessages(): ChatMessage[] {
   return [

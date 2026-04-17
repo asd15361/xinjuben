@@ -1,10 +1,14 @@
 import { useState } from 'react'
+import { getChatStagePrimaryActionLabel } from '../../../chat/ui/chat-stage-entry'
 
 export function ChatComposer(props: {
   disabled: boolean
   busy: boolean
+  canConfirm: boolean
   canGenerate: boolean
+  confirmed: boolean
   onSend: (text: string) => void
+  onConfirm: () => void
   onGenerate: () => void
 }) {
   const [draft, setDraft] = useState('')
@@ -12,7 +16,6 @@ export function ChatComposer(props: {
   const sendDisabled = props.disabled || props.busy || !draft.trim()
 
   function handleKeyDown(e: React.KeyboardEvent): void {
-
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       const text = draft.trim()
@@ -30,17 +33,28 @@ export function ChatComposer(props: {
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           <p className="text-[11px] text-white/50 tracking-wider">
-            {props.canGenerate ? '信息已经够了，可以先整理第一版粗纲和人物' : '先把题材、主角、冲突说出来'}
+            {props.canGenerate
+              ? '信息已经锁住，下一步先确认七问'
+              : '先把题材、主角、冲突说出来'}
           </p>
         </div>
-        <button
-          onClick={props.onGenerate}
-          disabled={!props.canGenerate}
-          className="rounded-lg px-4 py-2 text-[11px] font-black text-[#050505] disabled:opacity-30 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/10"
-          style={{ background: '#FF7A00' }}
-        >
-          生成第一版粗纲和人物
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={props.onConfirm}
+            disabled={!props.canConfirm}
+            className="rounded-lg px-4 py-2 text-[11px] font-black border border-white/10 text-white disabled:opacity-30 transition-all hover:bg-white/5 active:scale-[0.98]"
+          >
+            {props.confirmed ? '信息已确认' : '我聊完了，确定信息'}
+          </button>
+          <button
+            onClick={props.onGenerate}
+            disabled={!props.canGenerate}
+            className="rounded-lg px-4 py-2 text-[11px] font-black text-[#050505] disabled:opacity-30 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/10"
+            style={{ background: '#FF7A00' }}
+          >
+            {getChatStagePrimaryActionLabel(props.confirmed)}
+          </button>
+        </div>
       </div>
 
       {/* 输入区 */}

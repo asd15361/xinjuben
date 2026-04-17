@@ -1,7 +1,13 @@
 import type { StoryIntentPackageDto } from './intake'
 import type { ScriptStateLedgerDto } from './script-ledger'
 import type { StoryContractDto, UserAnchorLedgerDto } from './story-contract'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto, ScriptSegmentDto } from './workflow'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineBlockDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto,
+  ScriptSegmentDto
+} from './workflow'
 
 export interface ScriptAuditIssueDto {
   code: string
@@ -43,6 +49,7 @@ export interface ExecuteScriptRepairInputDto {
   outline?: OutlineDraftDto
   characters?: CharacterDraftDto[]
   segments?: DetailedOutlineSegmentDto[]
+  detailedOutlineBlocks?: DetailedOutlineBlockDto[]
   script: ScriptSegmentDto[]
   suggestions: ScriptRepairSuggestionDto[]
 }

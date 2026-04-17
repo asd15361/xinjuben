@@ -15,7 +15,19 @@ export function detectDuplicateScenes(
 
   const previousScene = existingScript[existingScript.length - 1]
   const firstGeneratedScene = generatedScenes[0]
-  if (previousScene && normalizeScene(previousScene) === normalizeScene(firstGeneratedScene)) {
+  // In rewrite mode, if the first generated scene has the same episodeNo as the
+  // previous scene, this is the same episode being regenerated — skip the check.
+  // The duplicate detector guards against cross-episode harmful repeats, not against
+  // a rewritten episode legitimately matching its own previous version.
+  if (
+    previousScene &&
+    firstGeneratedScene.sceneNo === previousScene.sceneNo
+  ) {
+    // same episode rewrite — allowed to match
+  } else if (
+    previousScene &&
+    normalizeScene(previousScene) === normalizeScene(firstGeneratedScene)
+  ) {
     return `新生成场景与上一场实质重复：scene_${previousScene.sceneNo}_to_${firstGeneratedScene.sceneNo}`
   }
 

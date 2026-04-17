@@ -10,7 +10,7 @@ export function resolveLaneStrategy(_input: {
   fallback: ModelRouteLane
 } {
   return {
-    primary: 'deepseek',
-    fallback: 'deepseek'
+    primary: 'openrouter_gemini_flash_lite',
+    fallback: 'openrouter_qwen_free'
   }
 }

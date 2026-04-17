@@ -1,0 +1,8 @@
+suggestion=请把这一集修回短剧合同内，同时保持逐集细纲核心事件不变。在不加水的前提下补足关键对打和结果，让全局密度到 500-800 字。最后一个场次的末段必须落成已经发生的硬动作或直接威胁，不能停在气氛和半悬着状态。
+
+AbortError: This operation was aborted
+    at new DOMException (node:internal/per_context/domexception:76:18)
+    at AbortController.abort (node:internal/abort_controller:504:18)
+    at Timeout._onTimeout (D:\project\xinjuben\out\main\index.js:59:31)
+    at listOnTimeout (node:internal/timers:588:17)
+    at process.processTimers (node:internal/timers:523:7)

@@ -1,0 +1,128 @@
+# F2: Live-Path Orchestrator Audit
+
+**Date**: 2026-03-23
+**Task**: Trace all control paths from renderer action to IPC handler to runtime/worker to confirm ScriptOrchestrator is sole orchestrator
+
+---
+
+## Control Path Audit Results
+
+### Path 1: START
+```
+renderer:useScriptStageActions.ts:398
+  → window.api.workflow.startScriptGeneration()
+  → IPC handler: script-generation-runtime-handlers.ts:137 (workflow:start-script-generation)
+  → createScriptOrchestrator() [line 143]
+  → activeOrchestrators.set(projectId, orchestrator) [line 156]
+  → orchestrator.execute() [line 180]
+  → runScriptGenerationBatch via injected option [orchestrator.ts:432]
+  → generateTextWithRuntimeRouter() [run-script-generation-batch.ts:137]
+VERDICT: ✓ VIA ORCHESTRATOR
+```
+
+### Path 2: RESUME
+```
+renderer:runScriptGenerationCycle() [useScriptStageActions.ts:366]
+  → mode determined by script.length > 0 ? 'resume' : 'fresh_start'
+  → window.api.workflow.startScriptGeneration() [line 398]
+  → Same IPC handler as START
+  → orchestrator.execute() with mode='continue' [mapModeToCommand at line 121-132]
+VERDICT: ✓ VIA ORCHESTRATOR
+```
+
+### Path 3: REWRITE
+```
+renderer:handleRewriteGeneration() [useScriptStageActions.ts:277]
+  → window.api.workflow.stopScriptGeneration() [line 281]
+    → IPC: workflow:stop-script-generation [line 314]
+    → orchestrator.stop() if found [line 323]
+  → useScriptStageActionsStartFresh() [line 326]
+    → window.api.workflow.startScriptGeneration() [line 582]
+    → Same IPC handler → orchestrator.execute() with mode='restart'
+VERDICT: ✓ VIA ORCHESTRATOR
+```
+
+### Path 4: STOP
+```
+renderer:handleStopGeneration() [useScriptStageActions.ts:258]
+  → window.api.workflow.stopScriptGeneration() [line 261]
+  → IPC: workflow:stop-script-generation [line 314]
+  → orchestrator = activeOrchestrators.get(projectId) [line 320]
+  → orchestrator.stop() [line 323]
+  → Fallback: stopScriptGenerationRun() only if no orchestrator [line 341]
+VERDICT: ✓ VIA ORCHESTRATOR (fallback only if registry corrupted)
+```
+
+### Path 5: PAUSE
+```
+renderer: (calls pause via workflow API)
+  → IPC: workflow:pause-script-generation [line 361]
+  → orchestrator = activeOrchestrators.get(projectId) [line 364]
+  → orchestrator.pause() [line 369]
+VERDICT: ✓ VIA ORCHESTRATOR
+```
+
+### Path 6: RESUME (continue after pause)
+```
+renderer: (calls resume via workflow API)
+  → IPC: workflow:resume-script-generation [line 381]
+  → orchestrator = activeOrchestrators.get(projectId) [line 384]
+  → orchestrator.resume() [line 389]
+VERDICT: ✓ VIA ORCHESTRATOR
+```
+
+---
+
+## Legacy Code Inspection
+
+### startScriptGeneration (application layer, NOT IPC entry)
+- **Location**: `src/main/application/script-generation/start-script-generation.ts`
+- **Status**: NOT an IPC handler - it's an internal application function
+- **Used by**: Worker (`script-generation-worker.ts:55`)
+- **NOT reachable from renderer** - renderer only calls IPC handlers
+- **Worker infrastructure exists but is disconnected**:
+  - `runScriptGenerationInWorker()` exists but is never called by orchestrator
+  - Orchestrator's `runScriptGenerationBatch` option is injected as direct function (line 83-84 of handlers.ts)
+  - Worker thread bootstraps via `src/main/index.ts:74-76` but workerData kind='script_generation' is never posted
+
+**Conclusion**: Legacy `startScriptGeneration` and worker are DEAD CODE, not bypass paths.
+
+### stopScriptGenerationRun (registry)
+- **Location**: `src/main/application/script-generation/script-generation-run-registry.ts:28`
+- **Purpose**: Legacy worker termination
+- **Called by**: Stop IPC handler fallback (line 341) only when `activeOrchestrators.get(projectId)` returns falsy
+- **Normal operation**: Never called because orchestrator is always registered before execute() and deleted after
+
+---
+
+## Orchestrator Registry Lifecycle
+
+```
+1. start-script-generation handler called
+2. createScriptOrchestrator() creates instance [handlers.ts:143]
+3. activeOrchestrators.set(projectId, orchestrator) [line 156]
+4. orchestrator.execute() runs [line 180]
+5. finally: activeOrchestrators.delete(projectId) [line 308]
+```
+
+**Critical**: Orchestrator is ALWAYS in registry during execution. Stop handler will always find it.
+
+---
+
+## Final Verdict
+
+| Control Path | Entry Point | IPC Handler | Orchestrator | Via Orchestrator? |
+|---|---|---|---|---|
+| start | startScriptGeneration | ✓ workflow:start-script-generation | ✓ orchestrator.execute() | YES |
+| resume | startScriptGeneration | ✓ workflow:start-script-generation | ✓ orchestrator.execute() | YES |
+| rewrite | stop → start | ✓ both | ✓ orchestrator.stop/execute | YES |
+| stop | stopScriptGeneration | ✓ workflow:stop-script-generation | ✓ orchestrator.stop() | YES |
+| pause | pauseScriptGeneration | ✓ workflow:pause-script-generation | ✓ orchestrator.pause() | YES |
+| resume | resumeScriptGeneration | ✓ workflow:resume-script-generation | ✓ orchestrator.resume() | YES |
+
+**Bypass Analysis**:
+- No direct handler→worker or handler→startScriptGeneration calls found
+- Legacy code exists but is unreachable from renderer
+- Fallback paths only trigger if orchestrator registry is corrupted
+
+**Control paths: 6/6 via orchestrator | VERDICT: PASS**

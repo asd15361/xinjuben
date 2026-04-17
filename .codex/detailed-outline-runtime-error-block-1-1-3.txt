@@ -1,0 +1,8 @@
+Error: deepseek_request_failed:400
+    at invokeDeepSeek (D:\project\xinjuben\out\main\index.js:2550:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Module.generateTextWithRuntimeRouter (D:\project\xinjuben\out\main\index.js:2762:44)
+    at async generateBlockEpisodeBeats (D:\project\xinjuben\out\main\register-ipc-BPHI9Inb.js:545:24)
+    at async generateDetailedOutlineFromContext (D:\project\xinjuben\out\main\register-ipc-BPHI9Inb.js:621:26)
+    at async generateDetailedOutlineCore (D:\project\xinjuben\out\main\register-ipc-BPHI9Inb.js:3708:29)
+    at async Session.<anonymous> (node:electron/js2c/browser_init:2:113091)

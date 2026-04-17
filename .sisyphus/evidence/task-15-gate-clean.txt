@@ -1,0 +1,23 @@
+=== Authority Gate: Anti-Pattern Scanner ===
+Source: D:/project/xinjuben/src
+
+Looking for forbidden authority fallback patterns...
+
+--- Pattern 1: catch { setStage(...) } ---
+  ✓ No catch { setStage(...) } patterns found
+
+--- Pattern 2: Optimistic setStage on missing result ---
+  ✓ No optimistic stage update patterns found
+
+==========================================
+=== Authority Gate Summary ===
+==========================================
+
+✓ RESULT: CLEAN (exit 0)
+
+No authority anti-patterns detected.
+The codebase follows authority constitution:
+  • Stage transitions go through main process
+  • Authority failures surface as explicit errors
+  • No optimistic local stage updates
+

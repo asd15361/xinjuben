@@ -3,19 +3,28 @@ import type {
   ScriptGenerationExecutionPlanDto
 } from '../../../shared/contracts/script-generation'
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto, ScriptSegmentDto } from '../../../shared/contracts/workflow'
-import { buildScriptGenerationContract } from '../../../shared/domain/script-generation/contract-policy'
-import { validateStageInputContract } from '../input-contract/validate-stage-input'
-import { buildEpisodePlans } from './plan/build-episode-plans'
-import { clampTargetEpisodes, resolveMode } from './plan/resolve-generation-mode'
-import { resolveLaneStrategy } from './plan/resolve-lane-strategy'
-import { resolveScriptRuntimeProfile } from './plan/resolve-runtime-profile'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineBlockDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto,
+  ScriptSegmentDto
+} from '../../../shared/contracts/workflow'
+import { buildScriptGenerationContract } from '../../../shared/domain/script-generation/contract-policy.ts'
+import { buildScriptGenerationControlPackage } from '../../../shared/domain/script-generation/script-control-package.ts'
+import { validateStageInputContract } from '../input-contract/validate-stage-input.ts'
+import { buildEpisodePlans } from './plan/build-episode-plans.ts'
+import { clampTargetEpisodes, resolveMode } from './plan/resolve-generation-mode.ts'
+import { resolveLaneStrategy } from './plan/resolve-lane-strategy.ts'
+import { resolveScriptRuntimeProfile } from './plan/resolve-runtime-profile.ts'
+import { countCoveredScriptEpisodes } from '../../../shared/domain/workflow/script-episode-coverage.ts'
 
 interface BuildExecutionPlanContext {
   storyIntent?: StoryIntentPackageDto | null
   outline: OutlineDraftDto
   characters: CharacterDraftDto[]
   segments: DetailedOutlineSegmentDto[]
+  detailedOutlineBlocks?: DetailedOutlineBlockDto[]
   script: ScriptSegmentDto[]
 }
 
@@ -39,7 +48,7 @@ export function buildScriptGenerationExecutionPlan(
     segments: context.segments,
     targetEpisodes
   })
-  const existingSceneCount = context.script.length
+  const existingSceneCount = countCoveredScriptEpisodes(context.script, targetEpisodes)
   const mode = resolveMode(input.mode, existingSceneCount)
   const hasDenseStructure = context.segments.filter((item) => item.content.trim()).length >= 3
   const runtimeProfile = resolveScriptRuntimeProfile({
@@ -56,9 +65,7 @@ export function buildScriptGenerationExecutionPlan(
     hasDenseStructure
   })
   const resumeStartEpisode =
-    mode === 'resume' && existingSceneCount > 0
-      ? existingSceneCount + 1
-      : 1
+    mode === 'resume' && existingSceneCount > 0 ? existingSceneCount + 1 : 1
   const episodePlans = buildEpisodePlans({
     mode,
     targetEpisodes,
@@ -75,9 +82,15 @@ export function buildScriptGenerationExecutionPlan(
 
   return {
     mode,
-    ready: stageValidation.ready && generationContract.ready,
+    ready: stageValidation.ready,
     blockedBy: stageValidation.issues,
     contract: generationContract,
+    scriptControlPackage: buildScriptGenerationControlPackage({
+      storyIntent: context.storyIntent,
+      segments: context.segments,
+      detailedOutlineBlocks: context.detailedOutlineBlocks,
+      targetEpisodes
+    }),
     targetEpisodes,
     existingSceneCount,
     recommendedPrimaryLane: lanes.primary,

@@ -1,13 +1,18 @@
 import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai'
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import { resolveLaneRuntime } from './ai-lane-runtime'
-import { mockAiEnabled, createMockResponse } from './ai-mock-response'
-import { invokeDeepSeek, invokeGemini } from './ai-provider-invoke'
-import { decideRuntimeRoute, resolveLaneSystemInstruction, shouldFallbackForError } from './model-router'
+import { resolveLaneRuntime } from './ai-lane-runtime.ts'
+import { mockAiEnabled, createMockResponse } from './ai-mock-response.ts'
+import { invokeDeepSeek, invokeOpenRouter } from './ai-provider-invoke.ts'
+import {
+  decideRuntimeRoute,
+  resolveLaneSystemInstruction,
+  shouldFallbackForError
+} from './model-router.ts'
 
 export async function generateTextWithRuntimeRouter(
   request: AiGenerateRequestDto,
-  runtimeConfig: RuntimeProviderConfig
+  runtimeConfig: RuntimeProviderConfig,
+  options?: { signal?: AbortSignal }
 ): Promise<AiGenerateResponseDto> {
   if (mockAiEnabled()) {
     return createMockResponse(request)
@@ -24,13 +29,24 @@ export async function generateTextWithRuntimeRouter(
   for (let index = 0; index < laneOrder.length; index += 1) {
     const lane = laneOrder[index]
     const laneRuntime = resolveLaneRuntime(lane, runtimeConfig)
-    const systemInstruction = resolveLaneSystemInstruction(lane, runtimeConfig) || request.systemInstruction
+    const systemInstruction =
+      resolveLaneSystemInstruction(lane, runtimeConfig) || request.systemInstruction
 
     try {
       const result =
         lane === 'deepseek'
-          ? await invokeDeepSeek({ request, laneRuntime, systemInstruction })
-          : await invokeGemini({ request, laneRuntime, systemInstruction })
+          ? await invokeDeepSeek({
+              request,
+              laneRuntime,
+              systemInstruction,
+              parentSignal: options?.signal
+            })
+          : await invokeOpenRouter({
+              request,
+              laneRuntime,
+              systemInstruction,
+              parentSignal: options?.signal
+            })
 
       return {
         ...result,
@@ -49,5 +65,7 @@ export async function generateTextWithRuntimeRouter(
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('ai_generation_failed')
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(String(lastError || 'ai_generation_failed'))
 }

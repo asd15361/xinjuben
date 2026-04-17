@@ -14,7 +14,7 @@ import {
   deriveAvailableBlocks,
   deriveActiveCharacterBlocks,
   buildActiveCharacterBlocksSnapshot
-} from './derive-active-character-blocks'
+} from './derive-active-character-blocks.ts'
 
 // ---------------------------------------------------------------------------
 // Test Fixtures

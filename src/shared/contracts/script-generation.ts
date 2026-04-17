@@ -1,9 +1,18 @@
 import type { InputContractIssueDto } from './input-contract'
 import type { ModelRouteLane } from './ai'
-import type { StoryIntentPackageDto } from './intake'
+import type { ProjectEntityStoreDto } from './entities'
+import type { ShortDramaConstitutionDto, StoryIntentPackageDto } from './intake'
 import type { ScriptGenerationContractDto } from './script-generation-contract'
 import type { ScriptLedgerPostflightDto, ScriptStateLedgerDto } from './script-ledger'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto, ScriptSegmentDto } from './workflow'
+import type {
+  CharacterBlockDto,
+  CharacterDraftDto,
+  DetailedOutlineBlockDto,
+  DetailedOutlineSegmentDto,
+  EpisodeControlCardDto,
+  OutlineDraftDto,
+  ScriptSegmentDto
+} from './workflow'
 
 export type ScriptGenerationMode = 'fresh_start' | 'resume' | 'rewrite'
 export type ScriptBatchStatus = 'idle' | 'running' | 'paused' | 'failed' | 'completed'
@@ -66,9 +75,23 @@ export interface ScriptGenerationFailureResolutionDto {
   kind: ScriptFailureKind
   reason: string
   errorMessage?: string
-  board: ScriptGenerationProgressBoardDto
   eventId?: string
   lockRecoveryAttempted: boolean
+}
+
+export interface ScriptEpisodeHardIssueDto {
+  code: string
+  detail: string
+}
+
+export interface ScriptEpisodeControlPlanDto {
+  episodeNo: number
+  episodeControlCard: EpisodeControlCardDto | null
+}
+
+export interface ScriptGenerationControlPackageDto {
+  shortDramaConstitution: ShortDramaConstitutionDto | null
+  episodeControlPlans: ScriptEpisodeControlPlanDto[]
 }
 
 export interface ScriptGenerationExecutionPlanDto {
@@ -76,6 +99,7 @@ export interface ScriptGenerationExecutionPlanDto {
   ready: boolean
   blockedBy: InputContractIssueDto[]
   contract: ScriptGenerationContractDto
+  scriptControlPackage?: ScriptGenerationControlPackageDto
   targetEpisodes: number
   existingSceneCount: number
   recommendedPrimaryLane: ModelRouteLane
@@ -100,28 +124,50 @@ export interface BuildScriptGenerationPlanInputDto {
 }
 
 export interface StartScriptGenerationInputDto {
+  projectId?: string
   plan: ScriptGenerationExecutionPlanDto
   outlineTitle: string
   theme: string
   mainConflict: string
   charactersSummary: string[]
   storyIntent?: StoryIntentPackageDto | null
+  scriptControlPackage?: ScriptGenerationControlPackageDto
   outline: OutlineDraftDto
   characters: CharacterDraftDto[]
-  segments: DetailedOutlineSegmentDto[]
+  entityStore?: ProjectEntityStoreDto
+  activeCharacterBlocks?: CharacterBlockDto[]
+  segments?: DetailedOutlineSegmentDto[]
+  detailedOutlineBlocks?: DetailedOutlineBlockDto[]
   existingScript: ScriptSegmentDto[]
 }
 
 export interface StartScriptGenerationResultDto {
   success: boolean
-  generatedScenes: Array<{
-    sceneNo: number
-    action: string
-    dialogue: string
-    emotion: string
-  }>
+  generatedScenes: ScriptSegmentDto[]
   board: ScriptGenerationProgressBoardDto
   failure: ScriptGenerationFailureResolutionDto | null
   ledger: ScriptStateLedgerDto | null
   postflight: ScriptLedgerPostflightDto | null
+}
+
+export interface RewriteScriptEpisodeInputDto {
+  episodeNo: number
+  plan: ScriptGenerationExecutionPlanDto
+  outlineTitle: string
+  theme: string
+  mainConflict: string
+  charactersSummary: string[]
+  storyIntent?: StoryIntentPackageDto | null
+  scriptControlPackage?: ScriptGenerationControlPackageDto
+  outline: OutlineDraftDto
+  characters: CharacterDraftDto[]
+  entityStore?: ProjectEntityStoreDto
+  activeCharacterBlocks?: CharacterBlockDto[]
+  segments?: DetailedOutlineSegmentDto[]
+  existingScript: ScriptSegmentDto[]
+}
+
+export interface RewriteScriptEpisodeResultDto {
+  scene: ScriptSegmentDto
+  failures: ScriptEpisodeHardIssueDto[]
 }

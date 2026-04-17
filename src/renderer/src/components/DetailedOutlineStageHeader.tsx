@@ -1,8 +1,11 @@
 import { FileText } from 'lucide-react'
+import { StageExportButton } from './StageExportButton'
 
 interface DetailedOutlineStageHeaderProps {
   onAIGenerate?: () => void
+  onExport?: () => void
   busy?: boolean
+  aiGenerateLabel?: string
 }
 
 export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProps) {
@@ -19,13 +22,14 @@ export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProp
       </div>
 
       <div className="flex items-center gap-4">
+        {props.onExport && <StageExportButton onClick={props.onExport} />}
         <button
           onClick={props.onAIGenerate}
           disabled={props.busy}
           className="rounded-xl px-5 py-2.5 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20 disabled:opacity-40"
           style={{ background: '#FF7A00' }}
         >
-          生成这一版详细大纲
+          {props.aiGenerateLabel || '生成这一版详细大纲'}
         </button>
       </div>
     </div>

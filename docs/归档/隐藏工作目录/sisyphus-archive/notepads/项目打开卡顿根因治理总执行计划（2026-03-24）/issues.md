@@ -1,0 +1,2 @@
+- 2026-03-24：`npm run typecheck` / `npm run build` 当前无法作为本任务完成门禁，失败源主要来自仓内既有 main/shared contract 漂移（如 `DetailedOutlineBlockDto`、`screenplay`、`activeCharacterBlocks`、`.ts` 扩展导入等），与本次 renderer stage-switch 持久化修复无直接对应关系。
+- 2026-03-24：`npm run typecheck:web` 也存在大量基线错误，包括 `stage-session-service.ts` 与当前 preload/workflow contract 不一致，说明仓内还混有多条未收口分支实现；后续若要把 `switchStageSession` 真正设为唯一正式入口，需先统一 preload API、workflow store、shared contracts。

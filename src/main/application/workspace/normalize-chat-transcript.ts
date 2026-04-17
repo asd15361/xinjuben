@@ -9,6 +9,9 @@ function stripSpeakerPrefix(line: string): { role: SpeakerRole; text: string } {
   if (normalized.startsWith('用户：') || normalized.startsWith('用户:')) {
     return { role: 'user', text: compactLine(normalized.replace(/^用户[：:]\s*/, '')) }
   }
+  if (normalized.startsWith('AI：') || normalized.startsWith('AI:')) {
+    return { role: 'assistant', text: compactLine(normalized.replace(/^AI[：:]\s*/, '')) }
+  }
   if (normalized.startsWith('剧情执笔人：') || normalized.startsWith('剧情执笔人:')) {
     return { role: 'assistant', text: compactLine(normalized.replace(/^剧情执笔人[：:]\s*/, '')) }
   }

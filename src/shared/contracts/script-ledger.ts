@@ -9,6 +9,9 @@ export interface ScriptLedgerCharacterStateDto {
     injuryStatus: string
     custodyStatus: 'free' | 'captured' | 'missing' | 'restricted'
     canActDirectly: boolean
+    injuryEpisodeStreak: number
+    custodyEpisodeStreak: number
+    statusEvidence: string
     lastSeenSceneNo: number | null
   }
   relationshipPressure: Array<{
@@ -75,6 +78,20 @@ export interface ScriptLedgerPreflightDto {
 
 export interface ScriptLedgerPostflightDto {
   issues: ScriptLedgerIssueDto[]
+  pass?: boolean
+  quality?: {
+    pass: boolean
+    episodeCount: number
+    passedEpisodes: number
+    averageCharCount: number
+    weakEpisodes: Array<{
+      sceneNo: number | null
+      problems: string[]
+      charCount: number
+      sceneCount: number
+      hookLine: string
+    }>
+  }
   summary: string
   patch: {
     previousSemanticHash: string | null
@@ -99,6 +116,8 @@ export interface ScriptStateLedgerDto {
   latestHook: string
   recentSceneNos: number[]
   unresolvedSignals: string[]
+  /** 计谋黑名单：追踪全季已使用的计谋/施压手段，防止套路重复 */
+  usedTactics?: string[]
   characters: ScriptLedgerCharacterStateDto[]
   factState: ScriptLedgerFactStateDto
   anchorState: {

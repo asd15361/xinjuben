@@ -1,5 +1,6 @@
 import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
 import { readStore, withStoreLock, writeStore } from './project-store-core'
+import { mirrorProjectSnapshot } from './project-store-shard-sync.ts'
 
 export async function updateProject(
   projectId: string,
@@ -13,6 +14,7 @@ export async function updateProject(
     const next = updater(existing)
     store.projects[projectId] = next
     await writeStore(store)
+    await mirrorProjectSnapshot(next)
     return next
   })
 }

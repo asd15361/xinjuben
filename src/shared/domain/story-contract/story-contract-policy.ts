@@ -1,7 +1,7 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract'
-import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow'
-import { getConfirmedFormalFacts } from '../formal-fact/selectors'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract.ts'
+import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow.ts'
+import { getConfirmedFormalFacts } from '../formal-fact/selectors.ts'
 
 function unique(values: Array<string | undefined | null>): string[] {
   const used = new Set<string>()
@@ -162,8 +162,9 @@ export function buildUserAnchorLedger(input: {
 }): UserAnchorLedgerDto {
   const intent = input.storyIntent || null
   const confirmedFacts = getConfirmedFormalFacts(input.outline)
+  const relationAnchors = intent?.relationAnchors || []
   const heroineHint =
-    intent?.relationAnchors.find((item) => /(女主|爱人|恋人|伴侣|心上人)/.test(item)) ||
+    relationAnchors.find((item) => /(女主|爱人|恋人|伴侣|心上人)/.test(item)) ||
     findCharacterByKeyword(input.characters, /(爱人|恋人|伴侣|心上人|情感|关系)/)
 
   return {
@@ -181,7 +182,7 @@ export function buildUserAnchorLedger(input: {
       input.outline.mainConflict,
       ...(intent?.themeAnchors || []),
       ...(intent?.worldAnchors || []),
-      ...(intent?.relationAnchors || [])
+      ...relationAnchors
     ]),
     heroineRequired: Boolean(heroineHint),
     heroineHint: heroineHint || ''
@@ -190,11 +191,20 @@ export function buildUserAnchorLedger(input: {
 
 export function collectMissingUserAnchorNames(ledger: UserAnchorLedgerDto, characters: CharacterDraftDto[]): string[] {
   const roster = new Set(characters.map((character) => normalizeAnchorName(character.name)).filter(Boolean))
+  // 【第二刀延伸】模糊匹配：如果锚点名字被人物名字包含，视为已覆盖
   return ledger.anchorNames
     .map((name) => normalizeAnchorName(name))
     .filter(Boolean)
     .filter((name, index, list) => list.indexOf(name) === index)
-    .filter((name) => !roster.has(name))
+    .filter((name) => {
+      // 严格匹配
+      if (roster.has(name)) return false
+      // 模糊匹配：人物名字包含锚点名字，或锚点名字包含人物名字
+      for (const charName of roster) {
+        if (charName.includes(name) || name.includes(charName)) return false
+      }
+      return true
+    })
 }
 
 export function hasHeroineAnchorCoverage(ledger: UserAnchorLedgerDto, characters: CharacterDraftDto[]): boolean {

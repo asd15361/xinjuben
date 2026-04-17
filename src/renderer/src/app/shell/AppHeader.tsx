@@ -1,11 +1,15 @@
+import { useState, useEffect } from 'react'
 import { Home } from 'lucide-react'
 import { useProjectGenerationProgress } from '../hooks/useProjectGenerationProgress'
 import { useWorkflowStore } from '../store/useWorkflowStore'
 import { useRuntimeInfo } from '../hooks/useRuntimeInfo'
 import { useStageStore } from '../../store/useStageStore'
+import { useAuthStore } from '../store/useAuthStore'
 import { AppIdentityBadge } from './AppIdentityBadge'
+import { LoginModal } from '../../components/LoginModal'
 
 export function AppHeader() {
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const projectId = useWorkflowStore((state) => state.projectId)
   const projectName = useWorkflowStore((state) => state.projectName)
@@ -16,8 +20,16 @@ export function AppHeader() {
   const resetStage = useStageStore((state) => state.reset)
   const { appInfo } = useRuntimeInfo()
   const { elapsedSeconds } = useProjectGenerationProgress(generationStatus)
+  const initializeAuth = useAuthStore((state) => state.initialize)
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
+
+  // 应用启动时初始化认证状态
+  useEffect(() => {
+    initializeAuth()
+  }, [initializeAuth])
   const currentStageLabel = {
     chat: '灵感对话',
+    seven_questions: '七问篇章',
     outline: '粗略大纲',
     character: '人物小传',
     detailed_outline: '详细大纲',
@@ -82,8 +94,11 @@ export function AppHeader() {
             回到项目首页
           </button>
         )}
-        <AppIdentityBadge appName={appInfo?.name || 'XINJUBEN'} />
+        <AppIdentityBadge appName={appInfo?.name || 'XINJUBEN'} onLoginClick={() => setShowLoginModal(true)} />
       </div>
+
+      {/* 登录弹窗 */}
+      <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </header>
   )
 }

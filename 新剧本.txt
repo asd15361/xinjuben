@@ -733,7 +733,7 @@
 • Ran Get-ChildItem -Path 'D:\xinjuben\src\main\infrastructure\runtime-env' -File | Select-Object -ExpandProperty FullName
   └ D:\xinjuben\src\main\infrastructure\runtime-env\provider-config.ts
 
-• Ran Get-ChildItem Env: | Where-Object { $_.Name -match 'DEEPSEEK|GEMINI|AI_|MODEL|LANE' } | Sort-Object Name | Format-Table
+• Ran Get-ChildItem Env: | Where-Object { $_.Name -match 'DEEPSEEK|AI_|MODEL|LANE|SECOND_PROVIDER' } | Sort-Object Name | Format-Table
   │ -AutoSize
   └ (no output)
 
@@ -753,7 +753,7 @@
 
   - 项目里只有 .env.example
   - 没有真实的 .env
-  - 系统环境里也没有 DEEPSEEK_API_KEY 或 GEMINI_API_KEY
+  - 系统环境里也没有 DEEPSEEK_API_KEY 或第二通道 API_KEY
   - 所以现在这台机器上，软件没有真实生成钥匙
 
 

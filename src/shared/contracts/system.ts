@@ -5,6 +5,7 @@ export interface AppInfoDto {
   name: string
   version: string
   stageOptions: WorkflowStage[]
+  diagnosticLogPath: string
 }
 
 export interface ValidationResultDto {

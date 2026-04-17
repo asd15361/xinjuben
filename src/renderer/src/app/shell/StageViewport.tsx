@@ -1,8 +1,12 @@
-import { lazy, Suspense } from 'react'
+import { lazy, type ReactNode, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useWorkflowStore } from '../store/useWorkflowStore'
+import { useDynamicImportRecoverySuccessAck } from '../utils/dynamic-import-recovery'
 
 const ChatStage = lazy(async () => import('../../features/chat/ui/ChatStage').then((module) => ({ default: module.ChatStage })))
+const SevenQuestionsStage = lazy(
+  async () => import('../../features/seven-questions/ui/SevenQuestionsStage').then((module) => ({ default: module.SevenQuestionsStage }))
+)
 const OutlineStage = lazy(async () => import('../../features/outline/ui/OutlineStage').then((module) => ({ default: module.OutlineStage })))
 const CharacterStage = lazy(async () => import('../../features/character/ui/CharacterStage').then((module) => ({ default: module.CharacterStage })))
 const DetailedOutlineStage = lazy(
@@ -19,8 +23,33 @@ function StageViewportFallback() {
   )
 }
 
+function DynamicImportRecoverySuccessAck(props: { ackKey: string; children: ReactNode }) {
+  useDynamicImportRecoverySuccessAck(props.ackKey)
+  return <>{props.children}</>
+}
+
+function renderActiveStage(currentStage: string): ReactNode {
+  switch (currentStage) {
+    case 'chat':
+      return <ChatStage />
+    case 'seven_questions':
+      return <SevenQuestionsStage />
+    case 'outline':
+      return <OutlineStage />
+    case 'character':
+      return <CharacterStage />
+    case 'detailed_outline':
+      return <DetailedOutlineStage />
+    case 'script':
+      return <ScriptStage />
+    default:
+      return null
+  }
+}
+
 export function StageViewport() {
   const currentStage = useWorkflowStore((state) => state.currentStage)
+  const activeStage = renderActiveStage(currentStage)
 
   return (
     <AnimatePresence mode="wait">
@@ -33,11 +62,11 @@ export function StageViewport() {
         className="glass-panel rounded-[24px] p-4 lg:p-6 xl:p-8 h-full overflow-hidden"
       >
         <Suspense fallback={<StageViewportFallback />}>
-          {currentStage === 'chat' && <ChatStage />}
-          {currentStage === 'outline' && <OutlineStage />}
-          {currentStage === 'character' && <CharacterStage />}
-          {currentStage === 'detailed_outline' && <DetailedOutlineStage />}
-          {currentStage === 'script' && <ScriptStage />}
+          {activeStage ? (
+            <DynamicImportRecoverySuccessAck ackKey={`stage:${currentStage}`}>
+              {activeStage}
+            </DynamicImportRecoverySuccessAck>
+          ) : null}
         </Suspense>
       </motion.div>
     </AnimatePresence>

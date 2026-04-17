@@ -1,0 +1,59 @@
+# Task 16 Evidence: Documentation Authority & Error Semantics Sync
+
+## Task
+更新主权规则、错误语义、兼容策略说明
+明确写出：authority 失败 = 报错，不推进
+
+## Date
+2026-03-23
+
+## Files Modified
+
+### 1. docs/system-authority（系统定义权与主权规则）.md
+Added new section "Authority Constitution & Error Semantics" at end of file:
+
+**Authority owned facts:**
+- stage, generation status, resume eligibility, blocked reason
+- These four types can ONLY be produced by main/orchestrator
+- Renderer only consumes, never produces business truth
+
+**Forbidden patterns:**
+- `catch { setStage(...) }` - cannot use catch to secretly set stage
+- `if (!result) setStage(...)` - cannot use local judgment to forge stage
+- `optimistic core updates` - cannot optimistically estimate core state
+- `local interpretation overrides authority` - cannot use local interpretation to override authority declaration
+
+**Error rule:**
+- Authority failure = explicit error, NOT fallback, NOT progress, NOT silent ignore
+- Required: explicit error surface → block progress → record reason
+
+**Legacy compat:**
+- migrate success → continue main flow
+- migrate fail → block + explicit error
+
+### 2. AGENTS.md
+Added to 总原则 section:
+- "Authority 失败 = 显式报错，不推进，不回退，不静默忽略。"
+
+### 3. 2.rules.md
+Added new section "九点五、Authority Error Semantics（Authority 错误语义）":
+- Lists the four authority-owned facts
+- Documents forbidden patterns
+- States error rule clearly
+- Documents legacy compat rules
+
+## Verification
+
+### Grep Results for Old "Fallback" Wording
+- No old "fallback allowed" wording found in any of the three documents
+- No references to fallback as acceptable error handling
+
+### New Rules Status
+- Authority failure = explicit error: DOCUMENTED
+- Forbidden patterns: DOCUMENTED
+- Legacy compat (migrate success/fail): DOCUMENTED
+- Error semantics: CLEARLY STATED in all three files
+
+## Sign-off
+All three files updated. Authority failure = error rule is now documented across all relevant documents.
+No old documentation implying fallback is allowed remains.

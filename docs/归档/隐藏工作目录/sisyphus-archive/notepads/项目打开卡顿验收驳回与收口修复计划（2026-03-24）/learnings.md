@@ -1,0 +1,1 @@
+- 2026-03-24：清理 Electron IPC 重复注册时，只删除真正重复的 `ipcMain.handle(...)` 通道；保留首个权威注册块连续放置，并明确避开 `workspace:change-project-stage` 这类语义相近但不属同一重复清理范围的 handler。

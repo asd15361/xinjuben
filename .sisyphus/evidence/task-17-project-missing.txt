@@ -1,0 +1,51 @@
+# Task 17 Evidence: Project Missing - Authority Failure Regression Test
+
+## Scenario
+Trigger action without valid projectId → expect error notice, no stage change
+
+## Test Coverage
+
+### Test 1: authority.project_missing creates error notice with no recovery action
+```typescript
+const failure = buildProjectMissingFailure()
+const notice = createAuthorityFailureNotice(failure)
+
+// Error kind is enforced
+assert.equal(notice.kind, 'error', 'Authority failure must be error kind')
+assert.equal(notice.source, 'system', 'Authority failure source must be system')
+assert.ok(notice.title, 'Notice must have a title')
+assert.ok(notice.detail, 'Notice must have a detail')
+assert.equal(notice.primaryAction, undefined, 'project_missing should not offer automatic recovery action')
+```
+
+### Test 2: authority.project_missing does NOT suggest stage progression
+```typescript
+const failureWithStage = buildProjectMissingFailure({
+  context: { fact: 'project_lookup', source: 'main', stage: 'script' }
+})
+const noticeWithStage = createAuthorityFailureNotice(failureWithStage)
+
+// No primaryAction for non-recoverable failures
+assert.equal(noticeWithStage.primaryAction, undefined)
+```
+
+## Key Assertions
+1. `notice.kind === 'error'` - Authority failures are ALWAYS error kind
+2. `notice.source === 'system'` - Authority failures come from system, not user
+3. `notice.primaryAction === undefined` - No automatic recovery suggested
+4. `notice.title` and `notice.detail` are non-empty - User sees meaningful message
+
+## Authority Failure Contract
+- Type: `project_missing`
+- Code: `AUTHORITY_FAILURE_PROJECT_MISSING`
+- Notice Key: `authority.project_missing`
+- Recoverability: `not_recoverable`
+- Notice Title: '项目未找到'
+- Notice Detail: '该项目可能已被删除或移动，请回到项目列表重新选择。'
+
+## Regression Guarantee
+This test ensures that when project is missing:
+- Error is explicitly shown to user
+- NO local stage progression occurs
+- Renderer cannot optimistically update UI
+- User must explicitly select a valid project

@@ -1,5 +1,5 @@
 import type { OutlineDraftDto } from '../../contracts/workflow'
-import { getConfirmedFormalFacts } from './selectors'
+import { getConfirmedFormalFacts } from './selectors.ts'
 
 export interface FormalFactStageHint {
   title: string
@@ -16,6 +16,20 @@ function formatFactDescriptions(outline: OutlineDraftDto): string {
   return getConfirmedFormalFacts(outline)
     .map((fact) => `${fact.label}：${fact.description}`)
     .join('\n')
+}
+
+function buildFactSpecificPromptRules(outline: OutlineDraftDto): string[] {
+  const factsText = getConfirmedFormalFacts(outline)
+    .map((fact) => `${fact.label} ${fact.description}`)
+    .join('\n')
+
+  if (/(排行|第十九|第十九个徒弟|第十九徒|最小徒弟|最末位徒弟|小徒弟)/.test(factsText)) {
+    return [
+      '若正式事实里有“排行/第十九徒/最小徒弟”这类身份事实，至少让一次动作或对白把它真正落地：被点名、被轻视、被拿来压规矩、被挡资格或被当众羞辱；不要只在前情或人物介绍里提过。'
+    ]
+  }
+
+  return []
 }
 
 export function buildCharacterStageFormalFactHints(outline: OutlineDraftDto): FormalFactStageHint[] {
@@ -73,6 +87,7 @@ export function buildFormalFactPromptBlock(input: {
   mode: 'script_generation' | 'script_repair'
 }): string {
   const facts = getConfirmedFormalFacts(input.outline)
+  const factSpecificRules = buildFactSpecificPromptRules(input.outline)
   if (facts.length === 0) {
     return '【正式事实约束】\n- 当前没有已确认正式事实，禁止你自行发明新的核心真相。'
   }
@@ -94,6 +109,7 @@ export function buildFormalFactPromptBlock(input: {
     stageRule,
     '- 只能围绕这些已确认正式事实写场景，不得偷换名称、偷换本体、偷补新真相。',
     '- 优先把正式事实写进可拍动作、可复述对白和能推动关系变化的情绪节点。',
+    ...factSpecificRules,
     `- 事实清单：\n${formatFactDescriptions(input.outline)}`
   ].join('\n')
 }

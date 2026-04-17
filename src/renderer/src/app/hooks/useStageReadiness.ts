@@ -4,7 +4,9 @@ import type { WorkflowStage } from '../../../../shared/contracts/workflow'
 import { useWorkflowStore } from '../store/useWorkflowStore'
 import { useStageStore } from '../../store/useStageStore'
 
-export function useStageReadiness(targetStage: Exclude<WorkflowStage, 'chat'>): InputContractValidationDto | null {
+export function useStageReadiness(
+  targetStage: Exclude<WorkflowStage, 'chat' | 'seven_questions'>
+): InputContractValidationDto | null {
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)

@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion'
-import { ChevronRight, Sparkles, Users, FileText, PenTool, Zap, MessageCircle } from 'lucide-react'
+import { ChevronRight, Sparkles, Users, FileText, PenTool, Zap, MessageCircle, GitBranch } from 'lucide-react'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow'
 import { switchStageSession } from '../services/stage-session-service'
 import { useWorkflowStore } from '../store/useWorkflowStore'
-import { useStageStore } from '../../store/useStageStore'
 
 const STAGES = [
   { id: 'chat', label: '灵感对话', icon: MessageCircle, desc: '先把故事说清楚' },
+  { id: 'seven_questions', label: '七问篇章', icon: GitBranch, desc: '先确认篇章骨架' },
   { id: 'outline', label: '粗略大纲', icon: Sparkles, desc: '先把十集骨架立住' },
   { id: 'character', label: '人物小传', icon: Users, desc: '把角色发动机写实' },
   { id: 'detailed_outline', label: '详细大纲', icon: FileText, desc: '把推进和钩子排顺' },
@@ -17,8 +17,6 @@ export function AppSidebar() {
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)
-  const outline = useStageStore((s) => s.outline)
-  const characters = useStageStore((s) => s.characters)
 
   async function handleStageChange(targetStage: WorkflowStage): Promise<void> {
     clearGenerationNotice()
@@ -57,17 +55,8 @@ export function AppSidebar() {
             const isActive = currentStage === stage.id
             const Icon = stage.icon
             const lockedByProject = !projectId && stage.id !== 'chat'
-            const lockedByUpstream =
-              Boolean(projectId) &&
-              stage.id !== 'chat' &&
-              !outline.title.trim() &&
-              characters.length === 0
-            const isLocked = lockedByProject || lockedByUpstream
-            const lockHint = lockedByProject
-              ? '先在首页选择一个项目'
-              : lockedByUpstream
-                ? '先去聊天页生成第一版粗纲和人物'
-                : ''
+            const isLocked = lockedByProject
+            const lockHint = lockedByProject ? '先在首页选择一个项目' : ''
 
             return (
               <motion.button
