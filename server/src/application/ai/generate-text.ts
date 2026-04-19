@@ -14,7 +14,8 @@ type LaneName = 'deepseek' | 'openrouterGeminiFlashLite' | 'openrouterQwenFree'
 async function invokeDeepSeek(
   request: AiGenerateRequestDto,
   laneConfig: ProviderFamilyConfig,
-  systemInstruction?: string
+  systemInstruction?: string,
+  parentSignal?: AbortSignal
 ): Promise<AiGenerateResponseDto> {
   const startedAt = Date.now()
 
@@ -29,6 +30,7 @@ async function invokeDeepSeek(
     ...(request.responseFormat === 'json_object' ? { response_format: { type: 'json_object' } } : {})
   }
 
+  const timeoutSignal = AbortSignal.timeout(request.timeoutMs ?? laneConfig.timeoutMs)
   const res = await fetch(`${laneConfig.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -36,7 +38,7 @@ async function invokeDeepSeek(
       'Authorization': `Bearer ${laneConfig.apiKey}`
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(laneConfig.timeoutMs)
+    signal: parentSignal ? AbortSignal.any([timeoutSignal, parentSignal]) : timeoutSignal
   })
 
   if (!res.ok) {
@@ -64,7 +66,8 @@ async function invokeDeepSeek(
 async function invokeOpenRouter(
   request: AiGenerateRequestDto,
   laneConfig: ProviderFamilyConfig,
-  systemInstruction?: string
+  systemInstruction?: string,
+  parentSignal?: AbortSignal
 ): Promise<AiGenerateResponseDto> {
   const startedAt = Date.now()
 
@@ -78,6 +81,7 @@ async function invokeOpenRouter(
     max_tokens: request.maxOutputTokens ?? 2000
   }
 
+  const timeoutSignal = AbortSignal.timeout(request.timeoutMs ?? laneConfig.timeoutMs)
   const res = await fetch(`${laneConfig.baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -87,7 +91,7 @@ async function invokeOpenRouter(
       'X-Title': 'Xinjuben'
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(laneConfig.timeoutMs)
+    signal: parentSignal ? AbortSignal.any([timeoutSignal, parentSignal]) : timeoutSignal
   })
 
   if (!res.ok) {
@@ -172,7 +176,8 @@ function getLaneConfig(lane: LaneName, config: RuntimeProviderConfig): ProviderF
  */
 export async function generateTextWithRouter(
   request: AiGenerateRequestDto,
-  config: RuntimeProviderConfig
+  config: RuntimeProviderConfig,
+  options?: { signal?: AbortSignal }
 ): Promise<AiGenerateResponseDto> {
   const laneOrder = decideLaneOrder(request, config)
 
@@ -190,8 +195,8 @@ export async function generateTextWithRouter(
     try {
       const result =
         lane === 'deepseek'
-          ? await invokeDeepSeek(request, laneConfig, systemInstruction)
-          : await invokeOpenRouter(request, laneConfig, systemInstruction)
+          ? await invokeDeepSeek(request, laneConfig, systemInstruction, options?.signal)
+          : await invokeOpenRouter(request, laneConfig, systemInstruction, options?.signal)
 
       return {
         ...result,
@@ -209,4 +214,12 @@ export async function generateTextWithRouter(
   }
 
   throw lastError instanceof Error ? lastError : new Error('ai_generation_failed')
+}
+
+export async function generateTextWithRuntimeRouter(
+  request: AiGenerateRequestDto,
+  config: RuntimeProviderConfig,
+  options?: { signal?: AbortSignal }
+): Promise<AiGenerateResponseDto> {
+  return generateTextWithRouter(request, config, options)
 }

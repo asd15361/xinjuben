@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
 import { StageExportButton } from '../../../components/StageExportButton'
@@ -7,7 +6,6 @@ import { useProjectStageExport } from '../../../app/hooks/useProjectStageExport'
 import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
-import type { ProjectEntityStoreDto } from '../../../../../shared/contracts/entities.ts'
 import { ensureOutlineEpisodeShape } from '../../../../../shared/domain/workflow/outline-episodes'
 import { declareFormalFact, confirmFormalFact, removeFormalFact } from '../api.ts'
 import { OutlineBasicsPanel } from './OutlineBasicsPanel'
@@ -22,34 +20,15 @@ export function OutlineStage() {
   const {
     actionLabel,
     generationStatus,
+    generationBusy,
     handleGenerateOutlineAndCharacters
   } = useOutlineCharacterGeneration('outline')
-  const [entityStore, setEntityStore] = useState<ProjectEntityStoreDto | null>(null)
+  const entityStore = useWorkflowStore((state) => state.projectEntityStore)
   const episodeCount = ensureOutlineEpisodeShape(outline).summaryEpisodes.filter((episode) =>
     episode.summary.trim()
   ).length
 
-  useEffect(() => {
-    let cancelled = false
 
-    async function loadEntityStore(): Promise<void> {
-      if (!projectId) {
-        setEntityStore(null)
-        return
-      }
-
-      const project = await window.api.workspace.getProject(projectId)
-      if (!cancelled) {
-        setEntityStore(project?.entityStore ?? null)
-      }
-    }
-
-    void loadEntityStore()
-
-    return () => {
-      cancelled = true
-    }
-  }, [projectId])
 
   async function handleGoToCharacterStage(): Promise<void> {
     if (!projectId) return
@@ -118,7 +97,7 @@ export function OutlineStage() {
               onClick={() => {
                 void handleGenerateOutlineAndCharacters()
               }}
-              disabled={Boolean(generationStatus)}
+              disabled={generationBusy}
               className="rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-2.5 text-xs font-black text-orange-300 transition-colors hover:bg-orange-500/15 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {actionLabel}

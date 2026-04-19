@@ -714,7 +714,7 @@ export class ScriptOrchestrator {
   }
 
   /**
-   * Persist state using both persistState and atomicSaveGenerationState.
+   * Persist state using atomicSaveGenerationState (single-writer rule).
    *
    * ERROR HANDLING RULE: Persistence failures are NOT silently swallowed.
    * If persistence fails, we still return a valid result to the caller,
@@ -781,26 +781,9 @@ export class ScriptOrchestrator {
       return { persistenceFailed: true, persistenceError: errorMessage }
     }
 
-    // Also call persistState callback if provided - errors here are less critical
-    // since atomicSave already succeeded, but we still log them
-    if (this._options.persistState) {
-      try {
-        await this._options.persistState({
-          board: this._currentBoard,
-          failure: failureResolution,
-          ledger: ledger || null,
-          failureHistory: updatedHistory
-        })
-      } catch (callbackError) {
-        // Log but don't fail - the main persistence already succeeded
-        // eslint-disable-next-line no-console
-        console.error(
-          `[Orchestrator] persistState callback failed: ${
-            callbackError instanceof Error ? callbackError.message : String(callbackError)
-          }`
-        )
-      }
-    }
+    // persistState callback REMOVED — single-writer rule enforced.
+    // atomicSaveGenerationState is the sole persistence path.
+    // Dual-save caused memory/disk desync; see P1 fix.
 
     return { persistenceFailed: false }
   }

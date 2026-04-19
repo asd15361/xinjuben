@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ProjectSummaryDto } from '../../../../../shared/contracts/project'
 import { openProjectSession } from '../../../app/services/stage-session-service'
+import { apiCreateProject, apiDeleteProject, apiListProjects } from '../../../services/api-client'
 
 export function formatProjectTime(iso: string): string {
   try {
@@ -20,7 +21,7 @@ export function useHomePageActions() {
   )
 
   async function reload(): Promise<void> {
-    const list = await window.api.workspace.listProjects()
+    const list = await apiListProjects()
     setProjects(list.projects)
   }
 
@@ -30,7 +31,7 @@ export function useHomePageActions() {
     if (!ok) return
     setBusy(true)
     try {
-      await window.api.workspace.deleteProject({ projectId })
+      await apiDeleteProject(projectId)
       await reload()
       setStatus(`已删除项目「${name}」。`)
     } finally {
@@ -61,7 +62,7 @@ export function useHomePageActions() {
     if (!canCreate) return
     setBusy(true)
     try {
-      await window.api.workspace.createProject({
+      await apiCreateProject({
         name: projectName.trim(),
         workflowType: 'ai_write'
       })

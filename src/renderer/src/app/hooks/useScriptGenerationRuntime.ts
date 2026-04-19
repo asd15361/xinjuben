@@ -13,6 +13,12 @@ function shouldReusePersistedBoard(
 ): board is ScriptGenerationProgressBoardDto {
   if (!board) return false
 
+  // CRITICAL: Only reuse board if status is recoverable (running/paused)
+  // Never reuse failed or completed boards — they must be discarded
+  if (board.batchContext.status !== 'running' && board.batchContext.status !== 'paused') {
+    return false
+  }
+
   const expectedBatchSize = Math.min(plan.runtimeProfile.recommendedBatchSize, plan.targetEpisodes)
   return (
     board.batchContext.stageContractFingerprint === stageContractFingerprint &&

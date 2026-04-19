@@ -1,3 +1,20 @@
+import type {
+  CreateProjectInputDto,
+  ProjectSnapshotDto,
+  ProjectSummaryDto
+} from '../../../shared/contracts/project'
+import type {
+  SaveChatMessagesInputDto,
+  SaveCharacterDraftsInputDto,
+  SaveConfirmedSevenQuestionsInputDto,
+  SaveDetailedOutlineSegmentsInputDto,
+  SaveOutlineDraftInputDto,
+  SaveScriptDraftInputDto,
+  SaveScriptRuntimeStateInputDto,
+  SaveStoryIntentInputDto
+} from '../../../shared/contracts/workspace'
+import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '../../../shared/contracts/workflow'
+
 /**
  * src/renderer/src/services/api-client.ts
  * HTTP API 客户端封装 - 前后端分离改造第一步
@@ -62,7 +79,7 @@ export class ApiError extends Error {
 async function apiRequest<T>(
   path: string,
   options: {
-    method?: 'GET' | 'POST'
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     body?: unknown
     requireAuth?: boolean
   } = {}
@@ -182,6 +199,107 @@ export async function apiGetCreditsBalance(): Promise<CreditsBalance> {
   return apiRequest<CreditsBalance>('/api/credits/balance')
 }
 
+// ========== 项目接口 ==========
+
+export async function apiListProjects(): Promise<{ projects: ProjectSummaryDto[] }> {
+  return apiRequest('/api/projects')
+}
+
+export async function apiCreateProject(
+  input: CreateProjectInputDto
+): Promise<{ project: ProjectSnapshotDto }> {
+  return apiRequest('/api/projects', {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiGetProject(
+  projectId: string
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${projectId}`)
+}
+
+export async function apiDeleteProject(
+  projectId: string
+): Promise<{ ok: boolean }> {
+  return apiRequest(`/api/projects/${projectId}`, {
+    method: 'DELETE'
+  })
+}
+
+export async function apiSaveStoryIntent(
+  input: SaveStoryIntentInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/story-intent`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveChatMessages(
+  input: SaveChatMessagesInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/chat-messages`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveOutlineDraft(
+  input: SaveOutlineDraftInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/outline`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveCharacterDrafts(
+  input: SaveCharacterDraftsInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/characters`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveConfirmedSevenQuestions(
+  input: SaveConfirmedSevenQuestionsInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/seven-questions/confirm`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveDetailedOutlineSegments(
+  input: SaveDetailedOutlineSegmentsInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/detailed-outline`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveScriptDraft(
+  input: SaveScriptDraftInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/script`, {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiSaveScriptRuntimeState(
+  input: SaveScriptRuntimeStateInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/runtime-state`, {
+    method: 'POST',
+    body: input
+  })
+}
+
 // ========== 生成接口 ==========
 
 export interface StoryIntent {
@@ -264,49 +382,9 @@ export async function apiGenerateText(input: {
 
 export interface OutlineAndCharactersResponse {
   success: boolean
-  outlineDraft: {
-    title: string
-    genre: string
-    theme: string
-    protagonist: string
-    mainConflict: string
-    summary: string
-    summaryEpisodes: Array<{ episodeNo: number; summary: string }>
-    outlineBlocks?: Array<{
-      blockNo: number
-      label: string
-      startEpisode: number
-      endEpisode: number
-      summary: string
-      episodes: Array<{ episodeNo: number; summary: string }>
-      sectionTitle?: string
-      sevenQuestions?: SevenQuestionsDto
-    }>
-    facts: Array<{
-      id: string
-      label: string
-      description: string
-    }>
-  }
-  characterDrafts: Array<{
-    name: string
-    biography: string
-    goal: string
-    advantage: string
-    weakness: string
-    arc: string
-    publicMask: string
-    hiddenPressure: string
-    fear: string
-    protectTarget: string
-    conflictTrigger: string
-    appearance?: string
-    personality?: string
-    identity?: string
-    values?: string
-    plotFunction?: string
-    depthLevel?: 'core' | 'mid' | 'extra'
-  }>
+  project: ProjectSnapshotDto
+  outlineDraft: OutlineDraftDto
+  characterDrafts: CharacterDraftDto[]
   creditsRemaining: number
 }
 
@@ -326,11 +404,125 @@ export interface SevenQuestionsDto {
  * 需要 3 积分（比七问贵）
  */
 export async function apiGenerateOutlineAndCharacters(input: {
-  storyIntent: StoryIntent
-  sevenQuestions: SevenQuestionsResult
-  totalEpisodes?: number
+  projectId: string
 }): Promise<OutlineAndCharactersResponse> {
   return apiRequest<OutlineAndCharactersResponse>('/api/generate/outline-and-characters', {
+    method: 'POST',
+    body: input
+  })
+}
+
+// ========== 详细大纲生成接口 ==========
+
+export interface DetailedOutlineResponse {
+  success: boolean
+  project: ProjectSnapshotDto
+  detailedOutlineSegments: DetailedOutlineSegmentDto[]
+  creditsRemaining: number
+}
+
+/**
+ * 生成详细大纲
+ *
+ * 需要 5 积分（比粗纲贵）
+ */
+export async function apiGenerateDetailedOutline(input: {
+  projectId: string
+}): Promise<DetailedOutlineResponse> {
+  return apiRequest<DetailedOutlineResponse>('/api/generate/detailed-outline', {
+    method: 'POST',
+    body: input
+  })
+}
+
+// ========== 剧本生成接口 ==========
+
+export interface ScriptGenerationStartResponse {
+  success: boolean
+  taskId: string
+  board: unknown
+  status: 'running' | 'paused' | 'stopped' | 'completed' | 'failed'
+  message: string
+}
+
+export interface ScriptGenerationStatusResponse {
+  projectId: string
+  userId: string
+  status: 'running' | 'paused' | 'stopped' | 'completed' | 'failed'
+  totalEpisodes: number
+  completedEpisodes: number
+  startedAt: string
+  board: unknown
+  progress: string
+}
+
+/**
+ * 启动剧本生成
+ */
+export async function apiStartScriptGeneration(input: {
+  projectId: string
+  targetEpisodes?: number
+  mode?: 'fresh_start' | 'resume'
+}): Promise<ScriptGenerationStartResponse> {
+  return apiRequest<ScriptGenerationStartResponse>('/api/script-generation/start', {
+    method: 'POST',
+    body: input
+  })
+}
+
+/**
+ * 查询剧本生成状态（轮询用）
+ */
+export async function apiGetScriptGenerationStatus(
+  projectId: string
+): Promise<ScriptGenerationStatusResponse> {
+  return apiRequest<ScriptGenerationStatusResponse>(`/api/script-generation/status/${projectId}`)
+}
+
+/**
+ * 暂停剧本生成
+ */
+export async function apiPauseScriptGeneration(
+  projectId: string
+): Promise<{ success: boolean; status: string; message: string }> {
+  return apiRequest('/api/script-generation/pause', {
+    method: 'POST',
+    body: { projectId }
+  })
+}
+
+/**
+ * 恢复剧本生成
+ */
+export async function apiResumeScriptGeneration(
+  projectId: string
+): Promise<ScriptGenerationStartResponse> {
+  return apiRequest<ScriptGenerationStartResponse>('/api/script-generation/resume', {
+    method: 'POST',
+    body: { projectId }
+  })
+}
+
+/**
+ * 停止剧本生成
+ */
+export async function apiStopScriptGeneration(
+  projectId: string
+): Promise<{ success: boolean; status: string; message: string }> {
+  return apiRequest('/api/script-generation/stop', {
+    method: 'POST',
+    body: { projectId }
+  })
+}
+
+/**
+ * 单集重写
+ */
+export async function apiRewriteScriptEpisode(input: {
+  projectId: string
+  episodeNo: number
+}): Promise<{ success: boolean; message: string; projectId: string; episodeNo: number }> {
+  return apiRequest('/api/script-generation/rewrite', {
     method: 'POST',
     body: input
   })

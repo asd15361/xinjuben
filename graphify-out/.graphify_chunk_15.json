@@ -1,0 +1,420 @@
+{
+  "nodes": [
+    {
+      "id": "人物活性专项",
+      "type": "concept",
+      "label": "人物活性专项",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/人物活性专项样本台账（第一版）.md",
+      "rationale": "专项样本计划用于验证人物活性质量维度，包含去掉目的直说、去掉试探自报、亮底问题改留口问题、解释挪到动作后面等改善点"
+    },
+    {
+      "id": "人物活性样本台账",
+      "type": "entity",
+      "label": "人物活性样本台账",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/人物活性专项样本台账（第一版）.md",
+      "rationale": "记录人物活性专项样本的正式台账，用于追踪稳定通过链并并入总样本链"
+    },
+    {
+      "id": "人物活性稳定通过",
+      "type": "concept",
+      "label": "人物活性稳定通过",
+      "confidence": 0.85,
+      "source": "docs/归档/历史计划/completed/人物活性专项样本台账（第一版）.md",
+      "rationale": "人物活性专项已有连续六轮同方向成立的稳定通过链，可独立成立"
+    },
+    {
+      "id": "仓库盘点",
+      "type": "concept",
+      "label": "仓库盘点",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/仓库全面盘点与清理计划（第一版）.md",
+      "rationale": "判断学习成果是否真正落地到仓库结构、文档、测试产物和执行口径"
+    },
+    {
+      "id": "仓库卫生债",
+      "type": "concept",
+      "label": "仓库卫生债",
+      "confidence": 0.9,
+      "source": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md",
+      "rationale": "仓库缺少持续执行的存储纪律和收口纪律，运行产物回流进主结构"
+    },
+    {
+      "id": "测试产物债",
+      "type": "entity",
+      "label": "测试产物债",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md",
+      "rationale": "tools/e2e/out目录下已有245个目录约2176MB，测试产物堆积污染仓库视角"
+    },
+    {
+      "id": "文档债",
+      "type": "entity",
+      "label": "文档债",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md",
+      "rationale": "docs/plans已有190份文件，计划判断结果学习报告蓝图混杂，worklog达1569行"
+    },
+    {
+      "id": "代码结构债",
+      "type": "entity",
+      "label": "代码结构债",
+      "confidence": 0.9,
+      "source": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md",
+      "rationale": "src/main/application/workspace/出现大文件回流，summarize-chat-for-generation-support.ts达931行"
+    },
+    {
+      "id": "优秀剧本验收标准",
+      "type": "concept",
+      "label": "优秀剧本验收标准",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/优秀稳定剧本验收标准（第一版）.md",
+      "rationale": "项目必须能稳定写出能看能演能续能撑住人物和推进的剧本，且更会卖更会续命更快兑现情绪"
+    },
+    {
+      "id": "六维质量标准",
+      "type": "concept",
+      "label": "六维质量标准",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/优秀稳定剧本验收标准（第一版）.md",
+      "rationale": "六个质量维度：正式事实稳、推进成立、人物认账、连续性能接、张力能压住、表达能直接用"
+    },
+    {
+      "id": "爆款写法维度",
+      "type": "concept",
+      "label": "爆款写法维度",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/优秀稳定剧本验收标准（第一版）.md",
+      "rationale": "四个新增维度：设定成交力、错位带戏力、续命能力、情绪兑现速度"
+    },
+    {
+      "id": "稳定产出验收",
+      "type": "concept",
+      "label": "稳定产出验收",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/优秀剧本稳定产出最终验收计划（第一版）.md",
+      "rationale": "验证创作主路能否稳定产出优秀内容，三环都稳都好时间可接受主路正确"
+    },
+    {
+      "id": "三环验收",
+      "type": "concept",
+      "label": "三环验收",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/优秀剧本稳定产出最终验收计划（第一版）.md",
+      "rationale": "三环：粗略大纲+人物小传、详细大纲、剧本生成，每环必须单独站住"
+    },
+    {
+      "id": "A+B喂法公式",
+      "type": "concept",
+      "label": "A+B喂法公式",
+      "confidence": 0.85,
+      "source": "docs/归档/历史计划/completed/优秀剧本稳定产出最终验收计划（第一版）.md",
+      "rationale": "A是固定提示骨架，B是前情提要+当前要写的大纲，不允许偷偷多塞上下文"
+    },
+    {
+      "id": "验收缺口",
+      "type": "concept",
+      "label": "验收缺口",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/优秀稳定剧本验收缺口与收口计划（第一版）.md",
+      "rationale": "三层缺口：质量验收链没完全封顶、样本证明链没完全封顶、仓库执行纪律拖后腿"
+    },
+    {
+      "id": "六维过线阈值",
+      "type": "concept",
+      "label": "六维过线阈值",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/六维统一过线阈值（第一版）.md",
+      "rationale": "统一口径：六维里只要有1维明显塌掉就不能叫优秀剧本，分不过线勉强过线稳定过线三档"
+    },
+    {
+      "id": "创作主路优化",
+      "type": "concept",
+      "label": "创作主路优化",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md",
+      "rationale": "只做优化不做限制，提示词优先硬编码靠后，做优秀剧本软件不做只会拦错的软件"
+    },
+    {
+      "id": "正式事实层",
+      "type": "concept",
+      "label": "正式事实层",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md",
+      "rationale": "只有用户明确给出的名字关系设定核心需求才能进入正式事实层，才有资格进入主链"
+    },
+    {
+      "id": "AI推测层",
+      "type": "concept",
+      "label": "AI推测层",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md",
+      "rationale": "AI的总结猜测补全临时理解只能留在参考层，不能自动升格成正式事实"
+    },
+    {
+      "id": "工序边界",
+      "type": "concept",
+      "label": "工序边界",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md",
+      "rationale": "粗纲负责主线推进每集事件人物清单，人物小传负责前史动机关系短板，详细大纲负责冲突展开情感渐变"
+    },
+    {
+      "id": "接力棒设计",
+      "type": "concept",
+      "label": "接力棒设计",
+      "confidence": 0.85,
+      "source": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md",
+      "rationale": "长剧接力棒必须带全局真相卡人物发动机卡当前批次任务卡当前单集任务卡欠账卡"
+    },
+    {
+      "id": "主链结构验收",
+      "type": "concept",
+      "label": "主链结构验收",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md",
+      "rationale": "验证10集规划单位10集详纲单位5集剧本写作单位逐集细纲真源四个关键点"
+    },
+    {
+      "id": "10集规划单位",
+      "type": "entity",
+      "label": "10集规划单位",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md",
+      "rationale": "粗略大纲按全季方向再按10集一个块组织，解决100集时整季一次性出粗纲会失真的问题"
+    },
+    {
+      "id": "10集详纲单位",
+      "type": "entity",
+      "label": "10集详纲单位",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md",
+      "rationale": "详细大纲跟随粗纲块走，不再死锁成全季固定四大段"
+    },
+    {
+      "id": "5集剧本写作单位",
+      "type": "entity",
+      "label": "5集剧本写作单位",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md",
+      "rationale": "剧本写作单位明确收成5集，批次共享同一份上层前情和压力线"
+    },
+    {
+      "id": "逐集细纲真源",
+      "type": "entity",
+      "label": "逐集细纲真源",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md",
+      "rationale": "剧本当前集的依据朝逐集细纲真源收口，主链上基本成立"
+    },
+    {
+      "id": "分档测试恢复",
+      "type": "concept",
+      "label": "分档测试恢复",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链测试恢复与质量验收计划（第一版）.md",
+      "rationale": "从10集开始恢复放量测试，逐档验收10到20到30到40到50到60，每档必须稳定通过才能进下一档"
+    },
+    {
+      "id": "全面质量盘点",
+      "type": "concept",
+      "label": "全面质量盘点",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/全面质量与学习吸收盘点计划（第一版）.md",
+      "rationale": "看当前生产质量是否稳定交付、学到的东西有没有真正落地、项目结构和维护性好不好"
+    }
+  ],
+  "edges": [
+    {
+      "source": "人物活性专项",
+      "target": "人物活性样本台账",
+      "relation": "produces",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/人物活性专项样本台账（第一版）.md"
+    },
+    {
+      "source": "人物活性样本台账",
+      "target": "人物活性稳定通过",
+      "relation": "tracks",
+      "confidence": 0.85,
+      "source_file": "docs/归档/历史计划/completed/人物活性专项样本台账（第一版）.md"
+    },
+    {
+      "source": "人物活性稳定通过",
+      "target": "六维质量标准",
+      "relation": "validates_dimension",
+      "confidence": 0.7,
+      "source_file": "docs/归档/历史计划/completed/人物活性专项样本计划（第一版）.md"
+    },
+    {
+      "source": "仓库盘点",
+      "target": "仓库卫生债",
+      "relation": "identifies",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/仓库全面盘点与清理计划（第一版）.md"
+    },
+    {
+      "source": "仓库卫生债",
+      "target": "测试产物债",
+      "relation": "includes",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md"
+    },
+    {
+      "source": "仓库卫生债",
+      "target": "文档债",
+      "relation": "includes",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md"
+    },
+    {
+      "source": "仓库卫生债",
+      "target": "代码结构债",
+      "relation": "includes",
+      "confidence": 0.9,
+      "source_file": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md"
+    },
+    {
+      "source": "优秀剧本验收标准",
+      "target": "六维质量标准",
+      "relation": "defines",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/优秀稳定剧本验收标准（第一版）.md"
+    },
+    {
+      "source": "优秀剧本验收标准",
+      "target": "爆款写法维度",
+      "relation": "extends",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/优秀稳定剧本验收标准（第一版）.md"
+    },
+    {
+      "source": "稳定产出验收",
+      "target": "三环验收",
+      "relation": "composes",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/优秀剧本稳定产出最终验收计划（第一版）.md"
+    },
+    {
+      "source": "三环验收",
+      "target": "A+B喂法公式",
+      "relation": "uses",
+      "confidence": 0.85,
+      "source_file": "docs/归档/历史计划/completed/优秀剧本稳定产出最终验收计划（第一版）.md"
+    },
+    {
+      "source": "验收缺口",
+      "target": "六维过线阈值",
+      "relation": "requires",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/优秀稳定剧本验收缺口与收口计划（第一版）.md"
+    },
+    {
+      "source": "创作主路优化",
+      "target": "正式事实层",
+      "relation": "separates_from",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md"
+    },
+    {
+      "source": "创作主路优化",
+      "target": "AI推测层",
+      "relation": "separates_from",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md"
+    },
+    {
+      "source": "创作主路优化",
+      "target": "工序边界",
+      "relation": "defines",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md"
+    },
+    {
+      "source": "创作主路优化",
+      "target": "接力棒设计",
+      "relation": "implements",
+      "confidence": 0.85,
+      "source_file": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md"
+    },
+    {
+      "source": "主链结构验收",
+      "target": "10集规划单位",
+      "relation": "verifies",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md"
+    },
+    {
+      "source": "主链结构验收",
+      "target": "10集详纲单位",
+      "relation": "verifies",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md"
+    },
+    {
+      "source": "主链结构验收",
+      "target": "5集剧本写作单位",
+      "relation": "verifies",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md"
+    },
+    {
+      "source": "主链结构验收",
+      "target": "逐集细纲真源",
+      "relation": "verifies",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md"
+    },
+    {
+      "source": "主链结构验收",
+      "target": "分档测试恢复",
+      "relation": "enables",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/创作主链测试恢复与质量验收计划（第一版）.md"
+    },
+    {
+      "source": "六维过线阈值",
+      "target": "六维质量标准",
+      "relation": "refines",
+      "confidence": 1.0,
+      "source_file": "docs/归档/历史计划/completed/六维统一过线阈值（第一版）.md"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "he_quality_commitment_chain",
+      "nodes": ["优秀剧本验收标准", "六维质量标准", "六维过线阈值", "稳定产出验收", "三环验收"],
+      "relation": "quality_commitment_chain",
+      "confidence": 0.85,
+      "source": "docs/归档/历史计划/completed/优秀稳定剧本验收标准（第一版）.md",
+      "rationale": "验收标准定义六维，六维过线阈值细化判断标准，稳定产出验收通过三环验收实现"
+    },
+    {
+      "id": "he_main_chain_structure",
+      "nodes": ["主链结构验收", "10集规划单位", "10集详纲单位", "5集剧本写作单位", "逐集细纲真源"],
+      "relation": "main_chain_structure",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主链结构验收记录（2026-03-20）.md",
+      "rationale": "主链结构由四个关键单位组成，均已成立并通过验收"
+    },
+    {
+      "id": "he_repository_debt_types",
+      "nodes": ["仓库卫生债", "测试产物债", "文档债", "代码结构债"],
+      "relation": "repository_debt_types",
+      "confidence": 0.9,
+      "source": "docs/归档/历史计划/completed/仓库全面盘点结论（第一版）.md",
+      "rationale": "仓库卫生债包含三种类型：测试产物债最重、文档债第二重、代码结构债第三重"
+    },
+    {
+      "id": "he_process_boundary_definition",
+      "nodes": ["工序边界", "正式事实层", "AI推测层", "创作主路优化"],
+      "relation": "process_boundary_definition",
+      "confidence": 1.0,
+      "source": "docs/归档/历史计划/completed/创作主路正向优化与边界重建计划（第一版）.md",
+      "rationale": "工序边界由正式事实层和AI推测层的分离来保障，创作主路优化负责定义和执行边界"
+    }
+  ],
+  "input_tokens": 18000,
+  "output_tokens": 8500
+}

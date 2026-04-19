@@ -20,6 +20,11 @@ export { PB_URL }
 let adminAuthExpiry = 0
 export let cachedAdminToken = ''
 
+const ADMIN_AUTH_ENDPOINTS = [
+  '/api/admins/auth-with-password',
+  '/api/collections/_superusers/auth-with-password'
+] as const
+
 /**
  * 服务端管理员认证（使用 HTTP API）
  */
@@ -35,21 +40,34 @@ export async function authenticateAdmin(): Promise<void> {
   console.log('[PocketBase] Authenticating admin:', ADMIN_EMAIL)
 
   try {
-    const res = await fetch(`${PB_URL}/api/admins/auth-with-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identity: ADMIN_EMAIL, password: ADMIN_PASSWORD })
-    })
+    let data: { token: string } | null = null
+    let lastErrorText = ''
 
-    console.log('[PocketBase] Auth response status:', res.status)
+    for (const endpoint of ADMIN_AUTH_ENDPOINTS) {
+      const res = await fetch(`${PB_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identity: ADMIN_EMAIL, password: ADMIN_PASSWORD })
+      })
 
-    if (!res.ok) {
-      const errText = await res.text()
-      console.error('[PocketBase] Auth failed:', errText)
-      throw new Error('Admin auth failed')
+      console.log('[PocketBase] Auth endpoint/status:', endpoint, res.status)
+
+      if (res.ok) {
+        data = await res.json()
+        break
+      }
+
+      lastErrorText = await res.text()
+      if (res.status !== 404) {
+        console.error('[PocketBase] Auth failed:', lastErrorText)
+        throw new Error('Admin auth failed')
+      }
     }
 
-    const data = await res.json()
+    if (!data?.token) {
+      console.error('[PocketBase] Auth failed:', lastErrorText)
+      throw new Error('Admin auth failed')
+    }
     cachedAdminToken = data.token
     adminAuthExpiry = now + 60 * 60 * 1000
 

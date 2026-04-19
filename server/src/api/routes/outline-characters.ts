@@ -10,7 +10,7 @@ import { Router, Request, Response } from 'express'
 import { authMiddleware } from '../middleware/auth'
 import { CreditService } from '../../services/credit-service'
 import { hasValidApiKey, loadRuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import { generateOutlineAndCharactersSimple } from '../../application/workspace/outline-characters-service'
+import { generateOutlineAndCharactersForProject } from '../../application/workspace/outline-characters-service'
 
 export const outlineCharactersRouter = Router()
 
@@ -47,6 +47,7 @@ async function deductCreditsMiddleware(req: Request, res: Response, next: Functi
 // 执行扣费
 async function executeDeduction(req: Request, success: boolean, metadata: {
   task: string
+  projectId: string
   lane: string
   model: string
   durationMs: number
@@ -60,7 +61,7 @@ async function executeDeduction(req: Request, success: boolean, metadata: {
   if (success) {
     await creditService.deductCredits(userId, amount, {
       task: metadata.task,
-      projectId: '',
+      projectId: metadata.projectId,
       lane: metadata.lane,
       model: metadata.model,
       durationMs: metadata.durationMs
@@ -74,7 +75,7 @@ async function executeDeduction(req: Request, success: boolean, metadata: {
 /**
  * POST /api/generate/outline-and-characters
  *
- * Body: { storyIntent, sevenQuestions, totalEpisodes }
+ * Body: { projectId }
  */
 outlineCharactersRouter.post(
   '/outline-and-characters',
@@ -89,20 +90,12 @@ outlineCharactersRouter.post(
       return
     }
 
-    const { storyIntent, sevenQuestions, totalEpisodes } = req.body
+    const { projectId } = req.body
 
-    if (!storyIntent) {
+    if (!projectId || typeof projectId !== 'string') {
       res.status(400).json({
-        error: 'missing_story_intent',
-        message: '请提供故事意图'
-      })
-      return
-    }
-
-    if (!sevenQuestions) {
-      res.status(400).json({
-        error: 'missing_seven_questions',
-        message: '请提供已确认的七问'
+        error: 'missing_project_id',
+        message: '请提供项目 ID'
       })
       return
     }
@@ -110,14 +103,14 @@ outlineCharactersRouter.post(
     const startedAt = Date.now()
 
     try {
-      const result = await generateOutlineAndCharactersSimple({
-        storyIntent,
-        sevenQuestions,
-        totalEpisodes: totalEpisodes || 10
+      const result = await generateOutlineAndCharactersForProject({
+        userId: req.user!.id,
+        projectId
       })
 
       await executeDeduction(req, true, {
         task: 'outline_and_characters',
+        projectId,
         lane: 'deepseek',
         model: 'deepseek-chat',
         durationMs: Date.now() - startedAt
@@ -127,8 +120,9 @@ outlineCharactersRouter.post(
 
       res.json({
         success: true,
-        outlineDraft: result.outlineDraft,
-        characterDrafts: result.characterDrafts,
+        project: result.project,
+        outlineDraft: result.project.outlineDraft,
+        characterDrafts: result.project.characterDrafts,
         creditsRemaining: newBalance.balance
       })
     } catch (error) {
@@ -137,6 +131,7 @@ outlineCharactersRouter.post(
 
       await executeDeduction(req, false, {
         task: 'outline_and_characters',
+        projectId,
         lane: 'deepseek',
         model: 'deepseek-chat',
         durationMs,

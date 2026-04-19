@@ -213,9 +213,19 @@ export function isDetailedOutlineActResultComplete(input: {
 }
 
 export function isDetailedOutlineModelResultComplete(
-  segments: DetailedOutlineSegmentDto[]
+  segments: DetailedOutlineSegmentDto[],
+  expectedTotalEpisodes?: number
 ): boolean {
   if (!Array.isArray(segments) || segments.length !== 4) return false
+
+  // FAIL-CLOSED: Check total episode coverage if expected count provided
+  if (expectedTotalEpisodes !== undefined) {
+    const totalEpisodeBeats = segments.reduce(
+      (sum, seg) => sum + (seg.episodeBeats?.length ?? 0),
+      0
+    )
+    if (totalEpisodeBeats < expectedTotalEpisodes) return false
+  }
 
   return segments.every((segment) => {
     if (!normalizeWhitespace(segment.content)) return false
@@ -397,7 +407,8 @@ export async function generateDetailedOutlineFromContext(input: {
     deps.decorateSegmentWithEpisodeControlCards ?? generateEpisodeControlCardsForSegment
 
   try {
-    const actRanges = buildFourActEpisodeRanges(deriveOutlineEpisodeCount(normalizedOutline))
+    const totalEpisodes = deriveOutlineEpisodeCount(normalizedOutline)
+    const actRanges = buildFourActEpisodeRanges(totalEpisodes)
     const actEpisodeBeats: Array<DetailedOutlineEpisodeBeatDto[]> = [[], [], [], []]
     const actSummaries: string[] = ['', '', '', '']
 
@@ -472,7 +483,7 @@ export async function generateDetailedOutlineFromContext(input: {
       }
     })
 
-    if (!isDetailedOutlineModelResultComplete(segments)) {
+    if (!isDetailedOutlineModelResultComplete(segments, totalEpisodes)) {
       throw new Error('detailed_outline_model_incomplete')
     }
 

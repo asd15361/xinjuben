@@ -7,9 +7,10 @@
  * - 错误提示
  * - 调用 API 并更新全局状态
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from '../app/store/useAuthStore'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
 import { X, Mail, Lock, User, Loader2 } from 'lucide-react'
 
 interface LoginModalProps {
@@ -68,23 +69,38 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     clearError()
   }
 
-  return (
+  useEffect(() => {
+    if (!isOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [isOpen])
+
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.8)', zIndex: 99999 }}
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-6"
+          style={{ background: 'rgba(0,0,0,0.82)' }}
           onClick={handleClose}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="relative w-full max-w-md rounded-2xl border border-white/10 bg-black/90 backdrop-blur-xl p-8"
+            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 260 }}
+            className="relative w-full max-w-md rounded-2xl border border-white/10 bg-black/90 backdrop-blur-xl p-8 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 关闭按钮 */}
@@ -230,7 +246,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 

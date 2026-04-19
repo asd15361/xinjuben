@@ -1,0 +1,834 @@
+{
+  "nodes": [
+    {
+      "id": "root_cause_ledger",
+      "type": "Document",
+      "label": "根因台账",
+      "properties": {
+        "update_time": "2026-03-20",
+        "status": "CLOSED",
+        "root_causes_count": 6,
+        "purpose": "唯一根因视图，记录已确认的根因"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "root_cause_1",
+      "type": "RootCause",
+      "label": "Prompt块重叠（定义权稀释）",
+      "properties": {
+        "aliases": ["5张卡叠在一起", "故事补充/人物补充/阶段写法叠在一起", "压缩块偷着重复定义", "主喂法结构太胖"],
+        "layer": "剧本提示词组装层",
+        "status": "CLOSED",
+        "guard": "tools/e2e/root_cause_guards.mjs"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "root_cause_2",
+      "type": "RootCause",
+      "label": "AI推测冒充正式事实",
+      "properties": {
+        "aliases": ["observationSignals当角色状态", "关系张力=正式状态", "chat摘要越权主链"],
+        "layer": "正式事实定义层 + 账本/运行时上下文层",
+        "status": "CLOSED"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "root_cause_3",
+      "type": "RootCause",
+      "label": "测试口追假敌人",
+      "properties": {
+        "aliases": ["35/36/45/50集掉点是产品边界", "timeout太短报假失败", "观察口看错字段"],
+        "layer": "测试观察口层",
+        "status": "CLOSED"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "root_cause_4",
+      "type": "RootCause",
+      "label": "三道工序边界串位",
+      "properties": {
+        "aliases": ["剧本替粗纲补债", "详纲替人物兜底", "批内接力看不见自己", "阶段换挡不稳"],
+        "layer": "三道工序输入契约层",
+        "status": "CLOSED"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "root_cause_5",
+      "type": "RootCause",
+      "label": "内容太满/太解释",
+      "properties": {
+        "aliases": ["情绪段写成复盘", "后段解释偏多", "提要塞太多世界信息"],
+        "layer": "剧本提示词骨架层",
+        "status": "CLOSED",
+        "verification": "三环真测通过 Ring1 95.1s Ring2 42.7s Ring3 25.5s"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "root_cause_6",
+      "type": "RootCause",
+      "label": "第一环人物小传合同标准偏低",
+      "properties": {
+        "aliases": ["人物小传长期空槽位", "publicMask/hiddenPressure/fear/advantage/arc经常空着"],
+        "layer": "人物小传验收门 + 生成提示词",
+        "status": "CLOSED",
+        "fix": "验收门从5字段升到10字段"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_production_plan",
+      "type": "Plan",
+      "label": "稳定产出问题总收口计划（第一版）",
+      "properties": {
+        "update_time": "2026-03-18 22:55",
+        "purpose": "解决已发现真问题没有被正式封口的问题",
+        "phase_count": 10,
+        "status": "COMPLETED"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "section_1",
+      "type": "Section",
+      "label": "第一板块",
+      "properties": {
+        "role": "创作底稿整理层",
+        "status": "COMPLETED",
+        "current_state": "正式生产戏剧推进链"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "section_2",
+      "type": "Section",
+      "label": "第二板块",
+      "properties": {
+        "role": "粗纲/人物/详纲层",
+        "status": "COMPLETED",
+        "focus": "高传播叙事单元设计"
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "section_3",
+      "type": "Section",
+      "label": "第三板块",
+      "properties": {
+        "role": "剧本层",
+        "status": "COMPLETED",
+        "issues_resolved": ["执行器断路", "黑箱过久", "正式事实硬落点", "解析稳态", "记忆回声误报"]
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_writing_absorption_plan",
+      "type": "Plan",
+      "label": "爆款样本写法吸收计划（第一版）",
+      "properties": {
+        "update_time": "2026-03-16 16:45",
+        "purpose": "吸收爆款样本的6个写法",
+        "phase_count": 4,
+        "status": "COMPLETED"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_method_1",
+      "type": "Method",
+      "label": "一句话设定成交力",
+      "properties": {
+        "coverage_status": "未覆盖",
+        "description": "用户一句话就能卖出去，开头就能抓人"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_method_2",
+      "type": "Method",
+      "label": "错位发动机",
+      "properties": {
+        "coverage_status": "半覆盖",
+        "description": "年龄错位、身份错位、关系错位、命运错位、阶层错位天然生戏"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_method_3",
+      "type": "Method",
+      "label": "人设持续生戏能力",
+      "properties": {
+        "coverage_status": "半覆盖偏强",
+        "description": "人物一进场就能持续制造内容"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_method_4",
+      "type": "Method",
+      "label": "高频续命能力",
+      "properties": {
+        "coverage_status": "半覆盖",
+        "description": "每一轮都能制造下一集必须点开的理由"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_method_5",
+      "type": "Method",
+      "label": "情绪兑现前置",
+      "properties": {
+        "coverage_status": "半覆盖",
+        "description": "爽点、痛点、关系翻盘不能拖太晚"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "viral_method_6",
+      "type": "Method",
+      "label": "集尾强钩子",
+      "properties": {
+        "coverage_status": "已覆盖但还不够爆款化",
+        "description": "结尾明确留下下一步更大的问题、误会、代价或翻盘口"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "expression_layer_f6",
+      "type": "Component",
+      "label": "表达层F6",
+      "properties": {
+        "status": "IN_PROGRESS",
+        "gap": "正式判断闭环缺口"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "f6_standard_1",
+      "type": "Standard",
+      "label": "对白像人说的话",
+      "properties": {
+        "bad_signs": ["说明味重", "台词拗口", "一句塞太多任务"],
+        "good_signs": ["句子自然", "人物味道清楚", "读起来像活人当场在说"]
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "f6_standard_2",
+      "type": "Standard",
+      "label": "动作、对白、情绪成一体",
+      "properties": {
+        "bad_signs": ["三样东西只是并排摆着", "动作不承情绪"],
+        "good_signs": ["动作、对白、情绪互相带动"]
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "f6_standard_3",
+      "type": "Standard",
+      "label": "场景像能演的场",
+      "properties": {
+        "bad_signs": ["只有结构块", "不能直接想象人物怎么演"],
+        "good_signs": ["场景落地", "人物位置、动作、压力都能想见"]
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "f6_standard_4",
+      "type": "Standard",
+      "label": "结果能续写",
+      "properties": {
+        "bad_signs": ["单场看着还行，但后面难接"],
+        "good_signs": ["天然带着后续可接的动作、关系和压力"]
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_pass_definition",
+      "type": "Definition",
+      "label": "稳定通过定义",
+      "properties": {
+        "update_time": "2026-03-16 08:14",
+        "criteria_count": 5
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_pass_criteria_1",
+      "type": "Criterion",
+      "label": "连续样本成立",
+      "properties": {
+        "description": "至少要有连续多笔真实样本，证明不是碰巧"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_pass_criteria_2",
+      "type": "Criterion",
+      "label": "没有快速回弹",
+      "properties": {
+        "description": "后续场次不会立刻回弹到旧问题"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_pass_criteria_3",
+      "type": "Criterion",
+      "label": "跨位置还能成立",
+      "properties": {
+        "description": "必须在后续推进里继续成立"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_pass_criteria_4",
+      "type": "Criterion",
+      "label": "问题不是被补丁遮住",
+      "properties": {
+        "description": "必须是创作主路自己站住，不是靠系统硬拦"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "stable_pass_criteria_5",
+      "type": "Criterion",
+      "label": "当前没有新的主问题顶翻它",
+      "properties": {
+        "description": "没有新的主问题把这条判断推翻"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "phase_4_6_record",
+      "type": "Record",
+      "label": "第4-6段阶段收束记录",
+      "properties": {
+        "date": "2026-03-13",
+        "purpose": "把第4-6段已落地的核心结论沉成阶段结论"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "phase_5_launch_judgment",
+      "type": "Judgment",
+      "label": "第五阶段最终外部正式上线判断",
+      "properties": {
+        "date": "2026-03-14",
+        "conclusion": "现在还不能外部正式上线",
+        "blocking_reason": "质量承诺不够硬"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "outline_character_test_plan",
+      "type": "Plan",
+      "label": "粗略大纲与人物小传真实A测计划",
+      "properties": {
+        "purpose": "验证粗略大纲和人物小传能否稳定产出",
+        "status": "COMPLETED",
+        "phase_count": 3
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "formal_fact_hard_landing_plan",
+      "type": "Plan",
+      "label": "第三板块正式事实硬落点收口计划",
+      "properties": {
+        "purpose": "让对手压力和师父角色真正压进首场戏",
+        "status": "COMPLETED"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "milestone_1",
+      "type": "Milestone",
+      "label": "文档现场收平",
+      "confidence": 1.0
+    },
+    {
+      "id": "milestone_2",
+      "type": "Milestone",
+      "label": "计划闭环系统站住",
+      "confidence": 1.0
+    },
+    {
+      "id": "milestone_3",
+      "type": "Milestone",
+      "label": "五类循环问题进入唯一根因台账",
+      "confidence": 1.0
+    },
+    {
+      "id": "milestone_4",
+      "type": "Milestone",
+      "label": "三环都有正式记录",
+      "confidence": 1.0
+    },
+    {
+      "id": "milestone_5",
+      "type": "Milestone",
+      "label": "第一批防回弹守卫站住",
+      "confidence": 1.0
+    },
+    {
+      "id": "milestone_6",
+      "type": "Milestone",
+      "label": "能稳定产出优秀剧本内容",
+      "confidence": 1.0
+    },
+    {
+      "id": "audit_system",
+      "type": "System",
+      "label": "审计系统",
+      "properties": {
+        "capabilities": ["抓正式事实未落地", "抓对手情感争夺缺失", "抓人物特质落地不足", "抓记忆回声缺失", "抓硬锚点待承接"]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "repair_mapping",
+      "type": "Mechanism",
+      "label": "修补映射",
+      "properties": {
+        "purpose": "audit issue -> repair action 映射"
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "ledger",
+      "type": "Component",
+      "label": "账本",
+      "properties": {
+        "contents": ["关系施压", "trait-binding", "记忆回声", "硬锚点", "开放钩子"]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "postflight",
+      "type": "Component",
+      "label": "Postflight",
+      "properties": {
+        "purpose": "比对关系压力、trait-binding、memory echo、entity anchor shift"
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "trait_binding_weak",
+      "type": "Issue",
+      "label": "特质落地不足",
+      "properties": {
+        "status": "LOW_RISK",
+        "judgment": "不升级为主问题"
+      },
+      "confidence": 1.0
+    },
+    {
+      "id": "production_chain",
+      "type": "Component",
+      "label": "生成主链",
+      "properties": {
+        "stages": ["gate", "execution plan", "runtime batch", "ledger", "audit", "repair", "postflight"]
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "real_demand_test",
+      "type": "Test",
+      "label": "真实需求分板块效果测试",
+      "properties": {
+        "purpose": "按真实用户需求测试软件效果",
+        "criteria": ["速度", "真相对齐", "内容质量"],
+        "status": "COMPLETED"
+      },
+      "confidence": 1.0
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "root_cause_ledger",
+      "target": "root_cause_1",
+      "relation": "contains",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_2",
+      "source": "root_cause_ledger",
+      "target": "root_cause_2",
+      "relation": "contains",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_3",
+      "source": "root_cause_ledger",
+      "target": "root_cause_3",
+      "relation": "contains",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_4",
+      "source": "root_cause_ledger",
+      "target": "root_cause_4",
+      "relation": "contains",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_5",
+      "source": "root_cause_ledger",
+      "target": "root_cause_5",
+      "relation": "contains",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_6",
+      "source": "root_cause_ledger",
+      "target": "root_cause_6",
+      "relation": "contains",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_7",
+      "source": "stable_production_plan",
+      "target": "milestone_1",
+      "relation": "has_milestone",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_8",
+      "source": "stable_production_plan",
+      "target": "milestone_2",
+      "relation": "has_milestone",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_9",
+      "source": "stable_production_plan",
+      "target": "milestone_3",
+      "relation": "has_milestone",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_10",
+      "source": "stable_production_plan",
+      "target": "milestone_4",
+      "relation": "has_milestone",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_11",
+      "source": "stable_production_plan",
+      "target": "milestone_5",
+      "relation": "has_milestone",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_12",
+      "source": "stable_production_plan",
+      "target": "milestone_6",
+      "relation": "has_milestone",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_13",
+      "source": "stable_production_plan",
+      "target": "root_cause_ledger",
+      "relation": "creates",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_14",
+      "source": "viral_writing_absorption_plan",
+      "target": "viral_method_1",
+      "relation": "absorbs",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_15",
+      "source": "viral_writing_absorption_plan",
+      "target": "viral_method_2",
+      "relation": "absorbs",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_16",
+      "source": "viral_writing_absorption_plan",
+      "target": "viral_method_3",
+      "relation": "absorbs",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_17",
+      "source": "viral_writing_absorption_plan",
+      "target": "viral_method_4",
+      "relation": "absorbs",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_18",
+      "source": "viral_writing_absorption_plan",
+      "target": "viral_method_5",
+      "relation": "absorbs",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_19",
+      "source": "viral_writing_absorption_plan",
+      "target": "viral_method_6",
+      "relation": "absorbs",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_20",
+      "source": "expression_layer_f6",
+      "target": "f6_standard_1",
+      "relation": "requires",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_21",
+      "source": "expression_layer_f6",
+      "target": "f6_standard_2",
+      "relation": "requires",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_22",
+      "source": "expression_layer_f6",
+      "target": "f6_standard_3",
+      "relation": "requires",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_23",
+      "source": "expression_layer_f6",
+      "target": "f6_standard_4",
+      "relation": "requires",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_24",
+      "source": "stable_pass_definition",
+      "target": "stable_pass_criteria_1",
+      "relation": "defines",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_25",
+      "source": "stable_pass_definition",
+      "target": "stable_pass_criteria_2",
+      "relation": "defines",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_26",
+      "source": "stable_pass_definition",
+      "target": "stable_pass_criteria_3",
+      "relation": "defines",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_27",
+      "source": "stable_pass_definition",
+      "target": "stable_pass_criteria_4",
+      "relation": "defines",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_28",
+      "source": "stable_pass_definition",
+      "target": "stable_pass_criteria_5",
+      "relation": "defines",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_29",
+      "source": "real_demand_test",
+      "target": "section_1",
+      "relation": "tests",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_30",
+      "source": "real_demand_test",
+      "target": "section_2",
+      "relation": "tests",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_31",
+      "source": "real_demand_test",
+      "target": "section_3",
+      "relation": "tests",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_32",
+      "source": "formal_fact_hard_landing_plan",
+      "target": "section_3",
+      "relation": "fixes",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_33",
+      "source": "outline_character_test_plan",
+      "target": "section_1",
+      "relation": "tests",
+      "confidence": 0.8
+    },
+    {
+      "id": "edge_34",
+      "source": "phase_4_6_record",
+      "target": "production_chain",
+      "relation": "records",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_35",
+      "source": "phase_4_6_record",
+      "target": "ledger",
+      "relation": "documents",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_36",
+      "source": "phase_4_6_record",
+      "target": "postflight",
+      "relation": "documents",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_37",
+      "source": "audit_system",
+      "target": "repair_mapping",
+      "relation": "feeds",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_38",
+      "source": "production_chain",
+      "target": "audit_system",
+      "relation": "includes",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_39",
+      "source": "production_chain",
+      "target": "ledger",
+      "relation": "includes",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_40",
+      "source": "production_chain",
+      "target": "postflight",
+      "relation": "includes",
+      "confidence": 0.9
+    },
+    {
+      "id": "edge_41",
+      "source": "section_3",
+      "target": "trait_binding_weak",
+      "relation": "has_remaining_issue",
+      "confidence": 1.0
+    },
+    {
+      "id": "edge_42",
+      "source": "viral_method_2",
+      "target": "section_1",
+      "relation": "applies_to",
+      "confidence": 0.7
+    },
+    {
+      "id": "edge_43",
+      "source": "viral_method_3",
+      "target": "section_2",
+      "relation": "applies_to",
+      "confidence": 0.7
+    },
+    {
+      "id": "edge_44",
+      "source": "viral_method_5",
+      "target": "section_3",
+      "relation": "applies_to",
+      "confidence": 0.7
+    },
+    {
+      "id": "edge_45",
+      "source": "phase_5_launch_judgment",
+      "target": "milestone_6",
+      "relation": "blocked_by",
+      "confidence": 0.8
+    },
+    {
+      "id": "edge_46",
+      "source": "root_cause_6",
+      "target": "outline_character_test_plan",
+      "relation": "addressed_by",
+      "confidence": 0.8
+    },
+    {
+      "id": "edge_47",
+      "source": "root_cause_5",
+      "target": "expression_layer_f6",
+      "relation": "related_to",
+      "confidence": 0.7
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hyperedge_1",
+      "nodes": ["stable_production_plan", "root_cause_ledger", "milestone_3", "milestone_5"],
+      "relation": "stable_production_plan创建根因台账以达成里程碑3和5",
+      "confidence": 1.0
+    },
+    {
+      "id": "hyperedge_2",
+      "nodes": ["viral_writing_absorption_plan", "viral_method_1", "viral_method_2", "viral_method_3", "viral_method_4", "viral_method_5", "viral_method_6", "section_1", "section_2", "section_3"],
+      "relation": "爆款写法吸收计划将6个方法应用到三个板块",
+      "confidence": 0.9
+    },
+    {
+      "id": "hyperedge_3",
+      "nodes": ["expression_layer_f6", "f6_standard_1", "f6_standard_2", "f6_standard_3", "f6_standard_4", "stable_pass_definition"],
+      "relation": "表达层F6需要满足4项标准才能稳定通过",
+      "confidence": 1.0
+    },
+    {
+      "id": "hyperedge_4",
+      "nodes": ["real_demand_test", "section_1", "section_2", "section_3"],
+      "relation": "真实需求分板块效果测试验证三个板块的质量",
+      "confidence": 1.0
+    },
+    {
+      "id": "hyperedge_5",
+      "nodes": ["production_chain", "ledger", "audit_system", "repair_mapping", "postflight"],
+      "relation": "生成主链包含账本、审计、修补映射和postflight形成闭环",
+      "confidence": 0.9
+    },
+    {
+      "id": "hyperedge_6",
+      "nodes": ["phase_4_6_record", "production_chain", "ledger", "audit_system", "repair_mapping", "postflight"],
+      "relation": "第4-6段阶段收束记录了资产迁移进入主链闭环",
+      "confidence": 0.9
+    },
+    {
+      "id": "hyperedge_7",
+      "nodes": ["stable_pass_definition", "stable_pass_criteria_1", "stable_pass_criteria_2", "stable_pass_criteria_3", "stable_pass_criteria_4", "stable_pass_criteria_5"],
+      "relation": "稳定通过定义包含5个必须同时满足的条件",
+      "confidence": 1.0
+    },
+    {
+      "id": "hyperedge_8",
+      "nodes": ["phase_5_launch_judgment", "section_1", "section_2", "section_3", "milestone_6"],
+      "relation": "第五阶段判断三个板块完成但整体未达到稳定产出优秀剧本的里程碑",
+      "confidence": 0.8
+    }
+  ],
+  "input_tokens": 15000,
+  "output_tokens": 3500
+}

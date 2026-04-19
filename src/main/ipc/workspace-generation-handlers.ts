@@ -1,12 +1,16 @@
 import { ipcMain } from 'electron'
 import { createOutlineSeed } from '../application/workspace/create-outline-seed'
 import { validateStageInputContract } from '../application/input-contract/validate-stage-input'
-import { generateDetailedOutlineFromContext } from '../application/workspace/generate-detailed-outline'
+import {
+  generateDetailedOutlineFromContext,
+  isDetailedOutlineModelResultComplete
+} from '../application/workspace/generate-detailed-outline'
 import { generateSevenQuestionsDraft } from '../application/workspace/generate-seven-questions-draft'
 import { buildOutlineDraftWithConfirmedSevenQuestions } from '../application/workspace/save-confirmed-seven-questions'
 import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from '../application/workspace/generate-outline-and-characters-from-confirmed-seven-questions'
 import { summarizeChatForGeneration } from '../application/workspace/summarize-chat-for-generation'
 import { confirmStoryIntentFromChat } from '../application/workspace/confirm-story-intent-from-chat.ts'
+import { deriveOutlineEpisodeCount } from '../../shared/domain/workflow/episode-count'
 import {
   runWorkspaceGenerationTask,
   throwIfWorkspaceGenerationAborted
@@ -255,6 +259,20 @@ export function registerWorkspaceGenerationHandlers(): void {
                 `generateDetailedOutline empty_segments projectId=${input.projectId} diagnostic=${detailedOutlineResult.diagnostic}`
               )
               throw new Error(`detailed_outline_empty_segments:${detailedOutlineResult.diagnostic}`)
+            }
+
+            // FAIL-CLOSED: Validate episode coverage before save
+            const totalEpisodes = deriveOutlineEpisodeCount(outlineDraft)
+            if (!isDetailedOutlineModelResultComplete(detailedOutlineResult.segments, totalEpisodes)) {
+              const actualBeats = detailedOutlineResult.segments.reduce(
+                (sum, seg) => sum + (seg.episodeBeats?.length ?? 0),
+                0
+              )
+              await appendRuntimeDiagnosticLog(
+                'workspace',
+                `generateDetailedOutline episode_count_short projectId=${input.projectId} expected=${totalEpisodes} actual=${actualBeats} diagnostic=${detailedOutlineResult.diagnostic}`
+              )
+              throw new Error(`detailed_outline_episode_count_short:expected=${totalEpisodes},actual=${actualBeats}`)
             }
 
             const nextProject = await saveDetailedOutlineSegments({

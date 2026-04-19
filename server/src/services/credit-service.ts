@@ -118,7 +118,10 @@ export class CreditService {
         task: metadata.task,
         lane: metadata.lane,
         model: metadata.model,
+        inputTokens: metadata.inputTokens ?? 0,
+        outputTokens: metadata.outputTokens ?? 0,
         costCredits: amount,
+        durationMs: metadata.durationMs ?? 0,
         success: true
       })
     })

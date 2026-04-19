@@ -2,6 +2,7 @@ import type { ChatMessageDto } from '../../../../shared/contracts/chat'
 import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
 import { create } from 'zustand'
 import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
+import type { ProjectEntityStoreDto } from '../../../../shared/contracts/entities'
 import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto,
@@ -35,6 +36,7 @@ interface WorkflowState {
   generationStatus: ProjectGenerationStatusDto | null
   generationNotice: GenerationNotice | null
   storyIntent: StoryIntentPackageDto | null
+  projectEntityStore: ProjectEntityStoreDto | null
   scriptRuntimeFailureHistory: ScriptRuntimeFailureHistoryCode[]
   scriptProgressBoard: ScriptGenerationProgressBoardDto | null
   scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
@@ -48,6 +50,7 @@ interface WorkflowState {
   setGenerationNotice: (notice: GenerationNotice | null) => void
   clearGenerationNotice: () => void
   setStoryIntent: (storyIntent: StoryIntentPackageDto | null) => void
+  setProjectEntityStore: (entityStore: ProjectEntityStoreDto | null) => void
   setScriptRuntimeFailureHistory: (history: ScriptRuntimeFailureHistoryCode[]) => void
   setScriptProgressBoard: (value: ScriptGenerationProgressBoardDto | null) => void
   setScriptFailureResolution: (value: ScriptGenerationFailureResolutionDto | null) => void
@@ -64,6 +67,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   generationStatus: null,
   generationNotice: null,
   storyIntent: null,
+  projectEntityStore: null,
   scriptRuntimeFailureHistory: [],
   scriptProgressBoard: null,
   scriptFailureResolution: null,
@@ -77,6 +81,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   setGenerationNotice: (generationNotice) => set({ generationNotice }),
   clearGenerationNotice: () => set({ generationNotice: null }),
   setStoryIntent: (storyIntent) => set({ storyIntent }),
+  setProjectEntityStore: (projectEntityStore) => set({ projectEntityStore }),
   setScriptRuntimeFailureHistory: (scriptRuntimeFailureHistory) =>
     set({ scriptRuntimeFailureHistory }),
   setScriptProgressBoard: (scriptProgressBoard) => set({ scriptProgressBoard }),
@@ -92,6 +97,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       generationStatus: null,
       generationNotice: null,
       storyIntent: null,
+      projectEntityStore: null,
       scriptRuntimeFailureHistory: [],
       scriptProgressBoard: null,
       scriptFailureResolution: null,
@@ -99,3 +105,4 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       formalRelease: null
     }))
 }))
+

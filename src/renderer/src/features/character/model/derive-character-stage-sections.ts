@@ -21,6 +21,7 @@ const EMPTY_ENTITY_STORE: ProjectEntityStoreDto = {
   items: [],
   relations: []
 }
+const MAX_VISIBLE_CHARACTER_COUNT = 22
 
 const ROLE_LAYER_WEIGHT: Record<CharacterEntityDto['roleLayer'], number> = {
   core: 0,
@@ -183,11 +184,12 @@ function resolveFullProfileEntityIds(
 
 function buildLightCards(
   entityStore: ProjectEntityStoreDto,
-  fullProfileEntityIds: Set<string>
+  fullProfileEntityIds: Set<string>,
+  maxCount?: number
 ): CharacterStageLightCard[] {
   const factionById = new Map(entityStore.factions.map((item) => [item.id, item]))
 
-  return [...entityStore.characters]
+  const cards = [...entityStore.characters]
     .filter((entity) => !fullProfileEntityIds.has(entity.id))
     .sort(byRoleThenName)
     .map((entity) => ({
@@ -209,6 +211,12 @@ function buildLightCards(
       goalPreview: entity.goals.join(' / '),
       pressurePreview: entity.pressures.join(' / ')
     }))
+
+  if (typeof maxCount === 'number') {
+    return cards.slice(0, Math.max(0, maxCount))
+  }
+
+  return cards
 }
 
 function buildFactionRoster(
@@ -265,10 +273,11 @@ export function buildCharacterStageSections(input: {
   const entityStore = input.entityStore ?? EMPTY_ENTITY_STORE
   const fullProfileEntityIds = resolveFullProfileEntityIds(characterDrafts, entityStore)
   const factionRoster = buildFactionRoster(entityStore, fullProfileEntityIds)
+  const remainingLightQuota = Math.max(0, MAX_VISIBLE_CHARACTER_COUNT - characterDrafts.length)
 
   return {
     fullProfiles: characterDrafts,
-    lightCards: buildLightCards(entityStore, fullProfileEntityIds),
+    lightCards: buildLightCards(entityStore, fullProfileEntityIds, remainingLightQuota),
     factionRoster,
     factionSeatCount: factionRoster.reduce((total, faction) => total + faction.seatCount, 0)
   }

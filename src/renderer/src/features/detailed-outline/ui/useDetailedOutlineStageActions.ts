@@ -6,6 +6,7 @@ import { clearScriptPlanCache } from '../../../app/services/script-plan-service.
 import { buildDetailedOutlineFailureNotice } from './detailed-outline-generation-notice.ts'
 import { resolveDetailedOutlineEntryBlock } from './detailed-outline-entry-guard.ts'
 import { buildDetailedOutlineGenerationSuccessNotice } from './detailed-outline-stage-label.ts'
+import { apiGenerateDetailedOutline } from '../../../services/api-client'
 
 interface DetailedOutlineStageActionsResult {
   generationStatus: ProjectGenerationStatusDto | null
@@ -51,10 +52,10 @@ export function useDetailedOutlineStageActions(): DetailedOutlineStageActionsRes
         characterDrafts: characters
       })
 
-      const result = await window.api.workspace.generateDetailedOutline({
+      const result = await apiGenerateDetailedOutline({
         projectId: requestProjectId
       })
-      if (!result.project || result.detailedOutlineSegments.length === 0) {
+      if (!result.project || !result.detailedOutlineSegments || result.detailedOutlineSegments.length === 0) {
         throw new Error('detailed_outline_persist_missing')
       }
       if (useWorkflowStore.getState().projectId === requestProjectId) {

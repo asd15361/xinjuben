@@ -1,6 +1,6 @@
 import type { StoryIntentPackageDto } from '../../contracts/intake'
 import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow'
-import type { CharacterProfileV2Dto } from '../../contracts/character-profile-v2.ts'
+import type { CharacterProfileV2Dto } from '../../contracts/character-profile-v2'
 
 function hasText(value: string | undefined): boolean {
   return Boolean(value && value.trim())
@@ -82,12 +82,50 @@ function isCharacterProfileV2StructurallyComplete(character: CharacterContractCa
   return true
 }
 
-export function isCharacterDraftStructurallyComplete(character: CharacterDraftDto): boolean {
+export interface CharacterContractIssueDto {
+  name: string
+  missingLegacyFields: string[]
+  missingV2Fields: string[]
+}
+
+function collectMissingLegacyFields(character: CharacterContractCandidate): string[] {
+  const missing: string[] = []
+  if (!hasText(character.name)) missing.push('name')
+  if (!hasText(character.biography)) missing.push('biography')
+  if (!hasText(character.goal)) missing.push('goal')
+  if (!hasText(character.advantage)) missing.push('advantage')
+  if (!hasText(character.weakness)) missing.push('weakness')
+  if (!hasText(character.arc)) missing.push('arc')
+  return missing
+}
+
+function collectMissingV2Fields(character: CharacterContractCandidate): string[] {
+  const missing: string[] = []
+  if (!hasText(character.name)) missing.push('name')
+  if (!hasText(character.appearance)) missing.push('appearance')
+  if (!hasText(character.personality)) missing.push('personality')
+  if (!hasText(character.identity)) missing.push('identity')
+  if (!hasText(character.values)) missing.push('values')
+  if (!hasText(character.plotFunction)) missing.push('plotFunction')
+  return missing
+}
+
+export function getCharacterContractIssues(character: CharacterDraftDto): CharacterContractIssueDto | null {
   const candidate = character as CharacterContractCandidate
-  return (
-    isLegacyCharacterDraftStructurallyComplete(candidate) ||
-    isCharacterProfileV2StructurallyComplete(candidate)
-  )
+  const missingLegacyFields = collectMissingLegacyFields(candidate)
+  const missingV2Fields = collectMissingV2Fields(candidate)
+  if (missingLegacyFields.length === 0 || missingV2Fields.length === 0) {
+    return null
+  }
+  return {
+    name: character.name?.trim() || '未命名人物',
+    missingLegacyFields,
+    missingV2Fields
+  }
+}
+
+export function isCharacterDraftStructurallyComplete(character: CharacterDraftDto): boolean {
+  return getCharacterContractIssues(character) === null
 }
 
 export function resolveCharacterContractAnchors(input: {
@@ -103,6 +141,30 @@ export function resolveCharacterContractAnchors(input: {
   }
 }
 
+export function getCharacterBundleContractIssues(input: {
+  characters: CharacterDraftDto[]
+  protagonist?: string
+  antagonist?: string
+}): {
+  incompleteCharacters: CharacterContractIssueDto[]
+  protagonistCovered: boolean
+  antagonistCovered: boolean
+} {
+  const characters = Array.isArray(input.characters) ? input.characters : []
+  const names = characters.map((item) => item.name.trim()).filter(Boolean)
+  return {
+    incompleteCharacters: characters
+      .map((item) => getCharacterContractIssues(item))
+      .filter((item): item is CharacterContractIssueDto => Boolean(item)),
+    protagonistCovered: input.protagonist?.trim()
+      ? names.some((name) => isFuzzyNameMatch(name, input.protagonist!.trim()))
+      : true,
+    antagonistCovered: input.antagonist?.trim()
+      ? names.some((name) => isFuzzyNameMatch(name, input.antagonist!.trim()))
+      : true
+  }
+}
+
 export function isCharacterBundleStructurallyComplete(input: {
   characters: CharacterDraftDto[]
   protagonist?: string
@@ -110,12 +172,11 @@ export function isCharacterBundleStructurallyComplete(input: {
 }): boolean {
   const characters = Array.isArray(input.characters) ? input.characters : []
   if (characters.length === 0) return false
-  if (!characters.every(isCharacterDraftStructurallyComplete)) return false
 
-  const names = characters.map((item) => item.name.trim()).filter(Boolean)
-  // 【第二刀】模糊门禁比对：用 isFuzzyNameMatch 替代严格 names.includes()
-  if (input.protagonist?.trim() && !names.some((name) => isFuzzyNameMatch(name, input.protagonist!.trim()))) return false
-  if (input.antagonist?.trim() && !names.some((name) => isFuzzyNameMatch(name, input.antagonist!.trim()))) return false
+  const issues = getCharacterBundleContractIssues(input)
+  if (issues.incompleteCharacters.length > 0) return false
+  if (!issues.protagonistCovered) return false
+  if (!issues.antagonistCovered) return false
 
   return true
 }
@@ -149,3 +210,4 @@ export function isCharacterStageReady(input: {
     antagonist: anchors.antagonist
   })
 }
+

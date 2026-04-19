@@ -1,12 +1,14 @@
 import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
 import type {
-  CharacterDraftDto,
   OutlineDraftDto,
   SevenQuestionsResultDto
 } from '../../../../shared/contracts/workflow'
 import {
+  apiGetProject,
+  apiGenerateOutlineAndCharacters,
   apiGenerateSevenQuestions,
-  ApiError,
+  apiSaveConfirmedSevenQuestions,
   type StoryIntent
 } from '../../services/api-client'
 
@@ -42,14 +44,9 @@ export async function generateSevenQuestionsDraft(
 }> {
   // 如果没有传入 storyIntent，尝试从项目获取（兼容旧调用方式）
   if (!storyIntent) {
-    // 尝试从 window.api 获取项目信息（保留向后兼容）
-    try {
-      const project = await window.api.workspace.getProject(projectId)
-      if (project?.storyIntent) {
-        storyIntent = project.storyIntent
-      }
-    } catch {
-      // 忽略获取失败
+    const { project } = await apiGetProject(projectId)
+    if (project?.storyIntent) {
+      storyIntent = project.storyIntent
     }
   }
 
@@ -73,29 +70,30 @@ export async function saveConfirmedSevenQuestions(
   projectId: string,
   sevenQuestions: SevenQuestionsResultDto
 ): Promise<{
+  project: ProjectSnapshotDto | null
   outlineDraft: OutlineDraftDto | null
 }> {
-  const result = await window.api.workspace.saveConfirmedSevenQuestions({
+  const result = await apiSaveConfirmedSevenQuestions({
     projectId,
     sevenQuestions
   })
-  return { outlineDraft: result.outlineDraft }
+  return {
+    project: result.project ?? null,
+    outlineDraft: result.project?.outlineDraft ?? null
+  }
 }
 
 export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   projectId: string
 ): Promise<{
+  project: ProjectSnapshotDto
   storyIntent: StoryIntentPackageDto | null
   outlineDraft: OutlineDraftDto | null
-  characterDrafts: CharacterDraftDto[]
 }> {
-  const result =
-    await window.api.workspace.generateOutlineAndCharactersFromConfirmedSevenQuestions({
-      projectId
-    })
+  const result = await apiGenerateOutlineAndCharacters({ projectId })
   return {
-    storyIntent: result.storyIntent,
-    outlineDraft: result.outlineDraft,
-    characterDrafts: result.characterDrafts
+    project: result.project,
+    storyIntent: result.project.storyIntent,
+    outlineDraft: result.project.outlineDraft
   }
 }

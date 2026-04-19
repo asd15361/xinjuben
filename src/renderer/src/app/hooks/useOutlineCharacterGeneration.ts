@@ -1,7 +1,9 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
 import { ensureOutlineEpisodeShape } from '../../../../shared/domain/workflow/outline-episodes.ts'
 import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from '../../features/seven-questions/api.ts'
+import { apiGetProject } from '../../services/api-client'
+import { useAuthStore } from '../store/useAuthStore'
 import { useStageStore } from '../../store/useStageStore'
 import { clearScriptPlanCache } from '../services/script-plan-service.ts'
 import { useWorkflowStore } from '../store/useWorkflowStore'
@@ -16,6 +18,7 @@ import {
 interface OutlineCharacterGenerationActionsResult {
   actionLabel: string
   generationStatus: ProjectGenerationStatusDto | null
+  generationBusy: boolean
   handleGenerateOutlineAndCharacters: () => Promise<void>
 }
 
@@ -27,9 +30,11 @@ export function useOutlineCharacterGeneration(
   const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
+  const setProjectEntityStore = useWorkflowStore((state) => state.setProjectEntityStore)
   const outline = useStageStore((state) => state.outline)
   const characters = useStageStore((state) => state.characters)
   const hydrateProjectDrafts = useStageStore((state) => state.hydrateProjectDrafts)
+  const refreshCredits = useAuthStore((state) => state.refreshCredits)
 
   const outlineEpisodeCount = useMemo(
     () =>
@@ -47,25 +52,30 @@ export function useOutlineCharacterGeneration(
   })
   const generationStatus =
     workflowGenerationStatus?.task === 'outline_and_characters' ? workflowGenerationStatus : null
+  const [generationKickoffPending, setGenerationKickoffPending] = useState(false)
 
   const handleGenerateOutlineAndCharacters = useCallback(async (): Promise<void> => {
-    if (!projectId) return
+    if (!projectId || generationKickoffPending || generationStatus) return
 
     const requestProjectId = projectId
     const hadExistingContentSnapshot = hadExistingContent
     clearGenerationNotice()
+    setGenerationKickoffPending(true)
 
     try {
       const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(requestProjectId)
       if (!result.outlineDraft) {
         throw new Error('rough_outline_result_missing')
       }
+      const latestProjectResult = await apiGetProject(requestProjectId)
+      const latestProject = latestProjectResult.project ?? result.project
 
       if (useWorkflowStore.getState().projectId === requestProjectId) {
-        setStoryIntent(result.storyIntent)
+        setStoryIntent(latestProject.storyIntent ?? result.storyIntent)
+        setProjectEntityStore(latestProject.entityStore ?? null)
         hydrateProjectDrafts({
-          outline: result.outlineDraft,
-          characters: result.characterDrafts,
+          outline: latestProject.outlineDraft ?? result.outlineDraft,
+          characters: latestProject.characterDrafts,
           segments: [],
           script: []
         })
@@ -76,6 +86,7 @@ export function useOutlineCharacterGeneration(
             hadExistingContent: hadExistingContentSnapshot
           })
         )
+        await refreshCredits()
       }
     } catch (error) {
       if (useWorkflowStore.getState().projectId === requestProjectId) {
@@ -88,20 +99,29 @@ export function useOutlineCharacterGeneration(
         )
       }
       throw error
+    } finally {
+      if (useWorkflowStore.getState().projectId === requestProjectId) {
+        setGenerationKickoffPending(false)
+      }
     }
   }, [
     clearGenerationNotice,
     currentStage,
+    generationKickoffPending,
+    generationStatus,
     hadExistingContent,
     hydrateProjectDrafts,
     projectId,
+    refreshCredits,
     setGenerationNotice,
+    setProjectEntityStore,
     setStoryIntent
   ])
 
   return {
     actionLabel,
     generationStatus,
+    generationBusy: generationKickoffPending || Boolean(generationStatus),
     handleGenerateOutlineAndCharacters
   }
 }

@@ -2619,6 +2619,31 @@ const sections = sevenQuestions?.sections || []
 
 不是：先生成，等修完，才算返回。
 
+### 3.106 PocketBase JSON 字段直接传对象，不需要 `stringifyJson()` wrapper（2026-04-19）
+  - 这轮 Phase 7 详细大纲迁移和 Phase 8 剧本迁移都踩了同一个坑：PocketBase JSON 字段接受对象直接传入，不需要额外 stringify
+  - Double-stringify 会导致 400 "Something went wrong" 错误，很难排查
+  - 修复方式：所有 PocketBase JSON 字段写入统一直接传对象，移除所有 `stringifyJson()` wrapper
+
+### 3.107 剧本生成 V8 引擎迁移到 server 后，前端不再需要 IPC 调用（2026-04-19）
+  - 迁移完成后，前端所有剧本生成相关操作：开始/暂停/恢复/停止/重写/自动修复，全部走 HTTP 接口
+  - 旧 IPC 入口 `window.api.workspace.startScriptGeneration` / `rewriteScriptEpisode` 等完全退场，不需要保留兼容层
+  - HTTP POST + polling 模式比 IPC 更适合长时间后台任务，不受 Electron 进程生命周期影响
+
+### 3.108 `useScriptStageActions.ts` 重写时，旧代码残留会导致编译失败（2026-04-19）
+  - 重写时必须彻底清理旧 IPC 依赖、废弃的状态管理逻辑和重复的导入
+  - 不能只替换核心逻辑就认为完成了，必须跑 `npm run typecheck:web` 确保零编译错误
+  - 本次重写从 464 行精简到 ~340 行，移除了所有旧 IPC 相关代码，编译零错误
+
+### 3.109 HTTP API 集成测试不能只测 API 层，还要验证全链路（2026-04-19）
+  - 测试必须覆盖：HTTP 请求/响应、后台 Worker 执行、进度板更新、数据库持久化、前端轮询、剧本内容渲染、积分扣减全链路
+  - 本次实弹验证覆盖了所有环节：POST → 202 → 18 次轮询 → completed → 2 集真实剧本 → 积分 100→99
+  - 只测 API 层返回 200 不能算集成通过，必须验证最终数据落盘和前端可消费
+
+### 3.110 胜利后不能忘记更新四件套（2026-04-19）
+  - Phase 8.2/8.3 完成后必须同步更新 `聊天记录.md`、`项目原则.md`、`AI自我学习.md`、`项目结构.md`
+  - Task 打勾和文档更新是两件独立的事，不能因为代码写完了就忽略文档同步
+  - 四件套是后续开发的唯一真相源，不及时更新会导致后续终端接错方向
+
 ## 4. 我最容易再犯的错
 
 1. 看见超时、格式错、报错码，就直接追技术点，不先查第二口径。
@@ -4294,3 +4319,37 @@ payload: {
 1. 它是不是挂在带 `blur / transform / relative z-*` 的祖先树里。
 2. 它是不是应该直接 portal 到 `document.body`。
 3. 它是不是还缺滚动锁，导致视觉上像是定位错了。
+
+### 3.103 长时间后台任务不能用同步请求，必须 Start → 202 → 轮询（2026-04-19）
+
+这轮剧本生成 HTTP 化踩了一个核心模式：
+
+- 剧本整季生成（如 60 集）可能耗时数小时
+- HTTP 请求不能一直挂起，否则前端连接超时 + Server 资源占用
+- 正确模式是：POST /start → 立即返回 202 Accepted → 后台 Worker 持续更新 DB → 前端每 3 秒轮询
+
+这个模式的关键设计点：
+1. `runningTasks` Map 在内存里跟踪任务状态（Phase 8.1 简单方案）
+2. 每集完成时调用 `persistBoard()` 写入 PocketBase
+3. 前端通过 `GET /api/script-generation/status/:projectId` 看实时进度
+4. Pause/Resume 通过修改 task.status 控制 setInterval 行为
+
+### 3.104 PocketBase JSON 字段 required=true 时空数组也算缺失（2026-04-19）
+
+这次发现了一个具体的 PocketBase 行为：
+
+- `project_scripts` 表的 `scriptDraftJson` 字段标记为 `required: true, type: json`
+- 传入空数组 `[]` 时，PocketBase 返回 400: `scriptDraftJson: Missing required value`
+- 传入非空数组 `[{ test: true }]` 时正常
+
+结论：PocketBase JSON 字段的 required 校验把空数组和空对象视为"missing"。Phase 8.1 Dummy Worker 用占位符 `[{ _dummy: true }]` 绕过。
+
+### 3.105 saveScriptState 的 stringifyJson 是多余的（2026-04-19）
+
+Phase 7 修了 `saveDetailedOutline` 直接传对象给 PocketBase JSON 字段，但漏修了 `saveScriptState`。
+
+这轮 Phase 8.1 接通了 `persistBoard()` 后发现写入静默失败，根因就是 `saveScriptState` 里还在用 `stringifyJson()` 包裹。
+
+修复后和 `saveDetailedOutline` 保持一致：直接传对象，不 stringify。
+
+以后凡是新增 PocketBase JSON 字段写入，一律直接传对象，不加 stringifyJson wrapper。

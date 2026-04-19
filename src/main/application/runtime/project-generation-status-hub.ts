@@ -25,19 +25,29 @@ function broadcast(projectId: string, status: ProjectGenerationStatusDto | null)
   }
 }
 
-export function setProjectGenerationStatus(
+export async function setProjectGenerationStatus(
   projectId: string,
   status: ProjectGenerationStatusDto
-): void {
-  // Persist to storage (authoritative write)
-  void saveGenerationStatus({ projectId, generationStatus: status })
+): Promise<void> {
+  // Persist to storage (authoritative write) — MUST await, never fire-and-forget
+  try {
+    await saveGenerationStatus({ projectId, generationStatus: status })
+  } catch (persistError) {
+    const message = persistError instanceof Error ? persistError.message : String(persistError)
+    throw new Error(`generation_status_persist_failed:set:${projectId}:${message}`)
+  }
   // Broadcast to all renderer windows
   broadcast(projectId, status)
 }
 
-export function clearProjectGenerationStatus(projectId: string): void {
-  // Persist null to storage
-  void saveGenerationStatus({ projectId, generationStatus: null })
+export async function clearProjectGenerationStatus(projectId: string): Promise<void> {
+  // Persist null to storage — MUST await, never fire-and-forget
+  try {
+    await saveGenerationStatus({ projectId, generationStatus: null })
+  } catch (persistError) {
+    const message = persistError instanceof Error ? persistError.message : String(persistError)
+    throw new Error(`generation_status_persist_failed:clear:${projectId}:${message}`)
+  }
   // Broadcast null to all renderer windows
   broadcast(projectId, null)
 }

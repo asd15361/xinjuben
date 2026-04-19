@@ -389,10 +389,10 @@ export class ProjectRepository {
       projectId: input.projectId,
       payload: {
         scriptDraftJson: stringifyJson(input.scriptDraft),
-        scriptProgressBoardJson: stringifyJson(input.scriptProgressBoard ?? null),
-        scriptFailureResolutionJson: stringifyJson(input.scriptFailureResolution ?? null),
+        scriptProgressBoardJson: input.scriptProgressBoard ? stringifyJson(input.scriptProgressBoard) : null,
+        scriptFailureResolutionJson: input.scriptFailureResolution ? stringifyJson(input.scriptFailureResolution) : null,
         scriptRuntimeFailureHistoryJson: stringifyJson(input.scriptRuntimeFailureHistory ?? []),
-        scriptStateLedgerJson: stringifyJson(input.scriptStateLedger ?? null)
+        scriptStateLedgerJson: input.scriptStateLedger ? stringifyJson(input.scriptStateLedger) : null
       },
       expectedVersion: input.expectedVersion
     })

@@ -10,6 +10,7 @@ import { useStageStore } from '../../store/useStageStore.ts'
 import { perfLog, startOpenChain } from '../timing/performance-logger.ts'
 import { getHydratableGenerationStatus } from '../../../../shared/domain/workflow/generation-state.ts'
 import { createAuthorityFailureNotice } from '../utils/authority-failure-notice.ts'
+import { apiGetProject } from '../../services/api-client.ts'
 
 function logSessionDiagnostic(message: string): void {
   void window.api.system.appendDiagnosticLog({ source: 'session', message })
@@ -26,7 +27,7 @@ export async function openProjectSession(projectId: string): Promise<StageSessio
   perfLog.openProjectSessionStart(projectId)
   logSessionDiagnostic(`openProjectSession start projectId=${projectId}`)
 
-  const project = await window.api.workspace.getProject(projectId)
+  const { project } = await apiGetProject(projectId)
   const result: StageSessionResult | null = project
     ? {
         project,
@@ -58,7 +59,7 @@ export async function switchStageSession(
   perfLog.stageSessionSwitchStart(projectId, targetStage)
   logSessionDiagnostic(`switchStageSession start projectId=${projectId} targetStage=${targetStage}`)
 
-  const project = await window.api.workspace.getProject(projectId)
+  const { project } = await apiGetProject(projectId)
   // Authority: stage comes from main-derived project snapshot, never from renderer-local targetStage
   const result: StageSessionResult | null = project
     ? {
@@ -98,6 +99,7 @@ function hydrateStagePayload(
   const setGenerationStatus = useWorkflowStore.getState().setGenerationStatus
   const clearGenerationNotice = useWorkflowStore.getState().clearGenerationNotice
   const setStoryIntent = useWorkflowStore.getState().setStoryIntent
+  const setProjectEntityStore = useWorkflowStore.getState().setProjectEntityStore
   const setScriptRuntimeFailureHistory = useWorkflowStore.getState().setScriptRuntimeFailureHistory
   const setScriptProgressBoard = useWorkflowStore.getState().setScriptProgressBoard
   const setScriptFailureResolution = useWorkflowStore.getState().setScriptFailureResolution
@@ -112,6 +114,7 @@ function hydrateStagePayload(
   setGenerationStatus(getHydratableGenerationStatus(payload))
   clearGenerationNotice()
   setStoryIntent(source.storyIntent ?? null)
+  setProjectEntityStore(source.entityStore ?? null)
   setScriptRuntimeFailureHistory(
     (source.scriptRuntimeFailureHistory ?? []) as ScriptRuntimeFailureHistoryCode[]
   )

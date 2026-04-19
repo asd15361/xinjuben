@@ -8,11 +8,9 @@ import type { SevenQuestionsResultDto, SevenQuestionsSectionDto } from '../../..
 import { extractConfirmedSevenQuestions } from '../../../../../shared/domain/workflow/seven-questions-authority.ts'
 import {
   generateSevenQuestionsDraft,
-  saveConfirmedSevenQuestions,
-  generateOutlineAndCharactersFromConfirmedSevenQuestions
+  saveConfirmedSevenQuestions
 } from '../api'
 import { requireConfirmedSevenQuestionsPersisted } from '../model/confirmed-seven-questions-persistence.ts'
-import { switchStageSession } from '../../../app/services/stage-session-service'
 import { normalizeWorkspaceChatErrorMessage } from '../../workspace/ui/workspace-chat-error-message'
 import { ApiError, apiGenerateOutlineAndCharacters } from '../../../services/api-client'
 import { motion } from 'framer-motion'
@@ -73,7 +71,6 @@ export function useSevenQuestionsReviewActions() {
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
   const setGenerationNotice = useWorkflowStore((s) => s.setGenerationNotice)
   const clearGenerationNotice = useWorkflowStore((s) => s.clearGenerationNotice)
-  const setStoryIntent = useWorkflowStore((s) => s.setStoryIntent)
   const hydrateProjectDrafts = useStageStore((s) => s.hydrateProjectDrafts)
   const outline = useStageStore((s) => s.outline)
 
@@ -196,9 +193,8 @@ export function useSevenQuestionsReviewActions() {
     setStatus('正在把七问落地，请稍等。')
 
     try {
-      await saveConfirmedSevenQuestions(projectId, confirmed)
-      const persistedProject = await window.api.workspace.getProject(projectId)
-      const savedOutlineDraft = requireConfirmedSevenQuestionsPersisted(persistedProject)
+      const result = await saveConfirmedSevenQuestions(projectId, confirmed)
+      const savedOutlineDraft = requireConfirmedSevenQuestionsPersisted(result.project)
 
       if (useWorkflowStore.getState().projectId === projectId) {
         const currentDrafts = useStageStore.getState()
@@ -258,18 +254,16 @@ export function useSevenQuestionsReviewActions() {
     try {
       // === 调用 HTTP API（新）===
       const result = await apiGenerateOutlineAndCharacters({
-        storyIntent: storyIntent || {},
-        sevenQuestions: confirmed,
-        totalEpisodes: 10
+        projectId
       })
 
       if (result.success && useWorkflowStore.getState().projectId === projectId) {
-        // 更新 store
+        const latestProject = result.project
         hydrateProjectDrafts({
-          outline: result.outlineDraft,
-          characters: result.characterDrafts,
-          segments: [],
-          script: []
+          outline: latestProject.outlineDraft ?? result.outlineDraft,
+          characters: latestProject.characterDrafts ?? result.characterDrafts,
+          segments: latestProject.detailedOutlineSegments ?? [],
+          script: latestProject.scriptDraft ?? []
         })
 
         setGenerationNotice({

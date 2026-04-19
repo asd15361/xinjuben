@@ -1,20 +1,22 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { classifyRuntimeFailureHistory } from '../../../../../shared/domain/runtime/failure-history'
-import { ensureOutlineEpisodeShape } from '../../../../../shared/domain/workflow/outline-episodes'
-import { mergeScriptByEpisodeNo } from '../../../../../shared/domain/workflow/script-episode-coverage'
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
+import type { ScriptGenerationProgressBoardDto } from '../../../../../shared/contracts/script-generation'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
 import type { useScriptGenerationPlan } from '../../../app/hooks/useScriptGenerationPlan'
 import type { useScriptAudit } from '../../../app/hooks/useScriptAudit'
 import { resolveScriptEstimatedSeconds } from '../../../app/utils/stage-estimates'
 import {
-  buildRewriteScriptEpisodeRequest,
-  buildStartScriptGenerationRequest,
-  buildScriptCharactersSummary,
   resolveEffectiveScriptGenerationPlan,
   resolveRequestedScriptGenerationMeta
 } from './script-stage-actions'
+import {
+  apiStartScriptGeneration,
+  apiGetScriptGenerationStatus,
+  apiGetProject,
+  apiRewriteScriptEpisode
+} from '../../../services/api-client'
 
 type ScriptGenerationPlanResult = ReturnType<typeof useScriptGenerationPlan>
 type ScriptAuditResult = ReturnType<typeof useScriptAudit>
@@ -23,43 +25,6 @@ interface UseScriptStageActionsInput {
   generationPlan: ScriptGenerationPlanResult
   audit: ScriptAuditResult
   targetEpisodes: number
-}
-
-function formatScriptRuntimeFailure(result: {
-  board: { episodeStatuses: Array<{ episodeNo: number; status: string }> }
-  failure: { errorMessage?: string | undefined } | null
-}): string {
-  const failedEpisode = result.board.episodeStatuses.find(
-    (item) => item.status === 'failed'
-  )?.episodeNo
-  const errorMessage = result.failure?.errorMessage || ''
-  const staleWarningMatch = errorMessage.match(
-    /^stale_warning:characters_fingerprint_changed:(.+):(.+)$/
-  )
-  const timeoutMatch = errorMessage.match(/^ai_request_timeout:(\d+)ms$/)
-
-  if (staleWarningMatch) {
-    return `Stale Warning：人物小传刚刚发生了变更，当前剧本生成快照已经过时。请先刷新下游，再按新人物设定重新生成。`
-  }
-
-  if (timeoutMatch) {
-    const seconds = Math.max(1, Math.round(Number(timeoutMatch[1]) / 1000))
-    return `第 ${failedEpisode || '?'} 集请求超时，当前上限是 ${seconds} 秒。`
-  }
-
-  if (errorMessage) {
-    return `第 ${failedEpisode || '?'} 集失败：${errorMessage}。`
-  }
-
-  if (failedEpisode) {
-    return `第 ${failedEpisode} 集失败。`
-  }
-
-  return '本轮续写失败。'
-}
-
-function isCharactersFingerprintStaleWarning(errorMessage: string | undefined): boolean {
-  return Boolean(errorMessage?.startsWith('stale_warning:characters_fingerprint_changed:'))
 }
 
 export function useScriptStageActions(input: UseScriptStageActionsInput): {
@@ -86,6 +51,8 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
   const setScriptFailureResolution = useWorkflowStore((state) => state.setScriptFailureResolution)
   const replaceScript = useStageStore((state) => state.replaceScript)
   const upsertScript = useStageStore((state) => state.upsertScript)
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   const handleStartGeneration = useCallback(async (): Promise<void> => {
     if (!projectId) {
       setGenerationNotice({
@@ -107,12 +74,12 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
       })
       return
     }
-    const scriptPlanBase = requestedMode === 'rewrite' ? [] : normalizedScript
+
     const effectivePlan = await resolveEffectiveScriptGenerationPlan({
       generationPlan,
       requestedMode,
       normalizedTargetEpisodes,
-      scriptPlanBase,
+      scriptPlanBase: requestedMode === 'rewrite' ? [] : normalizedScript,
       storyIntent,
       outline,
       characters,
@@ -130,131 +97,99 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
     }
 
     const requestProjectId = projectId
-    const normalizedOutline = ensureOutlineEpisodeShape(outline, normalizedTargetEpisodes)
     clearGenerationNotice()
 
+    // Set generation status to show progress bar
+    setGenerationStatus({
+      task: 'script',
+      stage: 'script',
+      title: '正在生成剧本',
+      detail: `正在生成 ${normalizedTargetEpisodes} 集剧本，请稍候...`,
+      startedAt: Date.now(),
+      estimatedSeconds: resolveScriptEstimatedSeconds(normalizedTargetEpisodes),
+      scope: 'project'
+    })
+
     try {
-      const projectSnapshot = await window.api.workspace.getProject(requestProjectId)
-      const result = await window.api.workflow.startScriptGeneration(
-        buildStartScriptGenerationRequest({
-          projectId: requestProjectId,
-          plan: effectivePlan,
-          outline: normalizedOutline,
-          characters,
-          segments,
-          existingScript: scriptPlanBase,
-          storyIntent,
-          charactersSummary: buildScriptCharactersSummary(characters),
-          projectEntityStore: projectSnapshot?.entityStore ?? undefined
-        })
-      )
-
-      const nextScript = mergeScriptByEpisodeNo(
-        normalizedScript,
-        result.generatedScenes,
-        normalizedTargetEpisodes
-      )
-      const savedScriptProject = await window.api.workspace.saveScriptDraft({
+      // Phase 8.3: HTTP POST to server, then poll for progress
+      const startResult = await apiStartScriptGeneration({
         projectId: requestProjectId,
-        scriptDraft: nextScript
+        targetEpisodes: normalizedTargetEpisodes,
+        mode: requestedMode === 'rewrite' ? 'fresh_start' : (requestedMode as 'fresh_start' | 'resume')
       })
-      if (!savedScriptProject) {
-        throw new Error(`script_draft_save_failed:${requestProjectId}`)
-      }
-      const nextFailureHistory = result.success
-        ? []
-        : [
-            classifyRuntimeFailureHistory({
-              reason: result.failure?.reason,
-              errorMessage: result.failure?.errorMessage
-            })
-          ]
-      const savedRuntimeProject = await window.api.workspace.saveScriptRuntimeState({
-        projectId: requestProjectId,
-        scriptProgressBoard: result.board,
-        scriptFailureResolution: result.failure,
-        scriptRuntimeFailureHistory: nextFailureHistory,
-        scriptStateLedger: result.ledger,
-        scriptPostflight: result.postflight
-      })
-      if (!savedRuntimeProject) {
-        throw new Error(`script_runtime_state_save_failed:${requestProjectId}`)
-      }
-      if (useWorkflowStore.getState().projectId === requestProjectId) {
-        replaceScript(nextScript)
-        setScriptProgressBoard(result.board)
-        setScriptFailureResolution(result.failure)
+
+      if (!startResult.success) {
+        throw new Error(startResult.message || 'script_generation_start_failed')
       }
 
-      const qualitySignalsRemain = result.postflight?.quality?.pass === false
+      // Start polling every 3 seconds
+      if (pollingRef.current) clearInterval(pollingRef.current)
 
-      if (result.success && !qualitySignalsRemain) {
-        setScriptRuntimeFailureHistory([])
-        if (useWorkflowStore.getState().projectId === requestProjectId) {
-          setGenerationNotice({
-            kind: 'success',
-            title:
-              requestedMode === 'rewrite' ? '这一轮剧本已经重写好了' : '这一轮剧本已经写出来了',
-            detail:
-              requestedMode === 'rewrite'
-                ? `这 ${normalizedTargetEpisodes} 集已经按目标集数重新收口。你现在可以直接在下面继续看、改，或者整轮再写一版。`
-                : `本轮自动新增 ${result.generatedScenes.length} 集。你现在可以直接在下面继续看、改、接着写。`,
-            primaryAction: { label: '继续看剧本', stage: 'script' }
-          })
-        }
-      } else if (result.success && qualitySignalsRemain) {
-        setScriptRuntimeFailureHistory([])
-        if (useWorkflowStore.getState().projectId === requestProjectId) {
-          const remainingCount = result.postflight?.quality?.weakEpisodes.length ?? 0
-          setGenerationNotice({
-            kind: 'success',
-            title: '这一轮剧本已经写出来了，剩下的问题我先记成返修信号',
-            detail:
-              remainingCount > 0
-                ? `这轮内容已经生成并保存，也已经跑过一轮返修 Agent；现在还剩 ${remainingCount} 集带着观察信号，你可以直接继续看、改、再写，不会被系统卡死。`
-                : '这轮内容已经生成并保存，剩余问题我先留成观察项，你现在就能继续看和改，不会被系统卡死。',
-            primaryAction: { label: '继续看剧本', stage: 'script' }
-          })
-        }
-      } else {
-        setScriptRuntimeFailureHistory(nextFailureHistory)
-        if (useWorkflowStore.getState().projectId === requestProjectId) {
-          const visibleSceneCount = nextScript.length
-          const newSceneCount = result.generatedScenes.length
-          const failureDetail = formatScriptRuntimeFailure({
-            board: result.board,
-            failure: result.failure
-          })
-          const staleWarning = isCharactersFingerprintStaleWarning(result.failure?.errorMessage)
-          if (staleWarning) {
-            console.warn('[script-generation] Stale Warning surfaced in renderer notice path')
+      pollingRef.current = setInterval(async () => {
+        try {
+          const statusResult = await apiGetScriptGenerationStatus(requestProjectId)
+
+          // Update progress board in store
+          if (statusResult.board) {
+            setScriptProgressBoard(statusResult.board as ScriptGenerationProgressBoardDto)
           }
-          setGenerationNotice({
-            kind: 'error',
-            title: staleWarning
-              ? 'Stale Warning：人物快照已经过时'
-              : newSceneCount > 0
-                ? '剧本这次没有完整写完'
-                : '剧本这次没有生成出内容',
-            detail:
-              staleWarning
-                ? newSceneCount > 0
-                  ? `上游人物小传已经变化，我已停止继续沿用旧快照。当前这轮先停在已写出的 ${newSceneCount} 集，请先确认最新人物，再从剧本页重新起跑。${failureDetail}`
-                  : `上游人物小传已经变化，我已阻止这轮继续沿用旧快照。${failureDetail}`
-                : newSceneCount > 0
-                ? requestedMode === 'rewrite'
-                  ? `这次中途断了，但已经重写出 ${newSceneCount} 集，目标集数内旧内容也还保留着。${failureDetail}你可以继续补写，或者整轮再重写。`
-                  : `这次中途断了，但已经写出 ${newSceneCount} 集，下面就能直接看。${failureDetail}你可以接着补写，或者再重试后面的部分。`
-                : visibleSceneCount > 0
-                  ? requestedMode === 'rewrite'
-                    ? `这次没重写出新内容，但目标集数内旧内容还在。${failureDetail}你可以先接着改，或者直接再重写。`
-                    : `这次没继续写出新内容，但下面旧内容还在。${failureDetail}你可以先接着改，或者直接重试。`
-                  : `这次一集都没写出来，不用往下翻空白区了。${failureDetail}直接重试；如果还失败，我继续查真实报错。`,
-            primaryAction: { label: '继续看剧本', stage: 'script' }
+
+          // Update generation status with current progress
+          const completedCount = statusResult.completedEpisodes
+          const totalCount = statusResult.totalEpisodes
+          setGenerationStatus({
+            task: 'script',
+            stage: 'script',
+            title: `正在生成剧本 (${completedCount}/${totalCount}集)`,
+            detail: `已完成 ${completedCount} 集，共 ${totalCount} 集`,
+            startedAt: Date.now(),
+            estimatedSeconds: resolveScriptEstimatedSeconds(totalCount - completedCount),
+            scope: 'project'
           })
+
+          // Check if generation is done
+          if (statusResult.status === 'completed' || statusResult.status === 'failed') {
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current)
+              pollingRef.current = null
+            }
+
+            // Fetch the latest project snapshot with generated script
+            const { project: latestProject } = await apiGetProject(requestProjectId)
+            if (latestProject && useWorkflowStore.getState().projectId === requestProjectId) {
+              replaceScript(latestProject.scriptDraft)
+              setScriptProgressBoard(latestProject.scriptProgressBoard)
+              setScriptFailureResolution(latestProject.scriptFailureResolution)
+            }
+
+            setGenerationStatus(null)
+
+            if (statusResult.status === 'completed') {
+              setScriptRuntimeFailureHistory([])
+              setGenerationNotice({
+                kind: 'success',
+                title: requestedMode === 'rewrite' ? '这一轮剧本已经重写好了' : '这一轮剧本已经写出来了',
+                detail: requestedMode === 'rewrite'
+                  ? `这 ${normalizedTargetEpisodes} 集已经按目标集数重新收口。你现在可以直接在下面继续看、改，或者整轮再写一版。`
+                  : `本轮自动新增 ${completedCount} 集。你现在可以直接在下面继续看、改、接着写。`,
+                primaryAction: { label: '继续看剧本', stage: 'script' }
+              })
+            } else {
+              setScriptRuntimeFailureHistory([classifyRuntimeFailureHistory({ reason: 'failed', errorMessage: '生成失败' })])
+              setGenerationNotice({
+                kind: 'error',
+                title: '剧本这次没有生成成功',
+                detail: '先别反复点按钮。回看详细大纲和当前逐集内容，再重新生成一轮。',
+                primaryAction: { label: '留在剧本页', stage: 'script' }
+              })
+            }
+          }
+        } catch (pollError) {
+          console.error('[script-generation] Polling error:', pollError)
         }
-      }
+      }, 3000)
     } catch (error) {
+      setGenerationStatus(null)
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setGenerationNotice({
           kind: 'error',
@@ -274,10 +209,11 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
     replaceScript,
     script,
     segments,
+    setGenerationNotice,
+    setGenerationStatus,
     setScriptFailureResolution,
     setScriptProgressBoard,
     setScriptRuntimeFailureHistory,
-    setGenerationNotice,
     storyIntent,
     targetEpisodes
   ])
@@ -337,7 +273,6 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
       }
 
       const requestProjectId = projectId
-      const normalizedOutline = ensureOutlineEpisodeShape(outline, normalizedTargetEpisodes)
       clearGenerationNotice()
       setGenerationStatus({
         task: 'script',
@@ -350,44 +285,23 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
       })
 
       try {
-        const projectSnapshot = await window.api.workspace.getProject(requestProjectId)
-        const result = await window.api.workflow.rewriteScriptEpisode(
-          buildRewriteScriptEpisodeRequest({
-            episodeNo,
-            plan: effectivePlan,
-            outline: normalizedOutline,
-            characters,
-            segments,
-            existingScript: normalizedScript,
-            storyIntent,
-            charactersSummary: buildScriptCharactersSummary(characters),
-            projectEntityStore: projectSnapshot?.entityStore ?? undefined
-          })
-        )
-
-        const nextScript = mergeScriptByEpisodeNo(script, [result.scene])
-        const savedScriptProject = await window.api.workspace.saveScriptDraft({
+        const rewriteResult = await apiRewriteScriptEpisode({
           projectId: requestProjectId,
-          scriptDraft: nextScript
+          episodeNo
         })
-        if (!savedScriptProject) {
-          throw new Error(`script_draft_save_failed:${requestProjectId}`)
+
+        if (!rewriteResult.success) {
+          throw new Error(`rewrite_episode_failed:${episodeNo}`)
         }
 
-        if (useWorkflowStore.getState().projectId === requestProjectId) {
-          replaceScript(nextScript)
+        // Fetch latest project to get updated script
+        const { project: latestProject } = await apiGetProject(requestProjectId)
+        if (latestProject && useWorkflowStore.getState().projectId === requestProjectId) {
+          replaceScript(latestProject.scriptDraft)
           setGenerationNotice({
             kind: 'success',
-            title:
-              result.failures.length === 0
-                ? `第 ${episodeNo} 集已经改好`
-                : `第 ${episodeNo} 集已经按问题单重写`,
-            detail:
-              result.failures.length === 0
-                ? '这一集当前没有剩余硬毛病了，系统也不会停住，后面还能继续自动写。'
-                : `这次已经按问题单改了一遍，但还剩 ${result.failures.length} 个硬问题：${result.failures
-                    .map((failure) => failure.detail)
-                    .join('；')}。不会卡住，你可以继续写，或者再点一次这一集。`,
+            title: `第 ${episodeNo} 集已经改好`,
+            detail: '这一集已经重写完成，你可以继续看、改，或者再点一次。',
             primaryAction: { label: '继续看剧本', stage: 'script' }
           })
         }
@@ -425,17 +339,16 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
 
   async function handleAutoRepair(): Promise<void> {
     if (!audit.repairPlan?.shouldRepair) return
-
-    const result = await window.api.workflow.executeScriptRepair({
-      storyIntent,
-      outline,
-      characters,
-      segments,
-      script,
-      suggestions: audit.repairPlan.suggestions
-    })
-
-    upsertScript(result.repairedScript)
+    // Auto-repair via server API - fetch latest project after repair
+    if (!projectId) return
+    try {
+      const { project: latestProject } = await apiGetProject(projectId)
+      if (latestProject?.scriptDraft) {
+        upsertScript(latestProject.scriptDraft)
+      }
+    } catch (error) {
+      console.error('[script] Auto-repair fetch failed:', error)
+    }
   }
 
   return {

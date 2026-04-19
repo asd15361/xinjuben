@@ -1,0 +1,25 @@
+{
+  "user":"9nsc805pojw4vk9",
+  "project":"h0ipnenh8fgjzff",
+  "detailedOutlineSegmentsJson":[
+    {
+      "episodeNo":1,
+      "blockNo":1,
+      "act":"opening",
+      "hookType":"追杀钩",
+      "title":"第1集开场",
+      "content":"黑石城，陆烬是古阵钥匙的唯一持有者，以废物身份在韩枭手下苟活。韩枭灭了陆家夺取黑石城，现在步步紧逼要逼陆烬交出古阵钥匙。韩枭当众羞辱陆烬，逼他交出钥匙。沈昭宁被韩枭的人带走当筹码。陆烬表面屈服，暗中联络秦婆和裴断山确认旧部忠诚。钩子：沈昭宁被押走，陆烬握紧钥匙。"
+    },
+    {
+      "episodeNo":2,
+      "blockNo":1,
+      "act":"climax",
+      "hookType":"反杀钩",
+      "title":"第2集反杀",
+      "content":"韩枭灭了陆家夺取黑石城后设祭阵，要逼陆烬是古阵钥匙的唯一持有者当众交钥匙。陆烬假装就范，实则借祭阵当众开阵。古阵启动，旧部重新站队。韩枭从压迫者变成众矢之的。沈昭宁当众表态站陆烬。结局：韩枭身败名裂，陆烬夺回古阵钥匙、旧部与黑石城主导权。"
+    }
+  ],
+  "detailedOutlineBlocksJson":[
+    {"blockNo":1,"label":"全剧","startEpisode":1,"endEpisode":2}
+  ]
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Users, Plus, Shield, Sparkles, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { switchStageSession } from '../../../app/services/stage-session-service'
@@ -9,7 +9,6 @@ import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBa
 import { StageExportButton } from '../../../components/StageExportButton'
 import { useOutlineCharacterGeneration } from '../../../app/hooks/useOutlineCharacterGeneration.ts'
 import { useProjectStageExport } from '../../../app/hooks/useProjectStageExport'
-import type { ProjectEntityStoreDto } from '../../../../../shared/contracts/entities.ts'
 import {
   buildCharacterStageSections,
   createCharacterDraftFromEntityStore
@@ -59,36 +58,17 @@ export function CharacterStage() {
   const {
     actionLabel,
     generationStatus,
+    generationBusy,
     handleGenerateOutlineAndCharacters
   } = useOutlineCharacterGeneration('character')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [entityStore, setEntityStore] = useState<ProjectEntityStoreDto | null>(null)
+  const entityStore = useWorkflowStore((state) => state.projectEntityStore)
   const sections = useMemo(
     () => buildCharacterStageSections({ characterDrafts: characters, entityStore }),
     [characters, entityStore]
   )
 
-  useEffect(() => {
-    let cancelled = false
 
-    async function loadEntityStore(): Promise<void> {
-      if (!projectId) {
-        setEntityStore(null)
-        return
-      }
-
-      const project = await window.api.workspace.getProject(projectId)
-      if (!cancelled) {
-        setEntityStore(project?.entityStore ?? null)
-      }
-    }
-
-    void loadEntityStore()
-
-    return () => {
-      cancelled = true
-    }
-  }, [projectId])
 
   async function handleGoToDetailedOutline(): Promise<void> {
     if (!projectId) return
@@ -161,7 +141,7 @@ export function CharacterStage() {
               onClick={() => {
                 void handleGenerateOutlineAndCharacters()
               }}
-              disabled={Boolean(generationStatus)}
+              disabled={generationBusy}
               className="flex items-center gap-2 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-2.5 text-xs font-black text-orange-300 transition-colors hover:bg-orange-500/15 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {actionLabel}

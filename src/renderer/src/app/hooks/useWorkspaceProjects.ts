@@ -10,6 +10,17 @@ import type {
   SaveScriptRuntimeStateInputDto,
   SaveStoryIntentInputDto
 } from '../../../../shared/contracts/workspace'
+import {
+  apiCreateProject,
+  apiGetProject,
+  apiListProjects,
+  apiSaveCharacterDrafts,
+  apiSaveDetailedOutlineSegments,
+  apiSaveOutlineDraft,
+  apiSaveScriptDraft,
+  apiSaveScriptRuntimeState,
+  apiSaveStoryIntent
+} from '../../services/api-client'
 
 interface WorkspaceProjectsState {
   projects: ProjectSummaryDto[]
@@ -31,63 +42,63 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
   const [activeProject, setActiveProject] = useState<ProjectSnapshotDto | null>(null)
 
   async function reload(): Promise<void> {
-    const result = await window.api.workspace.listProjects()
+    const result = await apiListProjects()
     setProjects(result.projects)
   }
 
   async function createProject(input: CreateProjectInputDto): Promise<void> {
-    const result = await window.api.workspace.createProject(input)
+    const result = await apiCreateProject(input)
     await reload()
     setActiveProject(result.project)
   }
 
   async function openProject(projectId: string): Promise<void> {
-    const project = await window.api.workspace.getProject(projectId)
-    setActiveProject(project)
+    const result = await apiGetProject(projectId)
+    setActiveProject(result.project)
   }
 
   async function saveStoryIntent(input: SaveStoryIntentInputDto): Promise<ProjectSnapshotDto | null> {
-    const project = await window.api.workspace.saveStoryIntent(input)
-    setActiveProject(project)
+    const result = await apiSaveStoryIntent(input)
+    setActiveProject(result.project)
     await reload()
-    return project
+    return result.project
   }
 
   async function saveOutlineDraft(input: SaveOutlineDraftInputDto): Promise<ProjectSnapshotDto | null> {
-    const project = await window.api.workspace.saveOutlineDraft(input)
-    setActiveProject(project)
+    const result = await apiSaveOutlineDraft(input)
+    setActiveProject(result.project)
     await reload()
-    return project
+    return result.project
   }
 
   async function saveCharacterDrafts(input: SaveCharacterDraftsInputDto): Promise<ProjectSnapshotDto | null> {
-    const project = await window.api.workspace.saveCharacterDrafts(input)
-    setActiveProject(project)
+    const result = await apiSaveCharacterDrafts(input)
+    setActiveProject(result.project)
     await reload()
-    return project
+    return result.project
   }
 
   async function saveDetailedOutlineSegments(
     input: SaveDetailedOutlineSegmentsInputDto
   ): Promise<ProjectSnapshotDto | null> {
-    const project = await window.api.workspace.saveDetailedOutlineSegments(input)
-    setActiveProject(project)
+    const result = await apiSaveDetailedOutlineSegments(input)
+    setActiveProject(result.project)
     await reload()
-    return project
+    return result.project
   }
 
   async function saveScriptDraft(input: SaveScriptDraftInputDto): Promise<ProjectSnapshotDto | null> {
-    const project = await window.api.workspace.saveScriptDraft(input)
-    setActiveProject(project)
+    const result = await apiSaveScriptDraft(input)
+    setActiveProject(result.project)
     await reload()
-    return project
+    return result.project
   }
 
   async function saveScriptRuntimeState(input: SaveScriptRuntimeStateInputDto): Promise<ProjectSnapshotDto | null> {
-    const project = await window.api.workspace.saveScriptRuntimeState(input)
-    setActiveProject(project)
+    const result = await apiSaveScriptRuntimeState(input)
+    setActiveProject(result.project)
     await reload()
-    return project
+    return result.project
   }
 
   async function createOutlineSeed(projectId: string): Promise<OutlineSeedDto | null> {

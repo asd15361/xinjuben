@@ -1,0 +1,165 @@
+{
+  "nodes": [
+    {"id": "chunk13:60ep-stability-plan", "label": "60集详细大纲稳定性交付计划", "type": "plan", "confidence": 1.0, "source": "docs/归档/历史计划/completed/60集详细大纲稳定性交付计划（第一版）.md"},
+    {"id": "chunk13:short-detailed-outline-bug", "label": "短详纲被写成正式结果的bug", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/60集详细大纲稳定性交付计划（第一版）.md"},
+    {"id": "chunk13:fail-closed-gate", "label": "fail-closed门禁机制", "type": "concept", "confidence": 1.0, "source": "docs/归档/历史计划/completed/60集详细大纲稳定性交付计划（第一版）.md"},
+    {"id": "chunk13:targetEpisodes-contract", "label": "targetEpisodes硬合同", "type": "concept", "confidence": 1.0, "source": "docs/归档/历史计划/completed/60集详细大纲稳定性交付计划（第一版）.md"},
+    {"id": "chunk13:detailed-outline-gen-chain", "label": "详纲生成链路", "type": "system_component", "confidence": 1.0, "source": "docs/归档/历史计划/completed/60集详细大纲稳定性交付计划（第一版）.md"},
+
+    {"id": "chunk13:recovery-chain-issues", "label": "恢复链新问题发现(2026-03-22)", "type": "defect_collection", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:fingerprint-never-works", "label": "stageContractFingerprint从未生效", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:store-vs-projectstore-desync", "label": "renderer store与project store永久分叉", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:existingBlocks-wrong-source", "label": "existingDetailedOutlineBlocks数据来源错误", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:resume-dual-source", "label": "Resume起点双重来源矛盾", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:failure-history-inconsistency", "label": "failure history清理不一致", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:ledger-preview-stale", "label": "ledger预览返回过期持久化状态", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:board-reuse-no-status-check", "label": "shouldReusePersistedBoard缺少status校验", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:generationStatus-fire-and-forget", "label": "generationStatus保存是fire-and-forget", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:race-condition-save", "label": "saveScriptRuntimeState与failureHistory竞态条件", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:ledger-lost-on-failure", "label": "失败时ledger context永久丢失", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:hook-no-resync", "label": "useScriptGenerationRuntime不随project snapshot重新同步", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:ipc-no-permission-check", "label": "IPC handlers对projectId无权限验证", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:preload-unscoped-write", "label": "preload API暴露无作用域写操作", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:renderer-main-trust-trap", "label": "renderer/main之间projectId单向信任陷阱", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:projectId-no-session-binding", "label": "生成流程projectId没有session binding", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:board-discarded-on-start", "label": "startScriptGeneration时board总是被丢弃", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:auto-repair-no-persist", "label": "handleAutoRepair只写内存不写磁盘", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:stale-closure-script", "label": "handleStartGeneration从陈旧闭包捕获script", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:debounced-save-loss", "label": "debounced save导致编辑丢失", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+
+    {"id": "chunk13:e2e-fake-green-issues", "label": "E2E假绿/吞错新问题发现", "type": "defect_collection", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"},
+    {"id": "chunk13:generationStatus-type-confusion", "label": "generationStatus类型混淆(对象vs字符串)", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"},
+    {"id": "chunk13:observer-effect-testing", "label": "observer effect: 脚本自己构建要验证的状态", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"},
+    {"id": "chunk13:poll-interval-hardcoded", "label": "批量观察器poll间隔硬编码", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"},
+    {"id": "chunk13:fuzzy-regex-multi-match", "label": "UI按钮检测模糊正则多匹配", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"},
+    {"id": "chunk13:baton-heuristic-as-deterministic", "label": "Baton heuristic被当确定性判断用", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"},
+
+    {"id": "chunk13:release-gate-standard", "label": "上线口径与门禁清单", "type": "standard", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线口径与门禁清单（第一版）.md"},
+    {"id": "chunk13:internal-self-use", "label": "第一档：内部自用", "type": "release_tier", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线口径与门禁清单（第一版）.md"},
+    {"id": "chunk13:small-beta", "label": "第二档：小范围内测", "type": "release_tier", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线口径与门禁清单（第一版）.md"},
+    {"id": "chunk13:external-release", "label": "第三档：外部正式上线", "type": "release_tier", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线口径与门禁清单（第一版）.md"},
+
+    {"id": "chunk13:release-calibration-cleanup", "label": "上线口径统一与旧结论退场计划", "type": "plan", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线口径统一与旧结论退场计划（第一版）.md"},
+    {"id": "chunk13:stale-release-conclusion", "label": "旧上线口径冒充当前真相", "type": "defect", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线口径统一与旧结论退场计划（第一版）.md"},
+
+    {"id": "chunk13:character-vitality-plan", "label": "上线后人物活性第一刀计划", "type": "plan", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后人物活性第一刀计划（第一版）.md"},
+    {"id": "chunk13:direct-reveal-problem", "label": "直接把试探说破(人物活性薄根)", "type": "quality_dimension", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后人物活性第一刀计划（第一版）.md"},
+    {"id": "chunk13:character-vitality-4step", "label": "人物活性4步修复顺序", "type": "methodology", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后人物活性第一刀执行顺序与记账口径（第一版）.md"},
+    {"id": "chunk13:5-item-accounting", "label": "5项固定记账法", "type": "methodology", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后人物活性第一刀执行顺序与记账口径（第一版）.md"},
+    {"id": "chunk13:stable-pass-definition", "label": "稳定通过定义", "type": "concept", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后人物活性第一刀稳定通过判断（第一版）.md"},
+    {"id": "chunk13:character-vitality-stable-pass", "label": "人物活性第一刀稳定通过判断(已通过)", "type": "judgment", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后人物活性第一刀稳定通过判断（第一版）.md"},
+
+    {"id": "chunk13:mouthfeel-plan", "label": "上线后嘴感第一刀计划", "type": "plan", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后嘴感第一刀计划（第一版）.md"},
+    {"id": "chunk13:pause-weight-problem", "label": "停顿和重心落不住(嘴感薄根)", "type": "quality_dimension", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后嘴感第一刀计划（第一版）.md"},
+    {"id": "chunk13:mouthfeel-4step", "label": "嘴感4步修复顺序", "type": "methodology", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后嘴感第一刀执行顺序与记账口径（第一版）.md"},
+    {"id": "chunk13:mouthfeel-stable-pass", "label": "嘴感第一刀稳定通过判断(已通过)", "type": "judgment", "confidence": 1.0, "source": "docs/归档/历史计划/completed/上线后嘴感第一刀稳定通过判断（第一版）.md"},
+
+    {"id": "chunk13:quality-commitment-hierarchy", "label": "质量承诺层级:嘴感<人物活性<连续性", "type": "concept", "confidence": 0.85, "source": "docs/归档/历史计划/completed/上线后嘴感第一刀计划（第一版）.md"},
+
+    {"id": "chunk13:resume-lifecycle", "label": "resume/failure生命周期", "type": "system_component", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:persisted-vs-memory-desync", "label": "持久化与内存状态不一致(desync)", "type": "defect_category", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:ipc-security-chain", "label": "IPC安全漏洞链(preload+main信任链)", "type": "defect_category", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+
+    {"id": "chunk13:script-generation-board", "label": "剧本生成进度板(ScriptProgressBoard)", "type": "system_component", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:script-generation-ledger", "label": "剧本状态账本(ScriptStateLedger)", "type": "system_component", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22.md"},
+    {"id": "chunk13:generation-status-dto", "label": "generationStatus DTO", "type": "system_component", "confidence": 1.0, "source": "docs/归档/历史计划/completed/recovery-chain-new-issues-2026-03-22-e2e.md"}
+  ],
+  "edges": [
+    {"source": "chunk13:60ep-stability-plan", "target": "chunk13:short-detailed-outline-bug", "label": "解决", "confidence": 1.0},
+    {"source": "chunk13:60ep-stability-plan", "target": "chunk13:fail-closed-gate", "label": "需要", "confidence": 1.0},
+    {"source": "chunk13:60ep-stability-plan", "target": "chunk13:targetEpisodes-contract", "label": "需要", "confidence": 1.0},
+    {"source": "chunk13:short-detailed-outline-bug", "target": "chunk13:fail-closed-gate", "label": "根因:缺少fail-closed门", "confidence": 1.0},
+    {"source": "chunk13:short-detailed-outline-bug", "target": "chunk13:detailed-outline-gen-chain", "label": "发生在", "confidence": 1.0},
+
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:fingerprint-never-works", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:store-vs-projectstore-desync", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:existingBlocks-wrong-source", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:resume-dual-source", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:failure-history-inconsistency", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:ipc-no-permission-check", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:recovery-chain-issues", "target": "chunk13:preload-unscoped-write", "label": "包含", "confidence": 1.0},
+
+    {"source": "chunk13:fingerprint-never-works", "target": "chunk13:script-generation-board", "label": "影响", "confidence": 1.0},
+    {"source": "chunk13:store-vs-projectstore-desync", "target": "chunk13:persisted-vs-memory-desync", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:existingBlocks-wrong-source", "target": "chunk13:store-vs-projectstore-desync", "label": "与...同根", "confidence": 0.85},
+    {"source": "chunk13:board-reuse-no-status-check", "target": "chunk13:resume-dual-source", "label": "加剧", "confidence": 0.85},
+    {"source": "chunk13:board-discarded-on-start", "target": "chunk13:fingerprint-never-works", "label": "即使fingerprint修好board仍被丢弃", "confidence": 1.0},
+    {"source": "chunk13:auto-repair-no-persist", "target": "chunk13:persisted-vs-memory-desync", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:stale-closure-script", "target": "chunk13:persisted-vs-memory-desync", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:debounced-save-loss", "target": "chunk13:persisted-vs-memory-desync", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:generationStatus-fire-and-forget", "target": "chunk13:persisted-vs-memory-desync", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:race-condition-save", "target": "chunk13:persisted-vs-memory-desync", "label": "属于", "confidence": 1.0},
+
+    {"source": "chunk13:ipc-no-permission-check", "target": "chunk13:ipc-security-chain", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:preload-unscoped-write", "target": "chunk13:ipc-security-chain", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:renderer-main-trust-trap", "target": "chunk13:ipc-security-chain", "label": "属于", "confidence": 1.0},
+    {"source": "chunk13:projectId-no-session-binding", "target": "chunk13:ipc-security-chain", "label": "属于", "confidence": 1.0},
+
+    {"source": "chunk13:generationStatus-type-confusion", "target": "chunk13:generation-status-dto", "label": "影响", "confidence": 1.0},
+    {"source": "chunk13:e2e-fake-green-issues", "target": "chunk13:generationStatus-type-confusion", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:e2e-fake-green-issues", "target": "chunk13:observer-effect-testing", "label": "包含", "confidence": 1.0},
+    {"source": "chunk13:e2e-fake-green-issues", "target": "chunk13:baton-heuristic-as-deterministic", "label": "包含", "confidence": 1.0},
+
+    {"source": "chunk13:release-gate-standard", "target": "chunk13:internal-self-use", "label": "定义", "confidence": 1.0},
+    {"source": "chunk13:release-gate-standard", "target": "chunk13:small-beta", "label": "定义", "confidence": 1.0},
+    {"source": "chunk13:release-gate-standard", "target": "chunk13:external-release", "label": "定义", "confidence": 1.0},
+    {"source": "chunk13:small-beta", "target": "chunk13:internal-self-use", "label": "依赖", "confidence": 1.0},
+    {"source": "chunk13:external-release", "target": "chunk13:small-beta", "label": "依赖", "confidence": 1.0},
+    {"source": "chunk13:release-calibration-cleanup", "target": "chunk13:stale-release-conclusion", "label": "解决", "confidence": 1.0},
+    {"source": "chunk13:stale-release-conclusion", "target": "chunk13:release-gate-standard", "label": "与...冲突", "confidence": 1.0},
+
+    {"source": "chunk13:character-vitality-plan", "target": "chunk13:direct-reveal-problem", "label": "聚焦", "confidence": 1.0},
+    {"source": "chunk13:character-vitality-plan", "target": "chunk13:character-vitality-4step", "label": "使用", "confidence": 1.0},
+    {"source": "chunk13:character-vitality-4step", "target": "chunk13:5-item-accounting", "label": "配套", "confidence": 1.0},
+    {"source": "chunk13:character-vitality-stable-pass", "target": "chunk13:direct-reveal-problem", "label": "判定", "confidence": 1.0},
+    {"source": "chunk13:character-vitality-stable-pass", "target": "chunk13:stable-pass-definition", "label": "依据", "confidence": 1.0},
+
+    {"source": "chunk13:mouthfeel-plan", "target": "chunk13:pause-weight-problem", "label": "聚焦", "confidence": 1.0},
+    {"source": "chunk13:mouthfeel-plan", "target": "chunk13:mouthfeel-4step", "label": "使用", "confidence": 1.0},
+    {"source": "chunk13:mouthfeel-stable-pass", "target": "chunk13:pause-weight-problem", "label": "判定", "confidence": 1.0},
+    {"source": "chunk13:mouthfeel-stable-pass", "target": "chunk13:stable-pass-definition", "label": "依据", "confidence": 1.0},
+
+    {"source": "chunk13:character-vitality-plan", "target": "chunk13:mouthfeel-stable-pass", "label": "在嘴感稳定通过之后", "confidence": 1.0},
+    {"source": "chunk13:quality-commitment-hierarchy", "target": "chunk13:pause-weight-problem", "label": "最薄层", "confidence": 0.85},
+    {"source": "chunk13:quality-commitment-hierarchy", "target": "chunk13:direct-reveal-problem", "label": "次薄层", "confidence": 0.85},
+
+    {"source": "chunk13:resume-lifecycle", "target": "chunk13:fingerprint-never-works", "label": "受影响于", "confidence": 1.0},
+    {"source": "chunk13:resume-lifecycle", "target": "chunk13:board-discarded-on-start", "label": "受影响于", "confidence": 1.0},
+    {"source": "chunk13:resume-lifecycle", "target": "chunk13:resume-dual-source", "label": "受影响于", "confidence": 1.0},
+    {"source": "chunk13:resume-lifecycle", "target": "chunk13:ledger-lost-on-failure", "label": "受影响于", "confidence": 1.0}
+  ],
+  "hyperedges": [
+    {
+      "id": "chunk13:ipc-vulnerability-chain",
+      "nodes": ["chunk13:ipc-no-permission-check", "chunk13:preload-unscoped-write", "chunk13:renderer-main-trust-trap", "chunk13:projectId-no-session-binding"],
+      "label": "IPC安全漏洞完整链: preload无作用域 -> main无权限校验 -> renderer/main单向信任 -> 无session绑定",
+      "confidence": 1.0
+    },
+    {
+      "id": "chunk13:resume-complete-failure-chain",
+      "nodes": ["chunk13:fingerprint-never-works", "chunk13:board-discarded-on-start", "chunk13:resume-dual-source", "chunk13:board-reuse-no-status-check"],
+      "label": "resume链完全失效链: fingerprint不工作 -> board被丢弃 -> 起点双重来源 -> 无status校验",
+      "confidence": 1.0
+    },
+    {
+      "id": "chunk13:desync-patterns",
+      "nodes": ["chunk13:store-vs-projectstore-desync", "chunk13:auto-repair-no-persist", "chunk13:stale-closure-script", "chunk13:debounced-save-loss", "chunk13:generationStatus-fire-and-forget", "chunk13:race-condition-save"],
+      "label": "持久化-内存不一致模式集合: store分叉/repair不持久/陈旧闭包/debounce丢失/异步fire-and-forget/竞态写盘",
+      "confidence": 1.0
+    },
+    {
+      "id": "chunk13:quality-commitment-strategy",
+      "nodes": ["chunk13:pause-weight-problem", "chunk13:direct-reveal-problem", "chunk13:mouthfeel-stable-pass", "chunk13:character-vitality-stable-pass", "chunk13:stable-pass-definition"],
+      "label": "质量承诺策略: 嘴感(已稳定通过) -> 人物活性(已稳定通过) -> 连续性(后续), 使用5项记账+稳定通过定义",
+      "confidence": 1.0
+    },
+    {
+      "id": "chunk13:60ep-root-cause-chain",
+      "nodes": ["chunk13:short-detailed-outline-bug", "chunk13:fail-closed-gate", "chunk13:targetEpisodes-contract", "chunk13:detailed-outline-gen-chain"],
+      "label": "60集详纲短结果根因链: 无fail-closed门 + 无硬合同 + 链路回写覆盖 = 短详纲升格为正式结果",
+      "confidence": 1.0
+    }
+  ],
+  "input_tokens": 28000,
+  "output_tokens": 8500
+}

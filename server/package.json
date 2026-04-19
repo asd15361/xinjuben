@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "migrate:up": "tsx scripts/migrate-pocketbase.ts up",
+    "migrate:down": "tsx scripts/migrate-pocketbase.ts down"
   },
   "dependencies": {
     "cors": "^2.8.5",

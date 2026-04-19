@@ -21,7 +21,6 @@ export function AppHeader() {
   const { appInfo } = useRuntimeInfo()
   const { elapsedSeconds } = useProjectGenerationProgress(generationStatus)
   const initializeAuth = useAuthStore((state) => state.initialize)
-  const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
 
   // 应用启动时初始化认证状态
   useEffect(() => {
