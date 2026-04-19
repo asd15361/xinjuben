@@ -12,6 +12,8 @@ import { authRouter } from './api/routes/auth'
 import { creditsRouter } from './api/routes/credits'
 import { generateRouter } from './api/routes/generate'
 import { outlineCharactersRouter } from './api/routes/outline-characters'
+import { detailedOutlineRouter } from './api/routes/detailed-outline'
+import { projectsRouter } from './api/routes/projects'
 
 // 加载环境变量
 dotenv.config()
@@ -46,8 +48,10 @@ app.get('/health', (req, res) => {
 // API 路由
 app.use('/api/auth', authRouter)
 app.use('/api/credits', creditsRouter)
+app.use('/api/projects', projectsRouter)
 app.use('/api/generate', generateRouter)
 app.use('/api/generate', outlineCharactersRouter)
+app.use('/api/generate', detailedOutlineRouter)
 
 // 404 处理
 app.use((req, res) => {
@@ -68,10 +72,15 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 })
 
 // 启动服务器
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`[Server] Xinjuben backend running on port ${PORT}`)
   console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`)
   console.log(`[Server] PocketBase URL: ${process.env.POCKETBASE_URL || 'http://localhost:8090'}`)
 })
+
+// 服务器超时设置（15 分钟，匹配 AI 生成长任务）
+server.setTimeout(900000)
+server.keepAliveTimeout = 900000 + 5000
+server.headersTimeout = 900000 + 10000
 
 export default app
