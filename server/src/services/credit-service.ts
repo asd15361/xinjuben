@@ -1,9 +1,9 @@
 /**
- * 积分服务（使用 HTTP API）
+ * 积分服务（共享 PocketBase 钱包架构）
  *
- * 管理用户积分余额、扣费、充值
+ * 使用 user_wallets 表存余额，xinjuben_transactions 表存流水
  */
-import { authenticateAdmin, getUserCredits, cachedAdminToken, PB_URL } from '../infrastructure/pocketbase/client'
+import { authenticateAdmin, cachedAdminToken, PB_URL, APP_ID, TABLES, getUserWalletBalance } from '../infrastructure/pocketbase/client'
 
 export interface CreditBalance {
   balance: number
@@ -27,21 +27,28 @@ export interface ApiCallMetadata {
   durationMs?: number
 }
 
+async function getWalletRecord(userId: string): Promise<{ id: string; balance: number } | null> {
+  await authenticateAdmin()
+
+  const res = await fetch(
+    `${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`,
+    { headers: { 'Authorization': cachedAdminToken } }
+  )
+
+  if (!res.ok) return null
+
+  const data = await res.json()
+  if (!data.items || data.items.length === 0) return null
+
+  return { id: data.items[0].id, balance: data.items[0].balance }
+}
+
 export class CreditService {
-  /**
-   * 获取用户积分余额
-   */
   async getBalance(userId: string): Promise<CreditBalance> {
-    const credits = await getUserCredits(userId)
-    return {
-      balance: credits.balance,
-      frozenBalance: credits.frozenBalance
-    }
+    const balance = await getUserWalletBalance(userId)
+    return { balance, frozenBalance: 0 }
   }
 
-  /**
-   * 扣减积分
-   */
   async deductCredits(
     userId: string,
     amount: number,
@@ -49,82 +56,53 @@ export class CreditService {
   ): Promise<TransactionResult> {
     await authenticateAdmin()
 
-    // 获取当前积分
-    const credits = await getUserCredits(userId)
-    const balanceBefore = credits.balance
+    const wallet = await getWalletRecord(userId)
+    if (!wallet) {
+      return { success: false, newBalance: 0, transactionId: '', error: 'wallet_not_found' }
+    }
+
+    const balanceBefore = wallet.balance
 
     if (balanceBefore < amount) {
-      return {
-        success: false,
-        newBalance: balanceBefore,
-        transactionId: '',
-        error: 'insufficient_credits'
-      }
+      return { success: false, newBalance: balanceBefore, transactionId: '', error: 'insufficient_credits' }
     }
 
     const balanceAfter = balanceBefore - amount
 
-    // 更新积分余额
-    const updateRes = await fetch(`${PB_URL}/api/collections/credits/records/${credits.id}`, {
+    // 更新钱包余额
+    const updateRes = await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
-      body: JSON.stringify({
-        balance: balanceAfter,
-        frozenBalance: credits.frozenBalance
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      body: JSON.stringify({ balance: balanceAfter })
     })
 
     if (!updateRes.ok) {
-      return {
-        success: false,
-        newBalance: balanceBefore,
-        transactionId: '',
-        error: 'update_failed'
-      }
+      return { success: false, newBalance: balanceBefore, transactionId: '', error: 'update_failed' }
     }
 
-    // 记录交易
-    const transRes = await fetch(`${PB_URL}/api/collections/transactions/records`, {
+    // 记录流水
+    const transRes = await fetch(`${PB_URL}/api/collections/${TABLES.transactions}/records`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
       body: JSON.stringify({
         user: userId,
         type: 'api_call',
         amount: -amount,
         balanceBefore,
         balanceAfter,
-        description: `AI调用: ${metadata.task}`
+        description: `AI调用: ${metadata.task}`,
+        metadata: {
+          project: metadata.projectId,
+          lane: metadata.lane,
+          model: metadata.model,
+          inputTokens: metadata.inputTokens ?? 0,
+          outputTokens: metadata.outputTokens ?? 0,
+          durationMs: metadata.durationMs ?? 0
+        }
       })
     })
 
     const transData = await transRes.json()
-
-    // 记录 API 调用日志
-    await fetch(`${PB_URL}/api/collections/api_call_logs/records`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
-      body: JSON.stringify({
-        user: userId,
-        project: metadata.projectId,
-        task: metadata.task,
-        lane: metadata.lane,
-        model: metadata.model,
-        inputTokens: metadata.inputTokens ?? 0,
-        outputTokens: metadata.outputTokens ?? 0,
-        costCredits: amount,
-        durationMs: metadata.durationMs ?? 0,
-        success: true
-      })
-    })
 
     return {
       success: true,
@@ -133,9 +111,6 @@ export class CreditService {
     }
   }
 
-  /**
-   * 增加积分
-   */
   async addCredits(
     userId: string,
     amount: number,
@@ -144,85 +119,54 @@ export class CreditService {
   ): Promise<number> {
     await authenticateAdmin()
 
-    const credits = await getUserCredits(userId)
-    const balanceBefore = credits.balance
+    const wallet = await getWalletRecord(userId)
+    if (!wallet) {
+      throw new Error('wallet_not_found')
+    }
+
+    const balanceBefore = wallet.balance
     const balanceAfter = balanceBefore + amount
 
-    // 更新积分
-    await fetch(`${PB_URL}/api/collections/credits/records/${credits.id}`, {
+    // 更新钱包
+    await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
       body: JSON.stringify({ balance: balanceAfter })
     })
 
-    // 记录交易
-    await fetch(`${PB_URL}/api/collections/transactions/records`, {
+    // 记录流水
+    await fetch(`${PB_URL}/api/collections/${TABLES.transactions}/records`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
-      body: JSON.stringify({
-        user: userId,
-        type,
-        amount,
-        balanceBefore,
-        balanceAfter,
-        description
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      body: JSON.stringify({ user: userId, type, amount, balanceBefore, balanceAfter, description })
     })
 
     return balanceAfter
   }
 
-  /**
-   * 冻结积分
-   */
   async freezeCredits(userId: string, amount: number): Promise<{ success: boolean }> {
-    await authenticateAdmin()
+    // 钱包架构下冻结逻辑简化：直接扣减
+    const wallet = await getWalletRecord(userId)
+    if (!wallet || wallet.balance < amount) return { success: false }
 
-    const credits = await getUserCredits(userId)
-
-    if (credits.balance < amount) {
-      return { success: false }
-    }
-
-    await fetch(`${PB_URL}/api/collections/credits/records/${credits.id}`, {
+    await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
-      body: JSON.stringify({
-        balance: credits.balance - amount,
-        frozenBalance: (credits.frozenBalance || 0) + amount
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      body: JSON.stringify({ balance: wallet.balance - amount })
     })
 
     return { success: true }
   }
 
-  /**
-   * 解冻积分
-   */
   async unfreezeCredits(userId: string, amount: number): Promise<void> {
-    await authenticateAdmin()
+    // 钱包架构下解冻 = 加回余额
+    const wallet = await getWalletRecord(userId)
+    if (!wallet) return
 
-    const credits = await getUserCredits(userId)
-
-    await fetch(`${PB_URL}/api/collections/credits/records/${credits.id}`, {
+    await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
-      },
-      body: JSON.stringify({
-        balance: credits.balance + amount,
-        frozenBalance: Math.max(0, (credits.frozenBalance || 0) - amount)
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      body: JSON.stringify({ balance: wallet.balance + amount })
     })
   }
 }

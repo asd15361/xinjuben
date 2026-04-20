@@ -13,8 +13,23 @@ const PB_URL = process.env.POCKETBASE_URL || 'http://localhost:8090'
 const ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL || ''
 const ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD || ''
 
+export const APP_ID = process.env.APP_ID || 'xinjuben'
+
 export const pb = new PocketBase(PB_URL)
 export { PB_URL }
+
+// 表名映射：逻辑名 → 物理表名（带 appId 前缀）
+export const TABLES = {
+  projects: `${APP_ID}_projects`,
+  projectChats: `${APP_ID}_project_chats`,
+  projectOutlines: `${APP_ID}_project_outlines`,
+  projectCharacters: `${APP_ID}_project_characters`,
+  projectDetailedOutlines: `${APP_ID}_project_detailed_outlines`,
+  projectScripts: `${APP_ID}_project_scripts`,
+  transactions: `${APP_ID}_transactions`,
+  userApps: 'user_apps',
+  userWallets: 'user_wallets',
+} as const
 
 // 管理员认证状态缓存
 let adminAuthExpiry = 0
@@ -164,7 +179,7 @@ export async function getUserTransactions(userId: string, limit: number = 20): P
 }>> {
   await authenticateAdmin()
 
-  const res = await fetch(`${PB_URL}/api/collections/transactions/records?filter=user.id='${userId}'&sort=-created&perPage=${limit}`, {
+  const res = await fetch(`${PB_URL}/api/collections/${TABLES.transactions}/records?filter=user.id='${userId}'&sort=-created&perPage=${limit}`, {
     headers: { 'Authorization': cachedAdminToken }
   })
 
@@ -183,4 +198,104 @@ export async function getUserTransactions(userId: string, limit: number = 20): P
     description: record.description || '',
     createdAt: record.created
   }))
+}
+
+/**
+ * 静默补绑：检查并创建 user_apps 绑定
+ * 登录成功后调用，确保用户有当前项目的访问权限
+ */
+export async function ensureUserAppBinding(userId: string): Promise<void> {
+  await authenticateAdmin()
+
+  // 查询是否已有绑定
+  const res = await fetch(`${PB_URL}/api/collections/${TABLES.userApps}/records?filter=user.id='${userId}' && appId='${APP_ID}'`, {
+    headers: { 'Authorization': cachedAdminToken }
+  })
+
+  if (!res.ok) {
+    console.error('[PocketBase] Failed to query user_apps')
+    throw new Error('Failed to query user_apps')
+  }
+
+  const data = await res.json()
+
+  if (data.items && data.items.length > 0) {
+    // 已有绑定，更新 lastLoginAt
+    const existing = data.items[0]
+    await pb.collection(TABLES.userApps).update(existing.id, {
+      lastLoginAt: new Date().toISOString(),
+      updatedBy: 'system'
+    })
+    console.log('[PocketBase] Updated user_apps lastLoginAt for:', userId)
+  } else {
+    // 无绑定，创建新绑定
+    await pb.collection(TABLES.userApps).create({
+      user: userId,
+      appId: APP_ID,
+      role: 'member',
+      status: 'active',
+      firstLoginAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      createdBy: 'system',
+      updatedBy: 'system'
+    })
+    console.log('[PocketBase] Created user_apps binding for:', userId)
+  }
+}
+
+/**
+ * 静默开户：检查并创建 user_wallets 钱包
+ * 注册或首次登录时调用，确保用户有当前项目的积分账户
+ */
+export async function ensureUserWallet(userId: string, initialBalance: number = 100): Promise<number> {
+  await authenticateAdmin()
+
+  // 查询是否已有钱包
+  const res = await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`, {
+    headers: { 'Authorization': cachedAdminToken }
+  })
+
+  if (!res.ok) {
+    console.error('[PocketBase] Failed to query user_wallets')
+    throw new Error('Failed to query user_wallets')
+  }
+
+  const data = await res.json()
+
+  if (data.items && data.items.length > 0) {
+    // 已有钱包，返回余额
+    return data.items[0].balance
+  } else {
+    // 无钱包，创建新钱包
+    await pb.collection(TABLES.userWallets).create({
+      user: userId,
+      appId: APP_ID,
+      balance: initialBalance
+    })
+    console.log('[PocketBase] Created user_wallets for:', userId, 'with balance:', initialBalance)
+    return initialBalance
+  }
+}
+
+/**
+ * 获取用户钱包余额
+ */
+export async function getUserWalletBalance(userId: string): Promise<number> {
+  await authenticateAdmin()
+
+  const res = await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`, {
+    headers: { 'Authorization': cachedAdminToken }
+  })
+
+  if (!res.ok) {
+    return 0
+  }
+
+  const data = await res.json()
+
+  if (data.items && data.items.length > 0) {
+    return data.items[0].balance
+  }
+
+  return 0
 }

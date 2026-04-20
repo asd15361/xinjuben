@@ -4,7 +4,7 @@
  * 用户注册、登录、获取当前用户信息
  */
 import { Router, Request, Response } from 'express'
-import { pb, PB_URL, authenticateAdmin, cachedAdminToken } from '../../infrastructure/pocketbase/client'
+import { pb, PB_URL, authenticateAdmin, cachedAdminToken, APP_ID, TABLES, ensureUserAppBinding, ensureUserWallet, getUserWalletBalance } from '../../infrastructure/pocketbase/client'
 import { authMiddleware } from '../middleware/auth'
 
 export const authRouter = Router()
@@ -35,43 +35,35 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   }
 
   try {
-    // 创建用户
+    // 创建用户（带 registerSource）
     const user = await pb.collection('users').create({
       email,
       password,
       passwordConfirm,
-      name: name || email.split('@')[0]
+      name: name || email.split('@')[0],
+      registerSource: APP_ID
     })
 
-    // 注册成功后，PocketBase hooks 会自动创建积分账户（见 PocketBase main.js）
-    // 如果 hooks 未配置，这里手动创建备用
-    try {
-      await pb.collection('credits').create({
-        user: user.id,
-        balance: 100,
-        frozenBalance: 0
-      })
-    } catch (e) {
-      // 积分账户可能已由 hooks 创建，忽略错误
-      console.log('[Auth] Credits account may already exist for user:', user.id)
-    }
+    // 注册成功后，自动登录
+    const authResult = await pb.collection('users').authWithPassword(email, password)
+
+    // 静默开户：创建 user_apps 绑定 + user_wallets 钱包
+    await ensureUserAppBinding(user.id)
+    const initialBalance = await ensureUserWallet(user.id, 100)
 
     // 记录注册奖励交易
     try {
-      await pb.collection('transactions').create({
+      await pb.collection(TABLES.transactions).create({
         user: user.id,
         type: 'register_bonus',
         amount: 100,
         balanceBefore: 0,
-        balanceAfter: 100,
+        balanceAfter: initialBalance,
         description: '新用户注册奖励'
       })
     } catch (e) {
       console.log('[Auth] Transaction record may already exist')
     }
-
-    // 登录获取 token
-    const authResult = await pb.collection('users').authWithPassword(email, password)
 
     res.status(201).json({
       user: {
@@ -81,7 +73,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       },
       token: authResult.token,
       credits: {
-        balance: 100
+        balance: initialBalance
       }
     })
   } catch (error: any) {
@@ -96,9 +88,11 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     }
 
     if (error.data?.data?.email?.code === 'validation_not_unique') {
+      // 邮箱已存在：引导登录流程
       res.status(400).json({
         error: 'email_exists',
-        message: '该邮箱已被注册'
+        message: '该邮箱已在生态中注册，请直接登录',
+        shouldLogin: true
       })
       return
     }
@@ -130,22 +124,11 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   try {
     const authResult = await pb.collection('users').authWithPassword(email, password)
 
-    // 获取积分余额（使用 HTTP API）
-    let balance = 0
-    try {
-      await authenticateAdmin()
-      const creditsRes = await fetch(`${PB_URL}/api/collections/credits/records?filter=user.id='${authResult.record.id}'`, {
-        headers: { 'Authorization': cachedAdminToken }
-      })
-      if (creditsRes.ok) {
-        const creditsData = await creditsRes.json()
-        if (creditsData.items && creditsData.items.length > 0) {
-          balance = creditsData.items[0].balance
-        }
-      }
-    } catch {
-      // 积分账户不存在，返回 0
-    }
+    // 静默补绑：确保 user_apps 有当前项目绑定
+    await ensureUserAppBinding(authResult.record.id)
+
+    // 静默开户：确保 user_wallets 有当前项目钱包
+    const balance = await ensureUserWallet(authResult.record.id, 0)
 
     res.json({
       user: {
@@ -184,21 +167,7 @@ authRouter.get('/me', authMiddleware, async (req: Request, res: Response) => {
   }
 
   try {
-    // 获取积分余额（使用 HTTP API）
-    await authenticateAdmin()
-    const creditsRes = await fetch(`${PB_URL}/api/collections/credits/records?filter=user.id='${req.user.id}'`, {
-      headers: { 'Authorization': cachedAdminToken }
-    })
-
-    let balance = 0
-    let frozenBalance = 0
-    if (creditsRes.ok) {
-      const creditsData = await creditsRes.json()
-      if (creditsData.items && creditsData.items.length > 0) {
-        balance = creditsData.items[0].balance
-        frozenBalance = creditsData.items[0].frozenBalance || 0
-      }
-    }
+    const balance = await getUserWalletBalance(req.user.id)
 
     res.json({
       user: {
@@ -208,7 +177,7 @@ authRouter.get('/me', authMiddleware, async (req: Request, res: Response) => {
       },
       credits: {
         balance,
-        frozenBalance
+        frozenBalance: 0
       }
     })
   } catch {

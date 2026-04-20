@@ -20,7 +20,7 @@ import {
   guardianEnforceDetailedOutlineSave,
   guardianEnforceOutlineSave
 } from '../../shared/domain/workflow/stage-guardians'
-import { authenticateAdmin, pb } from './client'
+import { authenticateAdmin, pb, TABLES } from './client'
 import { mapProjectSnapshot, mapProjectSummary, type ProjectRecordShape } from './project-snapshot-mapper'
 
 type PbRecord = {
@@ -121,7 +121,7 @@ export class ProjectRepository {
 
   async listProjects(userId: string): Promise<ProjectSummaryDto[]> {
     await this.ensureAdminReady()
-    const result = await this.pocketbase.collection('projects').getFullList<PbRecord>({
+    const result = await this.pocketbase.collection(TABLES.projects).getFullList<PbRecord>({
       filter: `user="${userId}"`,
       sort: '-updated',
       requestKey: null
@@ -132,7 +132,7 @@ export class ProjectRepository {
   async createProject(userId: string, input: CreateProjectInputDto): Promise<ProjectSnapshotDto> {
     await this.ensureAdminReady()
     const now = new Date().toISOString()
-    const created = await this.pocketbase.collection('projects').create<PbRecord>({
+    const created = await this.pocketbase.collection(TABLES.projects).create<PbRecord>({
       user: userId,
       name: input.name.trim(),
       workflowType: input.workflowType,
@@ -162,7 +162,7 @@ export class ProjectRepository {
 
   async getProject(userId: string, projectId: string): Promise<ProjectSnapshotDto | null> {
     await this.ensureAdminReady()
-    const projectList = await this.pocketbase.collection('projects').getList<PbRecord>(1, 1, {
+    const projectList = await this.pocketbase.collection(TABLES.projects).getList<PbRecord>(1, 1, {
       filter: `id="${projectId}" && user="${userId}"`,
       requestKey: null
     })
@@ -170,11 +170,11 @@ export class ProjectRepository {
     if (!projectRecord) return null
 
     const [chat, outline, characters, detailedOutline, script] = await Promise.all([
-      getSingleByProject(this.pocketbase, 'project_chats', projectId),
-      getSingleByProject(this.pocketbase, 'project_outlines', projectId),
-      getSingleByProject(this.pocketbase, 'project_characters', projectId),
-      getSingleByProject(this.pocketbase, 'project_detailed_outlines', projectId),
-      getSingleByProject(this.pocketbase, 'project_scripts', projectId)
+      getSingleByProject(this.pocketbase, TABLES.projectChats, projectId),
+      getSingleByProject(this.pocketbase, TABLES.projectOutlines, projectId),
+      getSingleByProject(this.pocketbase, TABLES.projectCharacters, projectId),
+      getSingleByProject(this.pocketbase, TABLES.projectDetailedOutlines, projectId),
+      getSingleByProject(this.pocketbase, TABLES.projectScripts, projectId)
     ])
 
     return mapProjectSnapshot(toProjectRecordShape(projectRecord), {
@@ -208,7 +208,7 @@ export class ProjectRepository {
     await this.ensureAdminReady()
     const project = await this.getProjectRecordById(userId, projectId)
     if (!project) return false
-    await this.pocketbase.collection('projects').delete(project.id)
+    await this.pocketbase.collection(TABLES.projects).delete(project.id)
     return true
   }
 
@@ -236,7 +236,7 @@ export class ProjectRepository {
       )
     }
 
-    await this.pocketbase.collection('projects').update(project.id, {
+    await this.pocketbase.collection(TABLES.projects).update(project.id, {
       stage: input.stage ?? project.stage,
       genre: input.genre ?? project.genre ?? '',
       storyIntentJson:
@@ -274,7 +274,7 @@ export class ProjectRepository {
     await this.ensureAdminReady()
     await upsertVersionedByProject({
       pocketbase: this.pocketbase,
-      collection: 'project_chats',
+      collection: TABLES.projectChats,
       userId: input.userId,
       projectId: input.projectId,
       payload: { messagesJson: stringifyJson(input.chatMessages) },
@@ -293,7 +293,7 @@ export class ProjectRepository {
     guardianEnforceOutlineSave(input.outlineDraft)
     await upsertVersionedByProject({
       pocketbase: this.pocketbase,
-      collection: 'project_outlines',
+      collection: TABLES.projectOutlines,
       userId: input.userId,
       projectId: input.projectId,
       payload: { outlineDraftJson: stringifyJson(input.outlineDraft) },
@@ -322,7 +322,7 @@ export class ProjectRepository {
     })
     await upsertVersionedByProject({
       pocketbase: this.pocketbase,
-      collection: 'project_characters',
+      collection: TABLES.projectCharacters,
       userId: input.userId,
       projectId: input.projectId,
       payload: {
@@ -358,7 +358,7 @@ export class ProjectRepository {
     })
     await upsertVersionedByProject({
       pocketbase: this.pocketbase,
-      collection: 'project_detailed_outlines',
+      collection: TABLES.projectDetailedOutlines,
       userId: input.userId,
       projectId: input.projectId,
       payload: {
@@ -384,7 +384,7 @@ export class ProjectRepository {
     await this.ensureAdminReady()
     await upsertVersionedByProject({
       pocketbase: this.pocketbase,
-      collection: 'project_scripts',
+      collection: TABLES.projectScripts,
       userId: input.userId,
       projectId: input.projectId,
       payload: {
@@ -400,7 +400,7 @@ export class ProjectRepository {
   }
 
   private async getProjectRecordById(userId: string, projectId: string): Promise<PbRecord | null> {
-    const result = await this.pocketbase.collection('projects').getList<PbRecord>(1, 1, {
+    const result = await this.pocketbase.collection(TABLES.projects).getList<PbRecord>(1, 1, {
       filter: `id="${projectId}" && user="${userId}"`,
       requestKey: null
     })
