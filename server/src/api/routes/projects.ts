@@ -10,12 +10,12 @@ import type {
   SaveScriptDraftInputDto,
   SaveScriptRuntimeStateInputDto,
   SaveStoryIntentInputDto
-} from '../../shared/contracts/workspace'
-import type { CreateProjectInputDto } from '../../shared/contracts/project'
-import type { OutlineDraftDto } from '../../shared/contracts/workflow'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import { writeConfirmedSevenQuestionsToOutlineBlocks } from '../../shared/domain/workflow/seven-questions-authority'
-import { buildConfirmedStoryIntent } from '../../shared/domain/workflow/confirmed-story-intent'
+} from '@shared/contracts/workspace'
+import type { CreateProjectInputDto } from '@shared/contracts/project'
+import type { OutlineDraftDto } from '@shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import { writeConfirmedSevenQuestionsToOutlineBlocks } from '@shared/domain/workflow/seven-questions-authority'
+import { buildConfirmedStoryIntent } from '@shared/domain/workflow/confirmed-story-intent'
 import { generateTextWithRouter } from '../../application/ai/generate-text'
 import { loadRuntimeProviderConfig, hasValidApiKey } from '../../infrastructure/runtime-env/provider-config'
 

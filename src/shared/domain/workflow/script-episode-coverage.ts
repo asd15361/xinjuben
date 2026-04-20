@@ -1,4 +1,4 @@
-import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow'
 
 function normalizeSceneNo(value: number | undefined): number | null {
   const sceneNo = Number(value)

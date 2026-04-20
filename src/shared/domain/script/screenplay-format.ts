@@ -2,7 +2,7 @@ import {
   ensureScreenplaySceneBlockDefaults,
   type ScreenplaySceneBlockDto,
   type ScriptSegmentDto
-} from '../../contracts/workflow.ts'
+} from '../../contracts/workflow'
 
 const EPISODE_HEADING = /^第[一二三四五六七八九十百零\d]+集$/m
 const DIALOGUE_LINE = /^[^\s△：:（）()]{1,16}[：:]/m

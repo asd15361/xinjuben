@@ -1,6 +1,6 @@
 import type { StoryIntentPackageDto } from '../../contracts/intake'
-import { normalizeShortDramaConstitution } from '../short-drama/short-drama-constitution.ts'
-import { cleanCharacterLikeName } from './character-draft-normalization.ts'
+import { normalizeShortDramaConstitution } from '../short-drama/short-drama-constitution'
+import { cleanCharacterLikeName } from './character-draft-normalization'
 
 export function isConfirmedStoryIntentForTranscript(
   storyIntent: StoryIntentPackageDto | null | undefined,

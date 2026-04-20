@@ -4,8 +4,8 @@ import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from './gener
 import {
   getCharacterBundleContractIssues,
   resolveCharacterContractAnchors
-} from '../../shared/domain/workflow/character-contract'
-import type { ProjectSnapshotDto } from '../../shared/contracts/project'
+} from '@shared/domain/workflow/character-contract'
+import type { ProjectSnapshotDto } from '@shared/contracts/project'
 
 export interface OutlineAndCharactersProjectRequest {
   userId: string

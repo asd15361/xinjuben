@@ -3,8 +3,8 @@ import {
   extractStructuredSceneFromScreenplay,
   looksLikeScreenplayFormat,
   parseScreenplayScenes
-} from '../../../shared/domain/script/screenplay-format'
-import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
+} from '@shared/domain/script/screenplay-format'
+import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 
 // Strips residual A/D/E section markers that may contaminate extracted content
 // when the model generates "Action:" / "Dialogue:" / "Emotion:" as part of character speech

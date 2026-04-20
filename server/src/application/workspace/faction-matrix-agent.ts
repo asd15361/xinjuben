@@ -13,8 +13,8 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { FactionMatrixDto } from '../../shared/contracts/faction-matrix'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
 
 export interface FactionMatrixAgentInput {
   storyIntent: StoryIntentPackageDto

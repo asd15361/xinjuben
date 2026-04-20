@@ -7,9 +7,9 @@
  * lines from the middle-to-end portion. Maximum 30% compression.
  * Never touches dialogue, action, hooks, scene structure.
  */
-import type { ScriptSegmentDto } from '../../../shared/contracts/workflow.ts'
-import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
-import { extractStructuredSceneFromScreenplay } from './screenplay-format.ts'
+import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
+import { inspectScreenplayQualityEpisode } from './screenplay-quality'
+import { extractStructuredSceneFromScreenplay } from './screenplay-format'
 
 // ── Trim patterns ─────────────────────────────────────────────────────────────
 

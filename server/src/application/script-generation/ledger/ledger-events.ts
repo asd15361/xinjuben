@@ -1,4 +1,4 @@
-import type { ScriptLedgerEventDto, ScriptLedgerOpenHookDto, ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
+import type { ScriptLedgerEventDto, ScriptLedgerOpenHookDto, ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 
 export function buildLedgerEvents(input: {
   confirmedFormalFacts: string[]

@@ -5,7 +5,7 @@ import type {
   DecompositionLocation,
   DecompositionRelation,
   DecompositionResult
-} from '../../contracts/decomposition.ts'
+} from '../../contracts/decomposition'
 import type {
   BaseProjectEntityDto,
   CharacterEntityDto,
@@ -15,14 +15,14 @@ import type {
   ProjectEntityProvenanceDto,
   ProjectEntityStoreDto,
   RelationEntityDto
-} from '../../contracts/entities.ts'
+} from '../../contracts/entities'
 import type {
   FormalFactAuthorityType,
   FormalFactDeclaredBy,
   FormalFactProvenanceTier
-} from '../../contracts/formal-fact.ts'
-import { normalizeEntityStore } from './entity-normalizers.ts'
-import { syncFactionSeatCharacters } from './faction-seat-characters.ts'
+} from '../../contracts/formal-fact'
+import { normalizeEntityStore } from './entity-normalizers'
+import { syncFactionSeatCharacters } from './faction-seat-characters'
 
 const EMPTY_ENTITY_STORE: ProjectEntityStoreDto = {
   characters: [],

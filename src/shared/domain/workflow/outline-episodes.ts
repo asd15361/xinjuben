@@ -1,5 +1,5 @@
 import type { OutlineDraftDto, OutlineEpisodeDto } from '../../contracts/workflow'
-import { DEFAULT_EPISODE_COUNT, deriveOutlineEpisodeCount } from './episode-count.ts'
+import { DEFAULT_EPISODE_COUNT, deriveOutlineEpisodeCount } from './episode-count'
 
 function normalizeWhitespace(text: string): string {
   return text
@@ -140,3 +140,4 @@ export function ensureOutlineEpisodeShape(
     summary: outlineEpisodesToSummary(summaryEpisodes)
   }
 }
+

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import type { FormalFact } from '../../shared/contracts/workflow'
+import type { FormalFact } from '@shared/contracts/workflow'
 
 export type OutlineFactCandidate = {
   label?: string

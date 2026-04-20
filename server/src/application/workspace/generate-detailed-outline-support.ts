@@ -1,20 +1,20 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { ProjectEntityStoreDto } from '../../shared/contracts/entities'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { ProjectEntityStoreDto } from '@shared/contracts/entities'
 import type {
   CharacterDraftDto,
   DetailedOutlineEpisodeBeatDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   OutlineEpisodeDto
-} from '../../shared/contracts/workflow'
+} from '@shared/contracts/workflow'
 import {
   buildFourActEpisodeRanges,
   deriveOutlineEpisodeCount
-} from '../../shared/domain/workflow/episode-count'
-import { deriveActiveCharacterPackage } from '../../shared/domain/workflow/active-character-package'
-import { ensureOutlineEpisodeShape } from '../../shared/domain/workflow/outline-episodes'
+} from '@shared/domain/workflow/episode-count'
+import { deriveActiveCharacterPackage } from '@shared/domain/workflow/active-character-package'
+import { ensureOutlineEpisodeShape } from '@shared/domain/workflow/outline-episodes'
 import { buildDetailedOutlineActPrompt } from './generation-stage-prompts'
 import { generateEpisodeControlCardsForSegment } from './episode-control-agent'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'

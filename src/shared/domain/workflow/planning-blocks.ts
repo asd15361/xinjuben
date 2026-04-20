@@ -12,12 +12,12 @@ import type {
 import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract'
 import type { StoryIntentPackageDto } from '../../contracts/intake'
 import type { ProjectEntityStoreDto } from '../../contracts/entities'
-import { analyzeLoadBearing } from './load-bearing-annotations.ts'
-import { deriveActiveCharacterPackage } from './active-character-package.ts'
+import { analyzeLoadBearing } from './load-bearing-annotations'
+import { deriveActiveCharacterPackage } from './active-character-package'
 import {
   getGovernanceOutlineBlockSize,
   getGovernanceScriptBatchSize
-} from './batching-contract.ts'
+} from './batching-contract'
 
 const DEFAULT_OUTLINE_BLOCK_EPISODES = getGovernanceOutlineBlockSize()
 const DEFAULT_SCRIPT_BATCH_EPISODES = getGovernanceScriptBatchSize()

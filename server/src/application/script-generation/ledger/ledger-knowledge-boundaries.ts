@@ -1,10 +1,10 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import { getConfirmedFormalFacts } from '../../../shared/domain/formal-fact/selectors'
+} from '@shared/contracts/workflow'
+import { getConfirmedFormalFacts } from '@shared/domain/formal-fact/selectors'
 import { summarizeSceneFragment } from './ledger-scene-summary'
 
 export function buildKnowledgeBoundaries(input: {

@@ -1,6 +1,6 @@
-import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
-import { EPISODE_CHAR_COUNT, SCENE_COUNT_QUALITY } from '../workflow/contract-thresholds.ts'
-import { hasConcreteHardHook, pickHardHookWindow } from './hard-hook.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow'
+import { EPISODE_CHAR_COUNT, SCENE_COUNT_QUALITY } from '../workflow/contract-thresholds'
+import { hasConcreteHardHook, pickHardHookWindow } from './hard-hook'
 import {
   hasMeaningfulCharacterRoster,
   hasPollutedScreenplayContent,
@@ -9,7 +9,7 @@ import {
   isDialogueBodyLine,
   isMeaningfulActionLine,
   parseScreenplayScenes
-} from './screenplay-format.ts'
+} from './screenplay-format'
 
 function normalize(text: string | undefined): string {
   return String(text || '')

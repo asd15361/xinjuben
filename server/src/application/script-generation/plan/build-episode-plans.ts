@@ -1,16 +1,16 @@
 import type {
   ScriptGenerationEpisodePlanDto,
   ScriptGenerationMode
-} from '../../../shared/contracts/script-generation'
+} from '@shared/contracts/script-generation'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import type { ModelRouteLane } from '../../../shared/contracts/ai'
-import type { InputContractValidationDto } from '../../../shared/contracts/input-contract'
-import { getConfirmedFormalFacts } from '../../../shared/domain/formal-fact/selectors'
+} from '@shared/contracts/workflow'
+import type { ModelRouteLane } from '@shared/contracts/ai'
+import type { InputContractValidationDto } from '@shared/contracts/input-contract'
+import { getConfirmedFormalFacts } from '@shared/domain/formal-fact/selectors'
 import { estimateEpisodeContextTokens } from './estimate-context-tokens'
 
 export function buildEpisodePlans(input: {

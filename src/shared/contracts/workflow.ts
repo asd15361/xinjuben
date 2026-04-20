@@ -5,7 +5,7 @@ import type {
   FormalFactAuthorityType,
   FormalFactLevel,
   FormalFactStatus
-} from './formal-fact.ts'
+} from './formal-fact'
 
 export const WORKFLOW_STAGES = [
   'chat',
@@ -337,3 +337,4 @@ export function ensureScreenplaySceneBlockDefaults(
     ...scene
   }
 }
+

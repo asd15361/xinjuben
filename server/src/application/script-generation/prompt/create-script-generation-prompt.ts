@@ -23,17 +23,17 @@ import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import type { StartScriptGenerationInputDto } from '../../../shared/contracts/script-generation'
+} from '@shared/contracts/workflow'
+import type { StartScriptGenerationInputDto } from '@shared/contracts/script-generation'
 import {
   EPISODE_CHAR_COUNT_MAX,
   EPISODE_CHAR_COUNT_MIN
-} from '../../../shared/domain/workflow/contract-thresholds'
+} from '@shared/domain/workflow/contract-thresholds'
 import {
   resolveEpisodeControlCardFromPackage
-} from '../../../shared/domain/script-generation/script-control-package'
-import { renderShortDramaConstitutionPromptBlock } from '../../../shared/domain/short-drama/short-drama-constitution'
-import { buildScriptBatchContext } from '../../../shared/domain/workflow/planning-blocks'
+} from '@shared/domain/script-generation/script-control-package'
+import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
+import { buildScriptBatchContext } from '@shared/domain/workflow/planning-blocks'
 import {
   buildCompactedCharacterBlock,
   buildCompactedSegmentBlock,

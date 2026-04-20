@@ -1,4 +1,4 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 
 export function buildLedgerAssertionBlock(ledger: ScriptStateLedgerDto): string {
   return ['【Ledger Preflight】', `- ${ledger.preflight.assertionBlock}`].join('\n')

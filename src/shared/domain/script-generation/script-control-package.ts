@@ -1,16 +1,16 @@
 import type {
   ScriptEpisodeControlPlanDto,
   ScriptGenerationControlPackageDto
-} from '../../contracts/script-generation.ts'
-import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+} from '../../contracts/script-generation'
+import type { StoryIntentPackageDto } from '../../contracts/intake'
 import type {
   DetailedOutlineBlockDto,
   DetailedOutlineEpisodeBeatDto,
   DetailedOutlineSegmentDto,
   EpisodeControlCardDto
-} from '../../contracts/workflow.ts'
-import { normalizeEpisodeControlCard } from '../short-drama/episode-control-card.ts'
-import { normalizeShortDramaConstitution } from '../short-drama/short-drama-constitution.ts'
+} from '../../contracts/workflow'
+import { normalizeEpisodeControlCard } from '../short-drama/episode-control-card'
+import { normalizeShortDramaConstitution } from '../short-drama/short-drama-constitution'
 
 function collectEpisodeBeatsFromBlocks(
   blocks: DetailedOutlineBlockDto[] | undefined

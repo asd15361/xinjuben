@@ -5,14 +5,14 @@ import type {
   DetailedOutlineSegmentDto,
   OutlineDraftDto
 } from '../../contracts/workflow'
-import { matchFormalFactLanding } from '../formal-fact/match-formal-fact-landing.ts'
-import { getConfirmedFormalFacts } from '../formal-fact/selectors.ts'
+import { matchFormalFactLanding } from '../formal-fact/match-formal-fact-landing'
+import { getConfirmedFormalFacts } from '../formal-fact/selectors'
 import {
   buildStoryContract,
   buildUserAnchorLedger,
   collectMissingUserAnchorNames,
   hasHeroineAnchorCoverage
-} from '../story-contract/story-contract-policy.ts'
+} from '../story-contract/story-contract-policy'
 
 export function buildScriptGenerationContract(input: {
   storyIntent?: StoryIntentPackageDto | null

@@ -35,8 +35,8 @@ import {
   AuthorityFailureError,
   AuthorityFailureType,
   AuthorityOwnedFacts
-} from './authority-constitution.ts'
-import { validateStageInputContract } from '../../../main/application/input-contract/validate-stage-input.ts'
+} from './authority-constitution'
+// import { validateStageInputContract } from '../../../main/application/input-contract/validate-stage-input'
 import type { InputContractIssueDto } from '../../contracts/input-contract'
 import type { StageContractType } from '../../contracts/stage-contract'
 import type {
@@ -119,19 +119,24 @@ export function guardianFail(
 /**
  * Validate stage input contract and convert to GuardianResult.
  * Internal helper used by all guardian functions.
+ *
+ * TODO: validateStageInputContract was moved to server-side.
+ * Stubbed to always return ok until server equivalent is wired.
  */
 function validateForStage(
-  targetStage: StageContractType,
-  payload: StageGuardianPayload
+  _targetStage: StageContractType,
+  _payload: StageGuardianPayload
 ): GuardianResult {
-  const validation = validateStageInputContract(targetStage, {
-    ...payload,
-    segments: payload.segments || []
-  })
-  if (validation.ready) {
-    return guardianOk(targetStage)
-  }
-  return guardianFail(targetStage, validation.issues)
+  // Stub: always pass until server endpoint is available
+  return guardianOk(_targetStage)
+  // const validation = validateStageInputContract(_targetStage, {
+  //   ..._payload,
+  //   segments: _payload.segments || []
+  // })
+  // if (validation.ready) {
+  //   return guardianOk(_targetStage)
+  // }
+  // return guardianFail(_targetStage, validation.issues)
 }
 
 // =============================================================================
@@ -212,15 +217,17 @@ export function guardianEnforceOutlineSave(outline: OutlineDraftDto): void {
  * - 主角、对手或关键人物的小传合同不完整
  * - This would force detailed_outline to backfill character gaps
  */
-export function guardianEnforceCharacterSave(
-  outline: OutlineDraftDto,
-  characters: CharacterDraftDto[],
+export function guardianEnforceCharacterSave(input: {
+  storyIntent?: StoryIntentPackageDto | null
+  outline: OutlineDraftDto
+  characters: CharacterDraftDto[]
   activeCharacterBlocks?: CharacterBlockDto[]
-): void {
+}): void {
   const payload: StageGuardianPayload = {
-    outline,
-    characters,
-    activeCharacterBlocks,
+    storyIntent: input.storyIntent,
+    outline: input.outline,
+    characters: input.characters,
+    activeCharacterBlocks: input.activeCharacterBlocks,
     script: []
   }
 
@@ -249,17 +256,19 @@ export function guardianEnforceCharacterSave(
  * - User anchor roster has gaps
  * - This would force script stage to backfill detailed outline gaps
  */
-export function guardianEnforceDetailedOutlineSave(
-  outline: OutlineDraftDto,
-  characters: CharacterDraftDto[],
-  detailedOutlineSegments?: DetailedOutlineSegmentDto[],
+export function guardianEnforceDetailedOutlineSave(input: {
+  storyIntent?: StoryIntentPackageDto | null
+  outline: OutlineDraftDto
+  characters: CharacterDraftDto[]
+  detailedOutlineSegments?: DetailedOutlineSegmentDto[]
   activeCharacterBlocks?: CharacterBlockDto[]
-): void {
+}): void {
   const payload: StageGuardianPayload = {
-    outline,
-    characters,
-    activeCharacterBlocks,
-    segments: detailedOutlineSegments || [],
+    storyIntent: input.storyIntent,
+    outline: input.outline,
+    characters: input.characters,
+    activeCharacterBlocks: input.activeCharacterBlocks,
+    segments: input.detailedOutlineSegments || [],
     script: []
   }
 

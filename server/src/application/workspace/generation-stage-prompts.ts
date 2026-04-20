@@ -1,12 +1,12 @@
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
   OutlineEpisodeDto
-} from '../../shared/contracts/workflow'
-import { renderShortDramaConstitutionPromptBlock } from '../../shared/domain/short-drama/short-drama-constitution'
+} from '@shared/contracts/workflow'
+import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
 import { renderAnchorBlock, stripNoisyThemeClauses } from './generation-stage-prompt-anchors'
-import { getConfirmedFormalFacts } from '../../shared/domain/formal-fact/selectors'
+import { getConfirmedFormalFacts } from '@shared/domain/formal-fact/selectors'
 
 function cleanPromptValue(value: string | undefined): string {
   const trimmed = String(value || '').trim()

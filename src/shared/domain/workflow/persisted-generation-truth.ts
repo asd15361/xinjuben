@@ -9,7 +9,7 @@ import {
   createInitialVisibleResult,
   createVisibleFailureState,
   createVisibleSuccessState
-} from '../../contracts/visible-release-state.ts'
+} from '../../contracts/visible-release-state'
 
 export interface PersistedGenerationTruthInput {
   generationStatus: ProjectGenerationStatusDto | null

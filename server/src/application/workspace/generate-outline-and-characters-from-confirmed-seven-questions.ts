@@ -17,32 +17,32 @@
  */
 
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { CharacterProfileV2Dto } from '../../shared/contracts/character-profile-v2'
-import type { FactionMatrixDto } from '../../shared/contracts/faction-matrix'
-import type { ProjectEntityStoreDto } from '../../shared/contracts/entities'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
+import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
+import type { ProjectEntityStoreDto } from '@shared/contracts/entities'
 import type {
   OutlineDraftDto,
   CharacterDraftDto,
   SevenQuestionsResultDto
-} from '../../shared/contracts/workflow'
+} from '@shared/contracts/workflow'
 import {
   normalizeOutlineEpisodes,
   outlineEpisodesToSummary,
   parseSummaryToOutlineEpisodes
-} from '../../shared/domain/workflow/outline-episodes'
+} from '@shared/domain/workflow/outline-episodes'
 import {
   DEFAULT_EPISODE_COUNT,
   extractEpisodeCountFromGenerationBrief
-} from '../../shared/domain/workflow/episode-count'
-import { normalizeCharacterDrafts } from '../../shared/domain/workflow/character-draft-normalization'
+} from '@shared/domain/workflow/episode-count'
+import { normalizeCharacterDrafts } from '@shared/domain/workflow/character-draft-normalization'
 import {
   getCharacterBundleContractIssues,
   isCharacterBundleStructurallyComplete,
   isCharacterDraftStructurallyComplete,
   resolveCharacterContractAnchors
-} from '../../shared/domain/workflow/character-contract'
-import { mapV2ToLegacyCharacterDraft } from '../../shared/contracts/character-profile-v2'
+} from '@shared/domain/workflow/character-contract'
+import { mapV2ToLegacyCharacterDraft } from '@shared/contracts/character-profile-v2'
 import { normalizeOutlineStoryIntent } from './outline-story-intent'
 import { validateStructuredOutline } from './rough-outline-validation'
 import { toDraftFacts, type OutlineFactCandidate } from './outline-facts'
@@ -50,7 +50,7 @@ import { confirmFormalFact } from '../formal-fact/confirm-formal-fact'
 import {
   hasConfirmedSevenQuestions,
   extractConfirmedSevenQuestions
-} from '../../shared/domain/workflow/seven-questions-authority'
+} from '@shared/domain/workflow/seven-questions-authority'
 import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support'
 import { enrichCharacterDrafts } from './enrich-character-drafts'
 import {

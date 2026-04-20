@@ -1,5 +1,5 @@
-import type { ScriptLedgerIssueDto } from '../../../shared/contracts/script-ledger'
-import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
+import type { ScriptLedgerIssueDto } from '@shared/contracts/script-ledger'
+import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 
 function lacksContinuationHook(scene: ScriptSegmentDto): boolean {
   const text = `${scene.action}${scene.dialogue}${scene.emotion}`.replace(/\s+/g, '')

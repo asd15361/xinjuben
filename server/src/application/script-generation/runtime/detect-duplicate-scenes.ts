@@ -1,4 +1,4 @@
-import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
+import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 
 function normalizeScene(scene: Pick<ScriptSegmentDto, 'action' | 'dialogue' | 'emotion'>): string {
   return [scene.action, scene.dialogue, scene.emotion]

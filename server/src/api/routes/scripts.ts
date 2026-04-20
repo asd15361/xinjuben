@@ -21,8 +21,8 @@ import type {
   ScriptGenerationFailureResolutionDto,
   ScriptEpisodeStatusDto,
   StartScriptGenerationInputDto
-} from '../../shared/contracts/script-generation'
-import type { ScriptSegmentDto } from '../../shared/contracts/workflow'
+} from '@shared/contracts/script-generation'
+import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 
 export const scriptsRouter = Router()
 

@@ -1,4 +1,4 @@
-export type ModelRouteLane = 'deepseek' | 'openrouter_gemini_flash_lite' | 'openrouter_qwen_free'
+export type ModelRouteLane = 'deepseek' | 'openrouter_gemini_flash_lite' | 'openrouter_qwen_free' | 'openrouter'
 
 export interface AiProviderSummaryDto {
   configuredLanes: ModelRouteLane[]
@@ -15,12 +15,15 @@ export type AiTaskKind =
   | 'faction_matrix'
   | 'rough_outline'
   | 'character_profile'
+  | 'character_profile_simple'
+  | 'episode_summary'
   | 'detailed_outline'
   | 'episode_control'
   | 'seven_questions'
   | 'episode_script'
   | 'episode_rewrite'
   | 'quality_audit'
+  | 'general'
 
 export interface AiGenerateRequestDto {
   task: AiTaskKind
@@ -51,4 +54,7 @@ export interface AiGenerateResponseDto {
   usedFallback: boolean
   finishReason?: string
   routeReasonCodes?: string[]
+  inputTokens?: number
+  outputTokens?: number
+  durationMs?: number
 }

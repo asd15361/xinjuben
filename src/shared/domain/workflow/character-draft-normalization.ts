@@ -171,6 +171,12 @@ function mergeCharacterDraft(primary: CharacterDraftDto, secondary: CharacterDra
     weakness: preferText(primary.weakness, secondary.weakness),
     goal: preferText(primary.goal, secondary.goal),
     arc: preferText(primary.arc, secondary.arc),
+    appearance: preferText(primary.appearance, secondary.appearance),
+    personality: preferText(primary.personality, secondary.personality),
+    identity: preferText(primary.identity, secondary.identity),
+    values: preferText(primary.values, secondary.values),
+    plotFunction: preferText(primary.plotFunction, secondary.plotFunction),
+    depthLevel: primary.depthLevel || secondary.depthLevel,
     masterEntityId: primary.masterEntityId || secondary.masterEntityId,
     roleLayer: primary.roleLayer || secondary.roleLayer,
     activeBlockNos: mergeActiveBlockNos(primary.activeBlockNos, secondary.activeBlockNos)

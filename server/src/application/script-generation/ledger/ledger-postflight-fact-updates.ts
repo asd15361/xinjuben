@@ -1,4 +1,4 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPostflightDto, ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
+import type { ScriptLedgerIssueDto, ScriptLedgerPostflightDto, ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 
 export function collectLedgerFactPostflight(input: {
   previousLedger: ScriptStateLedgerDto

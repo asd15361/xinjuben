@@ -7,7 +7,7 @@
  * 将结果供 arc-control-agent 和 ContentQualitySignal 使用。
  */
 
-import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 窝囊行为类型

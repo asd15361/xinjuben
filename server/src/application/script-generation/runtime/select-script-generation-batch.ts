@@ -1,7 +1,7 @@
 import type {
   ScriptGenerationExecutionPlanDto,
   ScriptGenerationProgressBoardDto
-} from '../../../shared/contracts/script-generation'
+} from '@shared/contracts/script-generation'
 
 export function selectBatchEpisodesForRun(
   plan: ScriptGenerationExecutionPlanDto,

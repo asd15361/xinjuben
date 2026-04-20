@@ -4,13 +4,13 @@ import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import type { AiGenerateRequestDto } from '../../../shared/contracts/ai'
+} from '@shared/contracts/workflow'
+import type { AiGenerateRequestDto } from '@shared/contracts/ai'
 import type {
   ScriptGenerationProgressBoardDto,
   StartScriptGenerationInputDto,
   StartScriptGenerationResultDto
-} from '../../../shared/contracts/script-generation'
+} from '@shared/contracts/script-generation'
 import { advanceScriptGenerationState } from '../state-machine'
 import { createScriptGenerationPrompt } from '../prompt/create-script-generation-prompt'
 import { buildFirstDraftSystemPrompt } from '../prompt/first-draft-system-prompt'
@@ -22,10 +22,10 @@ import {
   shouldAcceptRepairCandidate,
   shouldReplaceBestAttempt,
   type EpisodeGuardFailure
-} from '../../../shared/domain/script/screenplay-repair-guard'
-import { inspectScreenplayQualityEpisode } from '../../../shared/domain/script/screenplay-quality'
-import { parseScreenplayScenes } from '../../../shared/domain/script/screenplay-format'
-import { EPISODE_CHAR_COUNT } from '../../../shared/domain/workflow/contract-thresholds'
+} from '@shared/domain/script/screenplay-repair-guard'
+import { inspectScreenplayQualityEpisode } from '@shared/domain/script/screenplay-quality'
+import { parseScreenplayScenes } from '@shared/domain/script/screenplay-format'
+import { EPISODE_CHAR_COUNT } from '@shared/domain/workflow/contract-thresholds'
 
 const MAX_EPISODE_GENERATION_ATTEMPTS = 2
 

@@ -2,16 +2,16 @@ import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '@shared/contracts/workflow'
 import type {
   ScriptLedgerPostflightDto,
   ScriptStateLedgerDto
-} from '../../../shared/contracts/script-ledger'
+} from '@shared/contracts/script-ledger'
 import type {
   StartScriptGenerationInputDto,
   StartScriptGenerationResultDto
-} from '../../../shared/contracts/script-generation'
-import { inspectScreenplayQualityBatch } from '../../../shared/domain/script/screenplay-quality'
+} from '@shared/contracts/script-generation'
+import { inspectScreenplayQualityBatch } from '@shared/domain/script/screenplay-quality'
 import { buildScriptStateLedger } from '../ledger/build-script-ledger'
 import { buildLedgerPostflightAssertion } from '../ledger/ledger-postflight'
 import { collectF6PostflightIssues } from './collect-f6-postflight-issues'

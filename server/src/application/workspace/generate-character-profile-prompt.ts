@@ -15,8 +15,8 @@
  * - 人物小传定位为 RAG/图谱/背景，不是硬性输入合同
  */
 
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { CharacterDraftDto } from '../../shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { CharacterDraftDto } from '@shared/contracts/workflow'
 import { renderAnchorBlock } from './generation-stage-prompt-anchors'
 
 export interface CharacterProfileAgentInput {

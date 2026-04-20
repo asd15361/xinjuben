@@ -1,5 +1,5 @@
 import type { FormalFact } from '../../contracts/workflow'
-import { getFormalFactSemanticLabel } from './semantic-label.ts'
+import { getFormalFactSemanticLabel } from './semantic-label'
 
 function hasAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text))

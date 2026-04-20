@@ -1,4 +1,9 @@
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto, ScriptSegmentDto } from './workflow'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto,
+  ScriptSegmentDto
+} from './workflow'
 
 export type StageContractType = 'outline' | 'character' | 'detailed_outline' | 'script'
 

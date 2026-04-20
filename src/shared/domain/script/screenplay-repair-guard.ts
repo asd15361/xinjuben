@@ -12,7 +12,7 @@
  *
  * @see script-segment-text.ts for the full legacy adapter boundary definition
  */
-import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow'
 import {
   EPISODE_CHAR_COUNT,
   EPISODE_CHAR_COUNT_MAX,
@@ -23,9 +23,9 @@ import {
   PENALTY_SCENE_COUNT_OUT_OF_RANGE,
   SCENE_COUNT_MINIMUM,
   SCENE_COUNT_QUALITY
-} from '../workflow/contract-thresholds.ts'
-import { extractStructuredSceneFromScreenplay, parseScreenplayScenes } from './screenplay-format.ts'
-import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
+} from '../workflow/contract-thresholds'
+import { extractStructuredSceneFromScreenplay, parseScreenplayScenes } from './screenplay-format'
+import { inspectScreenplayQualityEpisode } from './screenplay-quality'
 
 export type EpisodeGuardFailureCode =
   | 'voice_over'

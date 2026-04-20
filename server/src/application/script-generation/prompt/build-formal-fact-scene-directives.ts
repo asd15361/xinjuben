@@ -1,5 +1,5 @@
-import type { OutlineDraftDto } from '../../../shared/contracts/workflow'
-import { isFormalFactSemanticLabel } from '../../../shared/domain/formal-fact/semantic-label'
+import type { OutlineDraftDto } from '@shared/contracts/workflow'
+import { isFormalFactSemanticLabel } from '@shared/domain/formal-fact/semantic-label'
 
 function getConfirmedFact(outline: OutlineDraftDto, label: string) {
   return outline.facts.find(

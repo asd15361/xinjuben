@@ -1,16 +1,16 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import { getConfirmedFormalFacts } from '../../../shared/domain/formal-fact/selectors'
+} from '@shared/contracts/workflow'
+import { getConfirmedFormalFacts } from '@shared/domain/formal-fact/selectors'
 import {
   buildUserAnchorLedger,
   collectMissingUserAnchorNames,
   hasHeroineAnchorCoverage
-} from '../../../shared/domain/story-contract/story-contract-policy'
+} from '@shared/domain/story-contract/story-contract-policy'
 import { buildCharacterStates } from './ledger-characters'
 import { buildLedgerEvents } from './ledger-events'
 import { buildOpenHooks } from './ledger-hooks'

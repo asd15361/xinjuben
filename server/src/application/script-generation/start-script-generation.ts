@@ -5,13 +5,13 @@ import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../shared/contracts/workflow'
-import { buildCharacterFingerprint } from '../../shared/domain/workflow/character-fingerprint'
+} from '@shared/contracts/workflow'
+import { buildCharacterFingerprint } from '@shared/domain/workflow/character-fingerprint'
 import type {
   ScriptGenerationProgressBoardDto,
   StartScriptGenerationInputDto,
   StartScriptGenerationResultDto
-} from '../../shared/contracts/script-generation'
+} from '@shared/contracts/script-generation'
 import { finalizeScriptPostflight } from './runtime/finalize-script-postflight'
 import { detectDuplicateScenes } from './runtime/detect-duplicate-scenes'
 import { runScriptGenerationBatch } from './runtime/run-script-generation-batch'

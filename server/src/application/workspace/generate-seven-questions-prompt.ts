@@ -18,8 +18,8 @@
  * - 七问和人物小传并行执行，互不依赖
  */
 
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { SevenQuestionsResultDto } from '../../shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { SevenQuestionsResultDto } from '@shared/contracts/workflow'
 
 export interface SevenQuestionsAgentInput {
   /** 真源（StoryIntent） */

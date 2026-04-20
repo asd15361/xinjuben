@@ -1,5 +1,5 @@
 import type { FormalFact } from '../../contracts/workflow'
-import { matchFormalFactLandingHeuristic } from './landing-heuristics.ts'
+import { matchFormalFactLandingHeuristic } from './landing-heuristics'
 
 const GENERIC_ANCHORS = new Set([
   '正式',

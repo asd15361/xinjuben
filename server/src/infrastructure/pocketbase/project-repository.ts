@@ -3,23 +3,23 @@ import type {
   CreateProjectInputDto,
   ProjectSnapshotDto,
   ProjectSummaryDto
-} from '../../shared/contracts/project'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { ProjectEntityStoreDto } from '../../shared/contracts/entities'
-import type { ChatMessageDto } from '../../shared/contracts/chat'
-import type { OutlineDraftDto, CharacterDraftDto, DetailedOutlineSegmentDto, DetailedOutlineBlockDto, CharacterBlockDto, ScriptSegmentDto } from '../../shared/contracts/workflow'
-import type { ProjectGenerationStatusDto } from '../../shared/contracts/generation'
-import type { ScriptStateLedgerDto } from '../../shared/contracts/script-ledger'
+} from '@shared/contracts/project'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { ProjectEntityStoreDto } from '@shared/contracts/entities'
+import type { ChatMessageDto } from '@shared/contracts/chat'
+import type { OutlineDraftDto, CharacterDraftDto, DetailedOutlineSegmentDto, DetailedOutlineBlockDto, CharacterBlockDto, ScriptSegmentDto } from '@shared/contracts/workflow'
+import type { ProjectGenerationStatusDto } from '@shared/contracts/generation'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto
-} from '../../shared/contracts/script-generation'
-import type { FormalReleaseState, VisibleResultState } from '../../shared/contracts/visible-release-state'
+} from '@shared/contracts/script-generation'
+import type { FormalReleaseState, VisibleResultState } from '@shared/contracts/visible-release-state'
 import {
   guardianEnforceCharacterSave,
   guardianEnforceDetailedOutlineSave,
   guardianEnforceOutlineSave
-} from '../../shared/domain/workflow/stage-guardians'
+} from '@shared/domain/workflow/stage-guardians'
 import { authenticateAdmin, pb, TABLES } from './client'
 import { mapProjectSnapshot, mapProjectSummary, type ProjectRecordShape } from './project-snapshot-mapper'
 

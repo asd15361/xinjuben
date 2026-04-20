@@ -14,12 +14,12 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type {
   FactionDto,
   FactionMatrixDto
-} from '../../shared/contracts/faction-matrix'
-import type { CharacterProfileV2Dto } from '../../shared/contracts/character-profile-v2'
+} from '@shared/contracts/faction-matrix'
+import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
 
 export interface CharacterProfileV2AgentInput {
   storyIntent: StoryIntentPackageDto

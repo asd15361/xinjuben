@@ -1,5 +1,5 @@
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import { buildShortDramaConstitutionFromStoryIntent } from '../../shared/domain/short-drama/short-drama-constitution'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import { buildShortDramaConstitutionFromStoryIntent } from '@shared/domain/short-drama/short-drama-constitution'
 import { cleanPossibleName, normalizeAnchorName } from './summarize-chat-for-generation-shared'
 
 function toStringOrEmpty(value: unknown): string {

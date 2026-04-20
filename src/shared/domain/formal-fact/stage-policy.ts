@@ -1,5 +1,5 @@
 import type { OutlineDraftDto } from '../../contracts/workflow'
-import { getConfirmedFormalFacts } from './selectors.ts'
+import { getConfirmedFormalFacts } from './selectors'
 
 export interface FormalFactStageHint {
   title: string

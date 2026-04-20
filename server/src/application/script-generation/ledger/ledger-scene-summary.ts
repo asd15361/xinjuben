@@ -1,4 +1,4 @@
-import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
+import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 
 function clipText(value: string, maxLength: number): string {
   const text = String(value || '')

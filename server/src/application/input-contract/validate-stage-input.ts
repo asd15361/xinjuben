@@ -1,24 +1,24 @@
-import type { InputContractValidationDto } from '../../shared/contracts/input-contract'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+import type { InputContractValidationDto } from '@shared/contracts/input-contract'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../shared/contracts/workflow'
-import type { StageContractType } from '../../shared/contracts/stage-contract'
-import { matchFormalFactLanding } from '../../shared/domain/formal-fact/match-formal-fact-landing'
-import { getConfirmedFormalFacts } from '../../shared/domain/formal-fact/selectors'
+} from '@shared/contracts/workflow'
+import type { StageContractType } from '@shared/contracts/stage-contract'
+import { matchFormalFactLanding } from '@shared/domain/formal-fact/match-formal-fact-landing'
+import { getConfirmedFormalFacts } from '@shared/domain/formal-fact/selectors'
 import {
   buildStoryContract,
   buildUserAnchorLedger,
   collectMissingUserAnchorNames,
   hasHeroineAnchorCoverage
-} from '../../shared/domain/story-contract/story-contract-policy'
+} from '@shared/domain/story-contract/story-contract-policy'
 import {
   isCharacterBundleStructurallyComplete,
   resolveCharacterContractAnchors
-} from '../../shared/domain/workflow/character-contract'
+} from '@shared/domain/workflow/character-contract'
 
 interface StageInputPayload {
   storyIntent?: StoryIntentPackageDto | null

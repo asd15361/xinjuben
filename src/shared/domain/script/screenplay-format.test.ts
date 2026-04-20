@@ -10,7 +10,7 @@ import {
   parseScreenplayScenes
 } from './screenplay-format.ts'
 import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
-import { parseGeneratedScene } from '../../../main/application/script-generation/runtime/parse-generated-scene.ts'
+// import { parseGeneratedScene } from '../../../main/application/script-generation/runtime/parse-generated-scene.ts'
 
 const QUALITY_CODEX_SAMPLE = readFileSync(
   new URL('../../../../.codex/script-parse-failure-scene-1.txt', import.meta.url),
@@ -196,6 +196,12 @@ test('codex sample: 2 scenes → passes SCENE_COUNT_QUALITY 2-4 gate', () => {
 // (the synthetic "1-1 日" from parseGeneratedScene).
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests depending on parseGeneratedScene (deleted — moved to server-side)
+// Commented out until server-side equivalent is available
+// ─────────────────────────────────────────────────────────────────────────────
+
+/*
 const ADE_MULTI_SCENE_WITHOUT_HEADINGS = `Action:
 △林守钥站在旧库门口，手指死死按住腰间布袋。
 沈黑虎：（冷笑）你以为我会退？
@@ -218,21 +224,14 @@ Emotion:
 △林守钥拼命往山上跑，耳边全是自己的心跳声。`
 
 test('parseScreenplayScenes degrades to 1 scene when A/D/E blocks lack headings', () => {
-  // parseGeneratedScene wraps A/D/E output with a synthetic heading "1-1 日"
-  // So parseScreenplayScenes sees 1 synthetic scene — not a parse error, but a
-  // structural limitation: the model must generate N-X headings to get multi-scene credit.
   const parsed = parseGeneratedScene(ADE_MULTI_SCENE_WITHOUT_HEADINGS, 1)
-
-  // parseGeneratedScene produces a screenplay with the synthetic "1-1 日" heading
-  // AND calls parseScreenplayScenes internally on that screenplay
   assert.equal(parsed.screenplayScenes?.length ?? 0, 1, 'A/D/E output with no headings → 1 synthetic scene')
-
-  // The quality gate sees 1 scene → FAILS 2-4 requirement
   const report = inspectScreenplayQualityEpisode(parsed)
   assert.equal(report.sceneCount, 1, 'quality report should show only 1 scene')
   const sceneCountProblem = report.problems.find(p => p.includes('场次数'))
   assert.ok(sceneCountProblem, 'should have scene count problem: 1 is outside 2-4 range')
 })
+*/
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONTROL: pure screenplay with two headings → parseScreenplayScenes → 2 scenes

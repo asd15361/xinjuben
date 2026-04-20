@@ -1,4 +1,4 @@
-import type { ScriptGenerationProgressBoardDto } from '../../shared/contracts/script-generation'
+import type { ScriptGenerationProgressBoardDto } from '@shared/contracts/script-generation'
 import { markBatchStatus, updateEpisodeStatus } from './progress-board'
 
 export type ScriptGenerationEvent =

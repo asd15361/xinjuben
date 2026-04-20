@@ -1,5 +1,5 @@
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
-import type { CharacterDraftDto } from '../../shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { CharacterDraftDto } from '@shared/contracts/workflow'
 import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support'
 
 type BriefCharacterCard = { name?: string; summary?: string }

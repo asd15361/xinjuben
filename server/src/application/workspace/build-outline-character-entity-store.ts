@@ -1,12 +1,12 @@
-import type { CharacterProfileV2Dto } from '../../shared/contracts/character-profile-v2'
+import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
 import type {
   CharacterEntityDto,
   FactionEntityDto,
   ProjectEntityStoreDto,
   RelationEntityDto
-} from '../../shared/contracts/entities'
-import type { FactionDto, FactionMatrixDto } from '../../shared/contracts/faction-matrix'
-import type { CharacterDraftDto } from '../../shared/contracts/workflow'
+} from '@shared/contracts/entities'
+import type { FactionDto, FactionMatrixDto } from '@shared/contracts/faction-matrix'
+import type { CharacterDraftDto } from '@shared/contracts/workflow'
 
 const EMPTY_ENTITY_STORE: ProjectEntityStoreDto = {
   characters: [],

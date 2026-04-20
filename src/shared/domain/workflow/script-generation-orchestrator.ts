@@ -94,8 +94,8 @@ import type {
 } from '../../../shared/contracts/visible-release-state'
 import { appendRuntimeFailureHistory } from '../runtime/failure-history-queue'
 import { classifyRuntimeFailureHistory } from '../runtime/failure-history'
-import { deriveProjectCharacterBlocks } from './planning-blocks.ts'
-import { resolvePersistedGenerationTruth } from './persisted-generation-truth.ts'
+import { deriveProjectCharacterBlocks } from './planning-blocks'
+import { resolvePersistedGenerationTruth } from './persisted-generation-truth'
 
 /**
  * Command mode for script generation
@@ -238,7 +238,7 @@ export interface CreateInitialBoard {
 export interface RunScriptGenerationBatch {
   (input: {
     generationInput: StartScriptGenerationInputDto
-    runtimeConfig: import('../../../main/infrastructure/runtime-env/provider-config').RuntimeProviderConfig
+    runtimeConfig: { deepseek: { apiKey: string }, lanes: { deepseek: boolean }, runtimeFetchTimeoutMs: number }
     board: ScriptGenerationProgressBoardDto
     outline: OutlineDraftDto
     characters: CharacterDraftDto[]
@@ -266,7 +266,7 @@ export interface RunScriptGenerationBatch {
 export interface RepairGeneratedScenes {
   (input: {
     generationInput: StartScriptGenerationInputDto
-    runtimeConfig: import('../../../main/infrastructure/runtime-env/provider-config').RuntimeProviderConfig
+    runtimeConfig: { deepseek: { apiKey: string }, lanes: { deepseek: boolean }, runtimeFetchTimeoutMs: number }
     outline: OutlineDraftDto
     generatedScenes: ScriptSegmentDto[]
   }): Promise<{
@@ -310,7 +310,7 @@ export interface ScriptOrchestratorOptions {
   runScriptGenerationBatch: RunScriptGenerationBatch
   repairGeneratedScenes: RepairGeneratedScenes
   atomicSaveGenerationState: AtomicSaveGenerationState
-  runtimeConfig: import('../../../main/infrastructure/runtime-env/provider-config').RuntimeProviderConfig
+  runtimeConfig: { deepseek: { apiKey: string }, lanes: { deepseek: boolean }, runtimeFetchTimeoutMs: number }
   onProgress?: ProgressCallback
 }
 

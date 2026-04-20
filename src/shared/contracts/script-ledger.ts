@@ -1,3 +1,37 @@
+export interface ScriptLedgerIssueDto {
+  severity: 'low' | 'medium' | 'high'
+  code: string
+  detail: string
+}
+
+export interface ScriptLedgerPostflightDto {
+  issues: ScriptLedgerIssueDto[]
+  pass?: boolean
+  quality?: {
+    pass: boolean
+    episodeCount: number
+    passedEpisodes: number
+    averageCharCount: number
+    weakEpisodes: Array<{
+      sceneNo: number | null
+      problems: string[]
+      charCount: number
+      sceneCount: number
+      hookLine: string
+    }>
+  }
+  summary: string
+  patch: {
+    previousSemanticHash: string | null
+    nextSemanticHash: string
+    updates: Array<{
+      path: string
+      value: string | string[] | boolean | null
+      evidence: string
+    }>
+  }
+}
+
 export interface ScriptLedgerCharacterStateDto {
   name: string
   lastKnownGoal: string
@@ -39,6 +73,14 @@ export interface ScriptLedgerFactStateDto {
   lastUpdatedAt: string
 }
 
+export interface ScriptLedgerAnchorStateDto {
+  requiredAnchorNames: string[]
+  missingAnchorNames: string[]
+  heroineRequired: boolean
+  heroineHint: string
+  heroineCovered: boolean
+}
+
 export interface ScriptLedgerOpenHookDto {
   id: string
   sourceSceneNo: number
@@ -65,49 +107,15 @@ export interface ScriptLedgerKnowledgeBoundaryDto {
   forbiddenOmniscienceRules: string[]
 }
 
-export interface ScriptLedgerIssueDto {
-  severity: 'low' | 'medium' | 'high'
-  code: string
+export interface ScriptLedgerEventDto {
+  type: 'hook_opened' | 'anchor_missing' | 'formal_fact_confirmed' | 'semantic_shift' | 'pressure_shift' | 'trait_binding_weak' | 'memory_echo_missing' | 'hard_anchor_pending'
   detail: string
+  sceneNo: number | null
 }
 
 export interface ScriptLedgerPreflightDto {
   issues: ScriptLedgerIssueDto[]
   assertionBlock: string
-}
-
-export interface ScriptLedgerPostflightDto {
-  issues: ScriptLedgerIssueDto[]
-  pass?: boolean
-  quality?: {
-    pass: boolean
-    episodeCount: number
-    passedEpisodes: number
-    averageCharCount: number
-    weakEpisodes: Array<{
-      sceneNo: number | null
-      problems: string[]
-      charCount: number
-      sceneCount: number
-      hookLine: string
-    }>
-  }
-  summary: string
-  patch: {
-    previousSemanticHash: string | null
-    nextSemanticHash: string
-    updates: Array<{
-      path: string
-      value: string | string[] | boolean | null
-      evidence: string
-    }>
-  }
-}
-
-export interface ScriptLedgerEventDto {
-  type: 'hook_opened' | 'anchor_missing' | 'formal_fact_confirmed' | 'semantic_shift' | 'pressure_shift' | 'trait_binding_weak' | 'memory_echo_missing' | 'hard_anchor_pending'
-  detail: string
-  sceneNo: number | null
 }
 
 export interface ScriptStateLedgerDto {
@@ -120,13 +128,7 @@ export interface ScriptStateLedgerDto {
   usedTactics?: string[]
   characters: ScriptLedgerCharacterStateDto[]
   factState: ScriptLedgerFactStateDto
-  anchorState: {
-    requiredAnchorNames: string[]
-    missingAnchorNames: string[]
-    heroineRequired: boolean
-    heroineHint: string
-    heroineCovered: boolean
-  }
+  anchorState: ScriptLedgerAnchorStateDto
   openHooks: ScriptLedgerOpenHookDto[]
   storyMomentum: ScriptLedgerMomentumDto
   knowledgeBoundaries: ScriptLedgerKnowledgeBoundaryDto

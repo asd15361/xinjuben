@@ -10,14 +10,14 @@
  * 本文件只做测量和信号输出，不做门禁、不做硬限制。
  */
 
-import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
-import { detectProtagonistWeakness, type WeaknessDetectionResult } from './screenplay-weakness-detection.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow'
+import { detectProtagonistWeakness, type WeaknessDetectionResult } from './screenplay-weakness-detection'
 import {
   TACTIC_CATEGORY_LABELS,
   type TacticCategory,
   mapPressureTypeToCategory,
   validateTacticRotation
-} from './screenplay-tactic-rotation.ts'
+} from './screenplay-tactic-rotation'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KNOWN_LOOP_PATTERNS

@@ -1,8 +1,8 @@
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import {
   cleanCharacterLikeName,
   normalizeCharacterLikeName
-} from '../../shared/domain/workflow/character-draft-normalization'
+} from '@shared/domain/workflow/character-draft-normalization'
 export { tryParseObject } from './summarize-chat-for-generation-json'
 
 export const NAME_STOP_WORDS = new Set([

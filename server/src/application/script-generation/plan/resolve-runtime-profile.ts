@@ -1,6 +1,6 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { ScriptRuntimeFailureHistoryCode } from '../../../shared/contracts/script-generation'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '../../../shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { ScriptRuntimeFailureHistoryCode } from '@shared/contracts/script-generation'
+import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '@shared/contracts/workflow'
 
 function normalizeCount(value: number | undefined): number {
   if (!Number.isFinite(value)) return 0

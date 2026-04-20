@@ -1,6 +1,6 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
-import type { OutlineDraftDto, ScriptSegmentDto } from '../../../shared/contracts/workflow'
-import { hasMemoryEchoSignal } from '../../../shared/domain/script-generation/signal-policy'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
+import type { OutlineDraftDto, ScriptSegmentDto } from '@shared/contracts/workflow'
+import { hasMemoryEchoSignal } from '@shared/domain/script-generation/signal-policy'
 import { summarizeSceneFragment } from './ledger-scene-summary'
 
 function collectMemoryEchoes(script: ScriptSegmentDto[]): string[] {

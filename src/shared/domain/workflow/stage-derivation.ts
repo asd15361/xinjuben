@@ -20,7 +20,7 @@
 import type { ProjectSnapshotDto } from '../../contracts/project'
 import type { WorkflowStage } from '../../contracts/workflow'
 import type { InputContractIssueDto } from '../../contracts/input-contract'
-import { hasConfirmedSevenQuestions } from './seven-questions-authority.ts'
+import { hasConfirmedSevenQuestions } from './seven-questions-authority'
 
 // =============================================================================
 // TYPE DEFINITIONS

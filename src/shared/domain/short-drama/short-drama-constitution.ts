@@ -1,7 +1,7 @@
 import type {
   ShortDramaConstitutionDto,
   StoryIntentPackageDto
-} from '../../contracts/intake.ts'
+} from '../../contracts/intake'
 
 const DEFAULT_CORE_PRINCIPLE = '快节奏、强冲突、稳情绪'
 const DEFAULT_CORE_EMOTION = '爽感持续兑现'
@@ -220,3 +220,4 @@ export function renderShortDramaConstitutionPromptBlock(
 
   return lines.join('\n')
 }
+

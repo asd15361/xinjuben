@@ -4,7 +4,7 @@ import type {
   ScriptGenerationProgressBoardDto,
   ScriptEpisodeRuntimeStatus,
   ScriptGenerationResumeResolutionDto
-} from '../../shared/contracts/script-generation'
+} from '@shared/contracts/script-generation'
 
 function nowIso(): string {
   return new Date().toISOString()

@@ -1,12 +1,12 @@
-import type { OutlineEpisodeDto } from '../../shared/contracts/workflow'
+import type { OutlineEpisodeDto } from '@shared/contracts/workflow'
 import type { SevenQuestionsResult } from './generate-seven-questions-prompt'
 import type { CharacterProfileResult } from './generate-character-profile-prompt'
 import { renderAnchorBlock } from './generation-stage-prompt-anchors'
 import { formatSevenQuestionsAsNarrativeConstraint } from './generate-seven-questions-prompt'
 import { formatCharacterProfileSummary } from './generate-character-profile-prompt'
-import type { CharacterProfileV2Dto } from '../../shared/contracts/character-profile-v2'
-import type { FactionMatrixDto } from '../../shared/contracts/faction-matrix'
-import type { PromptVariables } from '../../shared/contracts/prompt-variables'
+import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
+import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
+import type { PromptVariables } from '@shared/contracts/prompt-variables'
 
 export type RoughOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
 

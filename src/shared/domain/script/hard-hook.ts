@@ -1,4 +1,4 @@
-import { HOOK_WINDOW_SIZE } from '../workflow/contract-thresholds.ts'
+import { HOOK_WINDOW_SIZE } from '../workflow/contract-thresholds'
 
 const HARD_HOOK_EVENT_MARKERS = [
   '撞开',

@@ -1,7 +1,7 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
-import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract.ts'
-import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow.ts'
-import { getConfirmedFormalFacts } from '../formal-fact/selectors.ts'
+import type { StoryIntentPackageDto } from '../../contracts/intake'
+import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract'
+import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow'
+import { getConfirmedFormalFacts } from '../formal-fact/selectors'
 
 function unique(values: Array<string | undefined | null>): string[] {
   const used = new Set<string>()

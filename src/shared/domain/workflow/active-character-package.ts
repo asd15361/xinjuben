@@ -1,4 +1,4 @@
-import type { CharacterEntityDto, ProjectEntityStoreDto } from '../../contracts/entities.ts'
+import type { CharacterEntityDto, ProjectEntityStoreDto } from '../../contracts/entities'
 import type {
   ActiveCharacterPackageDto,
   ActiveCharacterPackageMemberDto,
@@ -7,9 +7,9 @@ import type {
   OutlineBlockDto,
   OutlineDraftDto,
   OutlineEpisodeDto
-} from '../../contracts/workflow.ts'
-import { getGovernanceOutlineBlockSize } from './batching-contract.ts'
-import { findCharacterEntityByName, fromMasterEntity, resolveMasterEntityId } from '../entities/character-draft-mapper.ts'
+} from '../../contracts/workflow'
+import { getGovernanceOutlineBlockSize } from './batching-contract'
+import { findCharacterEntityByName, fromMasterEntity, resolveMasterEntityId } from '../entities/character-draft-mapper'
 
 const EMPTY_ENTITY_STORE: ProjectEntityStoreDto = {
   characters: [],

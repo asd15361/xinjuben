@@ -1,5 +1,5 @@
-import type { ModelRouteLane } from '../../../shared/contracts/ai'
-import type { ScriptGenerationMode } from '../../../shared/contracts/script-generation'
+import type { ModelRouteLane } from '@shared/contracts/ai'
+import type { ScriptGenerationMode } from '@shared/contracts/script-generation'
 
 export function resolveLaneStrategy(_input: {
   mode: ScriptGenerationMode

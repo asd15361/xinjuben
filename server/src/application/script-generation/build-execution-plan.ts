@@ -1,23 +1,23 @@
 import type {
   BuildScriptGenerationPlanInputDto,
   ScriptGenerationExecutionPlanDto
-} from '../../shared/contracts/script-generation'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+} from '@shared/contracts/script-generation'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type {
   CharacterDraftDto,
   DetailedOutlineBlockDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../shared/contracts/workflow'
-import { buildScriptGenerationContract } from '../../shared/domain/script-generation/contract-policy'
-import { buildScriptGenerationControlPackage } from '../../shared/domain/script-generation/script-control-package'
+} from '@shared/contracts/workflow'
+import { buildScriptGenerationContract } from '@shared/domain/script-generation/contract-policy'
+import { buildScriptGenerationControlPackage } from '@shared/domain/script-generation/script-control-package'
 import { validateStageInputContract } from '../input-contract/validate-stage-input'
 import { buildEpisodePlans } from './plan/build-episode-plans'
 import { clampTargetEpisodes, resolveMode } from './plan/resolve-generation-mode'
 import { resolveLaneStrategy } from './plan/resolve-lane-strategy'
 import { resolveScriptRuntimeProfile } from './plan/resolve-runtime-profile'
-import { countCoveredScriptEpisodes } from '../../shared/domain/workflow/script-episode-coverage'
+import { countCoveredScriptEpisodes } from '@shared/domain/workflow/script-episode-coverage'
 
 interface BuildExecutionPlanContext {
   storyIntent?: StoryIntentPackageDto | null

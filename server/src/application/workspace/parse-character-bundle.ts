@@ -1,5 +1,5 @@
-import type { CharacterDraftDto } from '../../shared/contracts/workflow'
-import { normalizeCharacterLikeName } from '../../shared/domain/workflow/character-draft-normalization'
+import type { CharacterDraftDto } from '@shared/contracts/workflow'
+import { normalizeCharacterLikeName } from '@shared/domain/workflow/character-draft-normalization'
 import {
   tryParseArray,
   tryParseObject

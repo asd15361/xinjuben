@@ -1,15 +1,15 @@
-import type { ChatMessageDto } from '../../shared/contracts/chat'
-import type { ProjectEntityStoreDto } from '../../shared/contracts/entities'
-import type { ProjectGenerationStatusDto } from '../../shared/contracts/generation'
-import type { ProjectSnapshotDto, ProjectSummaryDto } from '../../shared/contracts/project'
-import type { ScriptStateLedgerDto } from '../../shared/contracts/script-ledger'
+import type { ChatMessageDto } from '@shared/contracts/chat'
+import type { ProjectEntityStoreDto } from '@shared/contracts/entities'
+import type { ProjectGenerationStatusDto } from '@shared/contracts/generation'
+import type { ProjectSnapshotDto, ProjectSummaryDto } from '@shared/contracts/project'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 import type {
   PersistedScriptRuntimeStateDto,
   ScriptRuntimeFailureHistoryCode,
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto
-} from '../../shared/contracts/script-generation'
-import type { FormalReleaseState, VisibleResultState } from '../../shared/contracts/visible-release-state'
+} from '@shared/contracts/script-generation'
+import type { FormalReleaseState, VisibleResultState } from '@shared/contracts/visible-release-state'
 import type {
   CharacterBlockDto,
   CharacterDraftDto,
@@ -17,8 +17,8 @@ import type {
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../shared/contracts/workflow'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+} from '@shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 
 export interface ProjectRecordShape {
   id: string

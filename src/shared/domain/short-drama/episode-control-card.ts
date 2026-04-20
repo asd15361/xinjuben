@@ -4,15 +4,15 @@ import type {
   EpisodeControlCardDto,
   OutlineDraftDto,
   ScreenplaySceneBlockDto
-} from '../../contracts/workflow.ts'
+} from '../../contracts/workflow'
 import type {
   ShortDramaConstitutionDto,
   StoryIntentPackageDto
-} from '../../contracts/intake.ts'
+} from '../../contracts/intake'
 import {
   buildShortDramaConstitutionFromStoryIntent,
   normalizeShortDramaConstitution
-} from './short-drama-constitution.ts'
+} from './short-drama-constitution'
 
 function cleanText(value: string | undefined, fallback = ''): string {
   const text = String(value || '')

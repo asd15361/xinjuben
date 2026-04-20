@@ -1,10 +1,10 @@
 import { hasValidApiKey, loadRuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import { ProjectRepository } from '../../infrastructure/pocketbase/project-repository'
 import { generateDetailedOutlineFromContext, isDetailedOutlineModelResultComplete } from './generate-detailed-outline-support'
-import { deriveOutlineEpisodeCount } from '../../shared/domain/workflow/episode-count'
-import { ensureOutlineEpisodeShape } from '../../shared/domain/workflow/outline-episodes'
-import type { ProjectSnapshotDto } from '../../shared/contracts/project'
-import type { DetailedOutlineSegmentDto } from '../../shared/contracts/workflow'
+import { deriveOutlineEpisodeCount } from '@shared/domain/workflow/episode-count'
+import { ensureOutlineEpisodeShape } from '@shared/domain/workflow/outline-episodes'
+import type { ProjectSnapshotDto } from '@shared/contracts/project'
+import type { DetailedOutlineSegmentDto } from '@shared/contracts/workflow'
 
 export interface DetailedOutlineProjectRequest {
   userId: string

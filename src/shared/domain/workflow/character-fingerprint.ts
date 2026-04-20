@@ -1,4 +1,4 @@
-import type { CharacterDraftDto } from '../../contracts/workflow.ts'
+import type { CharacterDraftDto } from '../../contracts/workflow'
 
 function cleanText(value: string | undefined): string {
   return String(value || '')

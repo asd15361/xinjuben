@@ -1,5 +1,5 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
-import type { CharacterDraftDto, ScriptSegmentDto } from '../../../shared/contracts/workflow'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
+import type { CharacterDraftDto, ScriptSegmentDto } from '@shared/contracts/workflow'
 
 function createStableHookId(sceneNo: number, hookText: string): string {
   const normalized = hookText

@@ -1,4 +1,4 @@
-import type { ScriptGenerationMode } from '../../../shared/contracts/script-generation'
+import type { ScriptGenerationMode } from '@shared/contracts/script-generation'
 
 export function clampTargetEpisodes(targetEpisodes: number | undefined): number {
   if (!targetEpisodes || !Number.isFinite(targetEpisodes)) return 10

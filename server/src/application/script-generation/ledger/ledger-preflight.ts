@@ -1,4 +1,4 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPreflightDto, ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
+import type { ScriptLedgerIssueDto, ScriptLedgerPreflightDto, ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 
 export function buildLedgerPreflight(input: {
   confirmedFormalFacts: string[]

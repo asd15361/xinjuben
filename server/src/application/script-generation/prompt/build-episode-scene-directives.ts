@@ -1,6 +1,6 @@
-import type { OutlineDraftDto } from '../../../shared/contracts/workflow'
+import type { OutlineDraftDto } from '@shared/contracts/workflow'
 import { buildFormalFactSceneDirectives } from './build-formal-fact-scene-directives'
-import { isFormalFactSemanticLabel } from '../../../shared/domain/formal-fact/semantic-label'
+import { isFormalFactSemanticLabel } from '@shared/domain/formal-fact/semantic-label'
 
 function hasConfirmedFact(outline: OutlineDraftDto, label: string): boolean {
   return outline.facts.some(

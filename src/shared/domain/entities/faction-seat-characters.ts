@@ -2,7 +2,7 @@ import type {
   CharacterEntityDto,
   FactionEntityDto,
   ProjectEntityStoreDto
-} from '../../contracts/entities.ts'
+} from '../../contracts/entities'
 
 export interface FactionSeatBlueprint {
   key: string

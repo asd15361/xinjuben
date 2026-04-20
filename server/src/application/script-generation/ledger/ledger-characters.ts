@@ -1,6 +1,6 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
-import type { CharacterDraftDto, ScriptSegmentDto } from '../../../shared/contracts/workflow'
-import { findTraitBindingEvidence } from '../../../shared/domain/script-generation/signal-policy'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
+import type { CharacterDraftDto, ScriptSegmentDto } from '@shared/contracts/workflow'
+import { findTraitBindingEvidence } from '@shared/domain/script-generation/signal-policy'
 
 const LOCATION_PATTERN =
   /在([\u4e00-\u9fa5A-Za-z0-9]{2,12}(?:房|室|厅|楼|巷|街|院|馆|店|城|村|站|口))/

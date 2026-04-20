@@ -1,15 +1,15 @@
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   EpisodeControlCardDto,
   OutlineDraftDto
-} from '../../shared/contracts/workflow'
-import { normalizeEpisodeControlCard, buildEpisodeControlCard } from '../../shared/domain/short-drama/episode-control-card'
-import { renderShortDramaConstitutionPromptBlock } from '../../shared/domain/short-drama/short-drama-constitution'
+} from '@shared/contracts/workflow'
+import { normalizeEpisodeControlCard, buildEpisodeControlCard } from '@shared/domain/short-drama/episode-control-card'
+import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
 
 const EPISODE_CONTROL_MAX_OUTPUT_TOKENS = 3200
 

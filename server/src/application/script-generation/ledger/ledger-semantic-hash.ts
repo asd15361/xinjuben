@@ -1,4 +1,4 @@
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 
 function hashText(value: string): string {
   let hash = 2166136261

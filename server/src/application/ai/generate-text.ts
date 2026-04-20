@@ -3,7 +3,7 @@
  *
  * 支持 DeepSeek 和 OpenRouter 两条通道，自动 fallback
  */
-import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../shared/contracts/ai'
+import type { AiGenerateRequestDto, AiGenerateResponseDto } from '@shared/contracts/ai'
 import type { ProviderFamilyConfig, RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
 
 type LaneName = 'deepseek' | 'openrouterGeminiFlashLite' | 'openrouterQwenFree'

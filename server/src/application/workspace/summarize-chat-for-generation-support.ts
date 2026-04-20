@@ -1,4 +1,4 @@
-import type { StoryIntentPackageDto } from '../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 
 function cleanText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''

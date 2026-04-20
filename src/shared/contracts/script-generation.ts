@@ -2,7 +2,6 @@ import type { InputContractIssueDto } from './input-contract'
 import type { ModelRouteLane } from './ai'
 import type { ProjectEntityStoreDto } from './entities'
 import type { ShortDramaConstitutionDto, StoryIntentPackageDto } from './intake'
-import type { ScriptGenerationContractDto } from './script-generation-contract'
 import type { ScriptLedgerPostflightDto, ScriptStateLedgerDto } from './script-ledger'
 import type {
   CharacterBlockDto,
@@ -94,6 +93,19 @@ export interface ScriptGenerationControlPackageDto {
   episodeControlPlans: ScriptEpisodeControlPlanDto[]
 }
 
+export interface ScriptGenerationContractDto {
+  ready: boolean
+  targetEpisodes: number
+  structuralActs: string[]
+  missingActs: string[]
+  confirmedFormalFacts: string[]
+  missingFormalFactLandings: string[]
+  storyContract: unknown
+  userAnchorLedger: unknown
+  missingAnchorNames: string[]
+  heroineAnchorCovered: boolean
+}
+
 export interface ScriptGenerationExecutionPlanDto {
   mode: ScriptGenerationMode
   ready: boolean
@@ -170,4 +182,12 @@ export interface RewriteScriptEpisodeInputDto {
 export interface RewriteScriptEpisodeResultDto {
   scene: ScriptSegmentDto
   failures: ScriptEpisodeHardIssueDto[]
+}
+
+export interface PersistedScriptRuntimeStateDto {
+  scriptProgressBoard: ScriptGenerationProgressBoardDto | null
+  scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
+  scriptRuntimeFailureHistory: ScriptRuntimeFailureHistoryCode[]
+  scriptStateLedger: ScriptStateLedgerDto | null
+  scriptPostflight?: ScriptLedgerPostflightDto | null
 }
