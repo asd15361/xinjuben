@@ -11,6 +11,7 @@
     "migrate:down": "tsx scripts/migrate-pocketbase.ts down"
   },
   "dependencies": {
+    "alipay-sdk": "^4.14.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",

@@ -15,6 +15,7 @@ import { outlineCharactersRouter } from './api/routes/outline-characters'
 import { detailedOutlineRouter } from './api/routes/detailed-outline'
 import { scriptsRouter } from './api/routes/scripts'
 import { projectsRouter } from './api/routes/projects'
+import { payRouter } from './api/routes/pay'
 
 // 加载环境变量
 dotenv.config()
@@ -54,6 +55,7 @@ app.use('/api/generate', generateRouter)
 app.use('/api/generate', outlineCharactersRouter)
 app.use('/api/generate', detailedOutlineRouter)
 app.use('/api/script-generation', scriptsRouter)
+app.use('/api/pay', payRouter)
 
 // 404 处理
 app.use((req, res) => {
