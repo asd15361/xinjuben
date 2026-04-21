@@ -12,6 +12,7 @@ import { useAuthStore } from '../app/store/useAuthStore'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { X, Mail, Lock, User, Loader2 } from 'lucide-react'
+import { ApiError } from '../services/api-client'
 
 interface LoginModalProps {
   isOpen: boolean
@@ -48,7 +49,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     try {
       if (mode === 'register') {
         if (password !== passwordConfirm) {
-          set({ error: '两次密码不一致' })
+          useAuthStore.setState({ error: '两次密码不一致' })
           setIsSubmitting(false)
           return
         }
@@ -57,8 +58,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         await login({ email, password })
       }
       handleClose()
-    } catch {
-      // 错误已由 store 处理
+    } catch (err: unknown) {
+      // 处理注册冲突：邮箱已存在于生态，引导登录
+      if (err instanceof ApiError && err.shouldLogin) {
+        useAuthStore.setState({ error: '该邮箱已在生态中注册，请直接登录' })
+        setMode('login')
+        return
+      }
+      // 其他错误由 store 处理
     } finally {
       setIsSubmitting(false)
     }
@@ -249,9 +256,4 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     </AnimatePresence>,
     document.body
   )
-}
-
-// 使用 Zustand 的 set 函数直接设置错误
-function set(state: { error: string }) {
-  useAuthStore.setState(state)
 }

@@ -4,6 +4,8 @@ import type {
   ProjectSummaryDto
 } from '../../../shared/contracts/project'
 import type {
+  ConfirmStoryIntentFromChatInputDto,
+  ConfirmStoryIntentFromChatResultDto,
   SaveChatMessagesInputDto,
   SaveCharacterDraftsInputDto,
   SaveConfirmedSevenQuestionsInputDto,
@@ -61,7 +63,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public code: string,
-    public status: number
+    public status: number,
+    public shouldLogin?: boolean
   ) {
     super(message)
     this.name = 'ApiError'
@@ -108,6 +111,7 @@ async function apiRequest<T>(
     const error = await res.json()
     const errorCode = error.error || 'API_ERROR'
     const errorMsg = error.message || '请求失败'
+    const shouldLogin = error.shouldLogin
 
     if (res.status === 401) {
       clearToken()
@@ -117,7 +121,7 @@ async function apiRequest<T>(
       throw new ApiError('积分不足，请充值', 'INSUFFICIENT_CREDITS', 402)
     }
 
-    throw new ApiError(errorMsg, errorCode, res.status)
+    throw new ApiError(errorMsg, errorCode, res.status, shouldLogin)
   }
 
   return res.json()
@@ -226,6 +230,22 @@ export async function apiDeleteProject(
   return apiRequest(`/api/projects/${projectId}`, {
     method: 'DELETE'
   })
+}
+
+// ---------------------------------------------------------------------------
+// Story Intent
+// ---------------------------------------------------------------------------
+
+export async function apiConfirmStoryIntentFromChat(
+  input: ConfirmStoryIntentFromChatInputDto
+): Promise<ConfirmStoryIntentFromChatResultDto> {
+  return apiRequest<ConfirmStoryIntentFromChatResultDto>(
+    `/api/projects/${input.projectId}/confirm-story-intent`,
+    {
+      method: 'POST',
+      body: { chatTranscript: input.chatTranscript }
+    }
+  )
 }
 
 export async function apiSaveStoryIntent(
