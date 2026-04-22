@@ -88,9 +88,7 @@ interface ConfirmedSevenQuestionsGenerationDeps {
 
 function resolveCharacterCardAuthorityNames(generationBriefText: string): string[] {
   const structured = parseStructuredGenerationBrief(generationBriefText)
-  const cards = Array.isArray(structured?.characterCards)
-    ? structured.characterCards
-    : []
+  const cards = Array.isArray(structured?.characterCards) ? structured.characterCards : []
 
   const seen = new Set<string>()
   const names: string[] = []
@@ -105,9 +103,8 @@ function resolveCharacterCardAuthorityNames(generationBriefText: string): string
 }
 
 async function appendConfirmedSevenQuestionsDiagnosticLog(message: string): Promise<void> {
-  const { appendRuntimeDiagnosticLog } = await import(
-    '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-  )
+  const { appendRuntimeDiagnosticLog } =
+    await import('../../infrastructure/diagnostics/runtime-diagnostic-log.ts')
   await appendRuntimeDiagnosticLog('rough_outline', message)
 }
 
@@ -117,7 +114,8 @@ function buildConfirmedSevenQuestionsHandshakeSummary(
   return confirmedSevenQuestions.sections
     .map((section, index) => {
       const questions = section.sevenQuestions
-      const hasValue = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+      const hasValue = (value: unknown): boolean =>
+        typeof value === 'string' && value.trim().length > 0
       return [
         `section=${index + 1}`,
         `episodes=${section.startEpisode}-${section.endEpisode}`,
@@ -188,7 +186,7 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   characterProfiles: { characters: CharacterDraftDto[] }
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
-}) {
+}): Promise<ReturnType<typeof import('./generate-outline-and-characters-support.ts').generateOutlineBundle>> {
   const { generateOutlineBundle } = await import('./generate-outline-and-characters-support.ts')
   return generateOutlineBundle(input)
 }
@@ -202,20 +200,22 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
  * @param input.signal - 中断信号
  * @returns 粗纲、人物、七问
  */
-export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(input: {
-  storyIntent: StoryIntentPackageDto
-  outlineDraft: OutlineDraftDto | null
-  runtimeConfig: RuntimeProviderConfig
-  signal?: AbortSignal
-}, deps: ConfirmedSevenQuestionsGenerationDeps = {}): Promise<{
+export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
+  input: {
+    storyIntent: StoryIntentPackageDto
+    outlineDraft: OutlineDraftDto | null
+    runtimeConfig: RuntimeProviderConfig
+    signal?: AbortSignal
+  },
+  deps: ConfirmedSevenQuestionsGenerationDeps = {}
+): Promise<{
   storyIntent: StoryIntentPackageDto
   outlineDraft: OutlineDraftDto
   characterDrafts: CharacterDraftDto[]
   sevenQuestions: SevenQuestionsResultDto
 }> {
   const generationBriefText = input.storyIntent.generationBriefText?.trim()
-  const appendDiagnosticLog =
-    deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
+  const appendDiagnosticLog = deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
   if (!generationBriefText) {
     throw new Error('confirmed_story_intent_missing')
   }
@@ -260,7 +260,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
   })
 
   // 将确认版七问传递给粗纲生成
-  const outlineBundle = await buildOutlineBundle({
+  const outlineBundleResult = await buildOutlineBundle({
     generationBriefText,
     totalEpisodes: targetEpisodeCount,
     runtimeConfig: input.runtimeConfig,
@@ -271,7 +271,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     factionMatrix: characterProfilesResult.factionMatrix
   })
 
-  const outlinePayload = outlineBundle?.outline
+  const outlinePayload = outlineBundleResult?.outline
   const outlineValidation = validateStructuredOutline({
     outline: outlinePayload,
     targetEpisodeCount
@@ -281,7 +281,9 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     await appendDiagnosticLog(
       `rough_outline_final_validation_failed code=${outlineValidation.code || 'unknown'} actualEpisodeCount=${outlineValidation.actualEpisodeCount} missing=[${outlineValidation.missingEpisodeNos.join(',')}] duplicate=[${outlineValidation.duplicateEpisodeNos.join(',')}] empty=[${outlineValidation.emptyEpisodeNos.join(',')}]`
     )
-    throw new Error(`rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`)
+    throw new Error(
+      `rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`
+    )
   }
 
   const validatedOutline = outlinePayload
@@ -393,7 +395,10 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     )
   }
 
-  if (characterCardAuthorityNames.length > 0 && filteredCharacters.length !== normalizedCharacters.length) {
+  if (
+    characterCardAuthorityNames.length > 0 &&
+    filteredCharacters.length !== normalizedCharacters.length
+  ) {
     await appendDiagnosticLog(
       `character_bundle_filtered_to_role_cards cards=${characterCardAuthorityNames.length} before=${normalizedCharacters.length} after=${filteredCharacters.length}`
     )

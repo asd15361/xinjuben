@@ -2,7 +2,7 @@ import {
   ensureScreenplaySceneBlockDefaults,
   type ScreenplaySceneBlockDto,
   type ScriptSegmentDto
-} from '../../contracts/workflow'
+} from '../../contracts/workflow.ts'
 
 const EPISODE_HEADING = /^第[一二三四五六七八九十百零\d]+集$/m
 const DIALOGUE_LINE = /^[^\s△：:（）()]{1,16}[：:]/m
@@ -22,8 +22,8 @@ function normalizeText(text: string): string {
     .replace(/\r\n/g, '\n')
     .replace(/\*\*([^*\n]+)\*\*/g, '$1')
     .replace(/^[ \t]*#{1,6}[ \t]+/gm, '')
-    .replace(/(第[一二三四五六七八九十百零\d]+集)\s+(\d+\-\d+)/g, '$1\n\n$2')
-    .replace(/([^\n])\s+(\d+\-\d+\s+)/g, '$1\n$2')
+    .replace(/(第[一二三四五六七八九十百零\d]+集)\s+(\d+-\d+)/g, '$1\n\n$2')
+    .replace(/([^\n])\s+(\d+-\d+\s+)/g, '$1\n$2')
     .replace(/([^\n])\s+(人物[：:])/g, '$1\n$2')
     .replace(/([^\n])\s+(△)/g, '$1\n$2')
     .replace(/([。！？!?…）)])\s*([^\s△：:（）()]{1,16}[：:])/g, '$1\n$2')
@@ -37,7 +37,7 @@ function matchSceneHeading(line: string): RegExpMatchArray | null {
   const normalized = line.trim()
   const timeBeforeLocationDividerMatch = normalized.match(
     new RegExp(
-      `^(\\d+\\-\\d+)\\s+(${SCENE_TIME_MARKER_SOURCE})(内|外|内外)?\\s*[｜|]\\s*(?:地点[:：]\\s*)?(.+)$`
+      `^(\\d+-\\d+)\\s+(${SCENE_TIME_MARKER_SOURCE})(内|外|内外)?\\s*[｜|]\\s*(?:地点[:：]\\s*)?(.+)$`
     )
   )
   if (timeBeforeLocationDividerMatch) {
@@ -51,7 +51,7 @@ function matchSceneHeading(line: string): RegExpMatchArray | null {
     ]
   }
   const bracketedMatch = normalized.match(
-    new RegExp(`^(\\d+\\-\\d+)\\s+(.+?)［(内|外|内外)］［(${SCENE_TIME_MARKER_SOURCE})］$`)
+    new RegExp(`^(\\d+-\\d+)\\s+(.+?)［(内|外|内外)］［(${SCENE_TIME_MARKER_SOURCE})］$`)
   )
   if (bracketedMatch) {
     return [
@@ -64,11 +64,11 @@ function matchSceneHeading(line: string): RegExpMatchArray | null {
     ]
   }
   const directMatch =
-    normalized.match(/^(\d+\-\d+)\s*(日|夜)(内|外|内外)?([^\n]*)$/) ||
-    normalized.match(/^(\d+\-\d+)\s+([^\n·•・]+?)(?:[·•・]\s*|\s+)(日|夜)(内|外|内外)?([^\n]*)$/)
+    normalized.match(/^(\d+-\d+)\s*(日|夜)(内|外|内外)?([^\n]*)$/) ||
+    normalized.match(/^(\d+-\d+)\s+([^\n·•・]+?)(?:[·•・]\s*|\s+)(日|夜)(内|外|内外)?([^\n]*)$/)
   if (directMatch) return directMatch
 
-  const headingMatch = normalized.match(/^(\d+\-\d+)\s+(.+)$/)
+  const headingMatch = normalized.match(/^(\d+-\d+)\s+(.+)$/)
   if (!headingMatch) return null
 
   const sceneCode = headingMatch[1]
@@ -151,7 +151,7 @@ function hasActionPayload(line: string): boolean {
   return (
     Boolean(payload) &&
     !EPISODE_HEADING.test(payload) &&
-    !Boolean(matchSceneHeading(payload)) &&
+    !matchSceneHeading(payload) &&
     !isRosterLine(payload) &&
     !PLACEHOLDER_MARKERS.test(payload) &&
     !TEMPLATE_MARKERS.test(payload)
@@ -200,14 +200,14 @@ export function isMetaOrPlaceholderLine(line: string): boolean {
   const trimmed = line.trim()
   if (!trimmed) return false
   return (
-      EPISODE_HEADING.test(trimmed) ||
-      Boolean(matchSceneHeading(trimmed)) ||
-      isRosterLine(trimmed) ||
-      isPseudoRosterLine(trimmed) ||
-      isPlaceholderActionLine(trimmed) ||
-      PLACEHOLDER_MARKERS.test(trimmed) ||
-      TEMPLATE_MARKERS.test(trimmed) ||
-      ASSISTANT_EXPLANATION_MARKERS.test(trimmed)
+    EPISODE_HEADING.test(trimmed) ||
+    Boolean(matchSceneHeading(trimmed)) ||
+    isRosterLine(trimmed) ||
+    isPseudoRosterLine(trimmed) ||
+    isPlaceholderActionLine(trimmed) ||
+    PLACEHOLDER_MARKERS.test(trimmed) ||
+    TEMPLATE_MARKERS.test(trimmed) ||
+    ASSISTANT_EXPLANATION_MARKERS.test(trimmed)
   )
 }
 
@@ -238,7 +238,7 @@ export function hasMeaningfulCharacterRoster(roster: string[]): boolean {
         !PLACEHOLDER_MARKERS.test(item) &&
         !TEMPLATE_MARKERS.test(item) &&
         !EPISODE_HEADING.test(item) &&
-        !Boolean(matchSceneHeading(item))
+        !matchSceneHeading(item)
     )
   )
 }
@@ -341,7 +341,7 @@ export function parseScreenplayScenes(screenplay: string): ScreenplaySceneBlockD
   const scenes: ScreenplaySceneBlockDto[] = []
   let current: ScreenplaySceneBlockDto | null = null
 
-  const pushCurrent = () => {
+  const pushCurrent = (): void => {
     if (!current) return
     current.body = (current.body || '').trim()
     scenes.push(current)

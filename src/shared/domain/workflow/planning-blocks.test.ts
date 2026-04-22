@@ -22,6 +22,8 @@ import {
   getPlanningUnitEpisodes
 } from './planning-blocks.ts'
 
+import type { ScriptBatchGovernanceDto } from '../../contracts/workflow.ts'
+
 import {
   OUTLINE_BLOCK_EPISODES_GOVERNANCE,
   assertOutlineBlockEpisodesConstant,
@@ -110,7 +112,7 @@ test('buildOutlineBlocks: episodes without summary are filtered', () => {
     { episodeNo: 2, summary: '' }, // filtered out
     { episodeNo: 3, summary: '第3集' }
   ]
-  const blocks = buildOutlineBlocks(episodes as any)
+  const blocks = buildOutlineBlocks(episodes as unknown as typeof episodes)
 
   // After filtering, only 2 episodes remain, which fits in 1 block
   assert.equal(blocks.length, 1)
@@ -670,7 +672,8 @@ test('buildScriptBatchContexts: emits formal grouped/layered/batched governance 
     }
   })
 
-  const governance = (batchContexts[0] as any).governance
+  const governance = (batchContexts[0] as unknown as { governance: ScriptBatchGovernanceDto })
+    .governance
 
   assert.ok(governance, 'batch should expose formal governance output')
   assert.deepEqual(governance.batched, {
@@ -689,22 +692,22 @@ test('buildScriptBatchContexts: emits formal grouped/layered/batched governance 
   assert.ok(Array.isArray(governance.layered.entityLayers), 'entity layers should be formalized')
   assert.ok(Array.isArray(governance.layered.threadLayers), 'thread layers should be formalized')
 
-  assert.deepEqual(governance.grouped.roleGroups.map((group: any) => group.groupKey).sort(), [
-    'batch_active_roles',
-    'conflict_roles',
-    'core_roles'
-  ])
+  assert.deepEqual(
+    governance.grouped.roleGroups.map((group: { groupKey: string }) => group.groupKey).sort(),
+    ['batch_active_roles', 'conflict_roles', 'core_roles']
+  )
   assert.ok(
     governance.layered.roleLayers.some(
-      (layer: any) => layer.layerKey === 'core' && layer.roleNames.includes('沈砚')
+      (layer: { layerKey: string; roleNames: string[] }) =>
+        layer.layerKey === 'core' && layer.roleNames.includes('沈砚')
     ),
     'core layer should carry core role governance'
   )
   assert.ok(
     governance.layered.threadLayers.some(
-      (layer: any) =>
+      (layer: { layerKey: string; threads: Array<{ thread: string }> }) =>
         layer.layerKey === 'critical' &&
-        layer.threads.some((thread: any) => thread.thread.includes('顾迟逼宫'))
+        layer.threads.some((thread: { thread: string }) => thread.thread.includes('顾迟逼宫'))
     ),
     'critical thread layer should carry high-priority narrative threads'
   )
@@ -769,7 +772,19 @@ test('buildScriptBatchContexts: large projects can express different governance 
         endEpisode: 10,
         summary: '第一规划块',
         characterNames: ['顾迟'],
-        characters: [] as any
+        characters: [] as Array<{
+          name: string
+          biography: string
+          publicMask: string
+          hiddenPressure: string
+          fear: string
+          protectTarget: string
+          conflictTrigger: string
+          advantage: string
+          weakness: string
+          goal: string
+          arc: string
+        }>
       },
       {
         blockNo: 2,
@@ -969,8 +984,12 @@ test('buildScriptBatchContexts: large projects can express different governance 
     }
   })
 
-  const firstBatchGovernance = (batchContexts[0] as any).governance
-  const thirdBatchGovernance = (batchContexts[2] as any).governance
+  const firstBatchGovernance = (
+    batchContexts[0] as unknown as { governance: ScriptBatchGovernanceDto }
+  ).governance
+  const thirdBatchGovernance = (
+    batchContexts[2] as unknown as { governance: ScriptBatchGovernanceDto }
+  ).governance
 
   assert.equal(firstBatchGovernance.batched.planningBlockNo, 1)
   assert.equal(thirdBatchGovernance.batched.planningBlockNo, 3)
@@ -981,7 +1000,8 @@ test('buildScriptBatchContexts: large projects can express different governance 
   )
   assert.ok(
     thirdBatchGovernance.layered.roleLayers.some(
-      (layer: any) => layer.layerKey === 'active' && layer.roleNames.includes('谢宁')
+      (layer: { layerKey: string; roleNames: string[] }) =>
+        layer.layerKey === 'active' && layer.roleNames.includes('谢宁')
     ),
     'later batches should express different active-layer governance'
   )

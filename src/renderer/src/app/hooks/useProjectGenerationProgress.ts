@@ -1,12 +1,37 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation.ts'
 
-export function useProjectGenerationProgress(status: ProjectGenerationStatusDto | null) {
-  const [now, setNow] = useState(Date.now())
+interface ProjectProgress {
+  elapsedSeconds: number
+  estimatedSeconds: number
+  progressPercent: number
+}
+
+export function useProjectGenerationProgress(
+  status: ProjectGenerationStatusDto | null
+): ProjectProgress {
+  const [elapsedMs, setElapsedMs] = useState(() => (status ? Date.now() - status.startedAt : 0))
+  const statusRef = useRef(status)
+
+  const syncRef = useCallback(() => {
+    statusRef.current = status
+  }, [status])
 
   useEffect(() => {
-    if (!status) return
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    syncRef()
+  }, [syncRef])
+
+  useEffect(() => {
+    if (!status) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      const current = statusRef.current
+      if (current) {
+        setElapsedMs(Date.now() - current.startedAt)
+      }
+    }, 1000)
     return () => window.clearInterval(timer)
   }, [status])
 
@@ -19,14 +44,17 @@ export function useProjectGenerationProgress(status: ProjectGenerationStatusDto 
       }
     }
 
-    const elapsedSeconds = Math.max(0, Math.floor((now - status.startedAt) / 1000))
+    const elapsedSeconds = Math.max(0, Math.floor(elapsedMs / 1000))
     const estimatedSeconds = Math.max(1, Math.floor(status.estimatedSeconds || 0))
-    const progressPercent = Math.min(99, Math.max(0, Math.floor((elapsedSeconds / estimatedSeconds) * 100)))
+    const progressPercent = Math.min(
+      99,
+      Math.max(0, Math.floor((elapsedSeconds / estimatedSeconds) * 100))
+    )
 
     return {
       elapsedSeconds,
       estimatedSeconds,
       progressPercent
     }
-  }, [now, status])
+  }, [elapsedMs, status])
 }

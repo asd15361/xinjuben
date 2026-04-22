@@ -21,8 +21,8 @@ import type {
   FormalFactDeclaredBy,
   FormalFactProvenanceTier
 } from '../../contracts/formal-fact'
-import { normalizeEntityStore } from './entity-normalizers'
-import { syncFactionSeatCharacters } from './faction-seat-characters'
+import { normalizeEntityStore } from './entity-normalizers.ts'
+import { syncFactionSeatCharacters } from './faction-seat-characters.ts'
 
 const EMPTY_ENTITY_STORE: ProjectEntityStoreDto = {
   characters: [],
@@ -132,10 +132,7 @@ function toRelationType(
   return relationType === 'ownership' ? 'other' : relationType
 }
 
-function findByName<T extends BaseProjectEntityDto>(
-  entities: T[],
-  name: string
-): T | undefined {
+function findByName<T extends BaseProjectEntityDto>(entities: T[], name: string): T | undefined {
   const normalized = normalizeName(name)
   return entities.find(
     (entity) =>
@@ -153,7 +150,11 @@ function mergeCharacterEntity(input: {
   const { existing, projectId, now, character } = input
   const incomingRoleLayer = resolveCharacterRoleLayer(character.roleHint)
   const incomingTags = [
-    incomingRoleLayer === 'core' ? '核心人物' : incomingRoleLayer === 'active' ? '活跃人物' : '功能人物'
+    incomingRoleLayer === 'core'
+      ? '核心人物'
+      : incomingRoleLayer === 'active'
+        ? '活跃人物'
+        : '功能人物'
   ]
 
   if (existing) {
@@ -312,10 +313,7 @@ function mergeItemEntity(input: {
   }
 }
 
-function findResolvableEntityId(
-  store: ProjectEntityStoreDto,
-  name: string
-): string | undefined {
+function findResolvableEntityId(store: ProjectEntityStoreDto, name: string): string | undefined {
   return (
     findByName(store.characters, name)?.id ||
     findByName(store.factions, name)?.id ||

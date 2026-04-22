@@ -68,13 +68,21 @@ async function regenerateSingleEpisodeCharCount(
     plan: { ...generationInput.plan, episodePlans: singlePlan }
   }
 
-  const { createScriptGenerationPrompt } = await import('../prompt/create-script-generation-prompt.ts')
-  const basePrompt = createScriptGenerationPrompt(singleInput, outline, characters, episodePlan.episodeNo, [])
+  const { createScriptGenerationPrompt } =
+    await import('../prompt/create-script-generation-prompt.ts')
+  const basePrompt = createScriptGenerationPrompt(
+    singleInput,
+    outline,
+    characters,
+    episodePlan.episodeNo,
+    []
+  )
   const min = EPISODE_CHAR_COUNT.min(3)
   const max = EPISODE_CHAR_COUNT.max
-  const correction = charCountDirection === 'too_short'
-    ? `【字数扩充要求】上一版字数不够，需要扩充。每场必须增加对手交锋、动作结果、局面变化。双方各至少1句硬对白，集尾落成已发生的结果。不准只补感叹句和解释句凑字数。目标：${min}-${max}字。`
-    : `【字数压缩要求】上一版字数超了，需要压缩。优先删同义对白、重复动作、重复逼问。只删水词，不删实质冲突。集尾钩子不能削弱。目标：${min}-${max}字。`
+  const correction =
+    charCountDirection === 'too_short'
+      ? `【字数扩充要求】上一版字数不够，需要扩充。每场必须增加对手交锋、动作结果、局面变化。双方各至少1句硬对白，集尾落成已发生的结果。不准只补感叹句和解释句凑字数。目标：${min}-${max}字。`
+      : `【字数压缩要求】上一版字数超了，需要压缩。优先删同义对白、重复动作、重复逼问。只删水词，不删实质冲突。集尾钩子不能削弱。目标：${min}-${max}字。`
 
   const prompt = [basePrompt, '', correction].join('\n')
 
@@ -95,7 +103,7 @@ async function regenerateSingleEpisodeCharCount(
 }
 
 function charCountOf(scene: ScriptSegmentDto): number {
-  return ((scene.screenplay || '').replace(/\s+/g, '')).length
+  return (scene.screenplay || '').replace(/\s+/g, '').length
 }
 
 /**
@@ -340,14 +348,18 @@ function buildSceneRepairInstruction(input: {
         bodyLength: (scene.body || '').replace(/\s+/g, '').length
       }))
       .sort((a, b) => a.bodyLength - b.bodyLength)[0]
-    lines.push(`当前字数约${charCount}字，目标底线${EPISODE_CHAR_COUNT.min(sceneCount)}字，差${EPISODE_CHAR_COUNT.min(sceneCount) - charCount}字。`)
+    lines.push(
+      `当前字数约${charCount}字，目标底线${EPISODE_CHAR_COUNT.min(sceneCount)}字，差${EPISODE_CHAR_COUNT.min(sceneCount) - charCount}字。`
+    )
     if (charCount < VERY_THIN_SCENE_CHAR_THRESHOLD) {
       lines.push('这是严重过瘦集：不能只补解释，必须补对手回应、动作结果和当场代价。')
     } else if (charCount < THIN_SCENE_CHAR_THRESHOLD) {
       lines.push('这是偏瘦集：至少补一轮“我方动作 -> 对方回应 -> 局面变化”的冲突交换。')
     }
     lines.push('每场必须补足双方对白交锋：双方各至少一句实质性台词，不能只有单方发言。')
-    lines.push('补完对白后必须补结果：对方让步、失去筹码、被打断、被堵住、被迫认输或当场局势变化之一。')
+    lines.push(
+      '补完对白后必须补结果：对方让步、失去筹码、被打断、被堵住、被迫认输或当场局势变化之一。'
+    )
     lines.push('集尾最后一句必须是已发生的结果，不能停在开放句。')
     lines.push('禁止只补感叹句、解释句或"我方独白"凑字数；扩充必须是实质冲突交换。')
     lines.push('在不加水的前提下补足关键对打和结果，让全局密度到拍摄可用长度。')
@@ -394,7 +406,14 @@ function buildQualityRepairSuggestions(
   scenes: ReturnType<typeof inspectScreenplayQualityBatch>['weakEpisodes'],
   segments: DetailedOutlineSegmentDto[],
   script: ScriptSegmentDto[]
-) {
+): Array<{
+  targetSceneNo: number | null
+  policyKey: string
+  source: string
+  focus: string[]
+  evidenceHint: string
+  instruction: string
+}> {
   return scenes.map((scene) => {
     const currentBeat = segments
       .flatMap((segment) => segment.episodeBeats || [])
@@ -506,7 +525,8 @@ export async function repairGeneratedScenes(input: {
 
         const sceneCount = currentScene.screenplayScenes?.length || 3
         const currentCount = charCountOf(currentScene)
-        const direction = currentCount < EPISODE_CHAR_COUNT.min(sceneCount) ? 'too_short' : 'too_long'
+        const direction =
+          currentCount < EPISODE_CHAR_COUNT.min(sceneCount) ? 'too_short' : 'too_long'
         void direction
 
         console.log(`[repair] 第${sceneNo}集第${pass}次修复，当前${currentCount}字`)
@@ -521,8 +541,12 @@ export async function repairGeneratedScenes(input: {
           currentBeat?.summary
         )
 
-        const repairedQuality = scoreScreenplayQualityProblems(inspectScreenplayQualityEpisode(repairedScene))
-        const originalQuality = scoreScreenplayQualityProblems(inspectScreenplayQualityEpisode(currentScene))
+        const repairedQuality = scoreScreenplayQualityProblems(
+          inspectScreenplayQualityEpisode(repairedScene)
+        )
+        const originalQuality = scoreScreenplayQualityProblems(
+          inspectScreenplayQualityEpisode(currentScene)
+        )
 
         if (repairedQuality <= originalQuality) {
           currentScene = repairedScene

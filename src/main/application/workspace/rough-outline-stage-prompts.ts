@@ -5,7 +5,7 @@ import { renderAnchorBlock } from './generation-stage-prompt-anchors.ts'
 import { formatSevenQuestionsAsNarrativeConstraint } from './generate-seven-questions-prompt.ts'
 import { formatCharacterProfileSummary } from './generate-character-profile-prompt.ts'
 import type { CharacterProfileV2Dto } from '../../../shared/contracts/character-profile-v2.ts'
-import type { FactionMatrixDto } from '../../../shared/contracts/faction-matrix.ts'
+import type { FactionMatrixDto, FactionDto } from '../../../shared/contracts/faction-matrix.ts'
 import type { PromptVariables } from '../../../shared/contracts/prompt-variables.ts'
 
 export type RoughOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
@@ -94,7 +94,7 @@ function buildFactionRotationRules(totalEpisodes: number): string[] {
     '4. 每个 crossRelation（势力交叉关系）中标注的 revealEpisodeRange 必须在对应集数段触发事件（揭露/反转/爆发）。',
     '5. 卧底、双面间谍不能只在最后一集才暴露；必须在中间段提前放线索让读者猜。',
     '6. 不同势力之间的冲突必须从"人"升维到"阵营"——不是两个人吵架，是两套价值观和利益的碰撞。',
-    '7. 禁止出现"势力A完全压制势力B持续5集以上"的单调局面；必须每3集至少出现一次势力间的攻守转换。',
+    '7. 禁止出现"势力A完全压制势力B持续5集以上"的单调局面；必须每3集至少出现一次势力间的攻守转换。'
   ]
 }
 
@@ -103,9 +103,7 @@ function summarizeCharacterProfilesV2(characters: CharacterProfileV2Dto[]): stri
 
   const lines: string[] = ['【五维人物图谱（压缩注入）】']
   const coreCharacters = characters.filter((item) => item.depthLevel === 'core').slice(0, 6)
-  const supportCharacters = characters
-    .filter((item) => item.depthLevel !== 'core')
-    .slice(0, 10)
+  const supportCharacters = characters.filter((item) => item.depthLevel !== 'core').slice(0, 10)
 
   for (const character of coreCharacters) {
     const parts = [
@@ -137,7 +135,7 @@ function pickRelevantFactionsForRange(
   factionMatrix: FactionMatrixDto,
   startEpisode: number,
   endEpisode: number
-) {
+): FactionDto[] {
   const relevantIds = new Set<string>()
 
   for (const entry of factionMatrix.factionTimetable || []) {
@@ -163,7 +161,10 @@ function renderFactionMatrixSummary(
   factionMatrix: FactionMatrixDto,
   options: { mode: 'overview' } | { mode: 'batch'; startEpisode: number; endEpisode: number }
 ): string {
-  const lines: string[] = ['【势力拆解表（压缩注入）】', `势力格局：${factionMatrix.landscapeSummary}`]
+  const lines: string[] = [
+    '【势力拆解表（压缩注入）】',
+    `势力格局：${factionMatrix.landscapeSummary}`
+  ]
   const selectedFactions =
     options.mode === 'overview'
       ? factionMatrix.factions.slice(0, 4)
@@ -183,11 +184,13 @@ function renderFactionMatrixSummary(
   const relations =
     options.mode === 'overview'
       ? factionMatrix.crossRelations.slice(0, 6)
-      : factionMatrix.crossRelations.filter((relation) => {
-          const revealStart = relation.revealEpisodeRange?.start ?? 1
-          const revealEnd = relation.revealEpisodeRange?.end ?? options.endEpisode
-          return revealStart <= options.endEpisode + 2 && revealEnd >= options.startEpisode - 2
-        }).slice(0, 4)
+      : factionMatrix.crossRelations
+          .filter((relation) => {
+            const revealStart = relation.revealEpisodeRange?.start ?? 1
+            const revealEnd = relation.revealEpisodeRange?.end ?? options.endEpisode
+            return revealStart <= options.endEpisode + 2 && revealEnd >= options.startEpisode - 2
+          })
+          .slice(0, 4)
 
   if (relations.length > 0) {
     lines.push('【关键势力暗线】')
@@ -227,7 +230,7 @@ function buildGeneralizedPromptRules(vars: PromptVariables): string[] {
     // ── 15.6 ──
     `15.6. 当前批次末两集不准把"谁来问责${vars.organization}/谁来重议权责"写成主戏眼；这只能是背景压强，真正推进仍要落在人、${vars.coreItem}、证据、伤势和职责落身上。`,
     // ── 16.6 ──
-    `16.6. 当前 5 集批次主推进优先写医庐、静室交易、旧巢、山门、居所、追残党、接职责；不要再让${vars.organization}追责、内部清洗、权位重排自己长成新的主戏。`,
+    `16.6. 当前 5 集批次主推进优先写医庐、静室交易、旧巢、山门、居所、追残党、接职责；不要再让${vars.organization}追责、内部清洗、权位重排自己长成新的主戏。`
   ]
 }
 
@@ -393,7 +396,9 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
   }
 
   const rankIdentityRules = buildRankIdentityRules(input.generationBriefText, vars)
-  const factionRotationRules = input.factionMatrix ? buildFactionRotationRules(input.totalEpisodes) : []
+  const factionRotationRules = input.factionMatrix
+    ? buildFactionRotationRules(input.totalEpisodes)
+    : []
   const generalizedRules = buildGeneralizedPromptRules(vars)
 
   const lines: string[] = []

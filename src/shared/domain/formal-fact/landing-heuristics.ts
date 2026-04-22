@@ -1,5 +1,5 @@
 import type { FormalFact } from '../../contracts/workflow'
-import { getFormalFactSemanticLabel } from './semantic-label'
+import { getFormalFactSemanticLabel } from './semantic-label.ts'
 
 function hasAny(text: string, patterns: RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text))
@@ -13,8 +13,9 @@ function extractNamedSubject(fact: FormalFact, suffix: string): string {
   }
 
   return (
-    fact.description.match(/^([一-龥]{2,4})(?=是|把|会|曾|正|在|被|最|当前|开始|继续|误以为|趁乱)/)?.[1] ||
-    ''
+    fact.description.match(
+      /^([一-龥]{2,4})(?=是|把|会|曾|正|在|被|最|当前|开始|继续|误以为|趁乱)/
+    )?.[1] || ''
   )
 }
 
@@ -24,7 +25,9 @@ export function matchFormalFactLandingHeuristic(fact: FormalFact, normalizedText
 
   if (label === '对手压力') {
     const opponentName = extractNamedSubject(fact, '施压线')
-    const opponentMatched = opponentName ? normalizedText.includes(opponentName) : /对手|恶霸|反派/.test(normalizedText)
+    const opponentMatched = opponentName
+      ? normalizedText.includes(opponentName)
+      : /对手|恶霸|反派/.test(normalizedText)
     const pressureMatched = hasAny(normalizedText, [
       /逼/,
       /压/,
@@ -43,7 +46,9 @@ export function matchFormalFactLandingHeuristic(fact: FormalFact, normalizedText
 
   if (label === '师父角色') {
     const masterName = extractNamedSubject(fact, '人物锚点')
-    const roleMatched = masterName ? normalizedText.includes(masterName) : /师父/.test(normalizedText)
+    const roleMatched = masterName
+      ? normalizedText.includes(masterName)
+      : /师父/.test(normalizedText)
     const influenceMatched = hasAny(normalizedText, [
       /师父/,
       /旧话/,
@@ -59,7 +64,10 @@ export function matchFormalFactLandingHeuristic(fact: FormalFact, normalizedText
     return roleMatched || influenceMatched
   }
 
-  if (label === '身份位阶' || /(排行|第十九|第十九个徒弟|第十九徒|最小徒弟|最末位徒弟|小徒弟)/.test(combined)) {
+  if (
+    label === '身份位阶' ||
+    /(排行|第十九|第十九个徒弟|第十九徒|最小徒弟|最末位徒弟|小徒弟)/.test(combined)
+  ) {
     const subject =
       fact.label.match(/^([一-龥]{2,4})(?=排行|第十九|最小徒弟|第十九徒)/)?.[1] ||
       fact.description.match(/^([一-龥]{2,4})(?=是|为)/)?.[1] ||

@@ -1,6 +1,6 @@
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text.ts'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type { ProjectEntityStoreDto } from '../../../shared/contracts/entities.ts'
 import type {
   CharacterDraftDto,
@@ -8,7 +8,7 @@ import type {
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   OutlineEpisodeDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 import {
   buildFourActEpisodeRanges,
   deriveOutlineEpisodeCount
@@ -104,11 +104,6 @@ function normalizeWhitespace(text: string): string {
     .trim()
 }
 
-function parseDetailedOutlinePayload(text: string): DetailedOutlineActPayload | null {
-  const parsed = tryParseObject(text)
-  if (!parsed) return null
-  return parsed as DetailedOutlineActPayload
-}
 
 function normalizeSegmentContent(value: unknown, fallback: string): string {
   return normalizeWhitespace(typeof value === 'string' ? value : '') || fallback
@@ -343,12 +338,8 @@ async function invokeDetailedOutlineAct(input: {
     responseHead = normalizedResponse.slice(0, 240)
     responseTail = normalizedResponse.slice(-240)
 
-    let payload: DetailedOutlineActPayload
-    const parsedPayload = parseDetailedOutlinePayload(result.text)
-    if (!parsedPayload) {
-      throw new Error(`detailed_outline_parse_failed:${input.plan.act}`)
-    }
-    payload = parsedPayload
+    const parsed = tryParseObject(result.text)
+    const payload = parsed || {}
 
     const segment: DetailedOutlineSegmentDto = {
       act: input.plan.act,
@@ -384,18 +375,21 @@ async function invokeDetailedOutlineAct(input: {
   }
 }
 
-export async function generateDetailedOutlineFromContext(input: {
-  outline: OutlineDraftDto
-  characters: CharacterDraftDto[]
-  entityStore?: ProjectEntityStoreDto | null
-  storyIntent?: StoryIntentPackageDto | null
-  runtimeConfig: RuntimeProviderConfig
-  diagnosticLogger?: DetailedOutlineDiagnosticLogger
-  signal?: AbortSignal
-}, deps: {
-  invokeAct?: InvokeDetailedOutlineActFn
-  decorateSegmentWithEpisodeControlCards?: DecorateSegmentWithEpisodeControlCardsFn
-} = {}): Promise<{
+export async function generateDetailedOutlineFromContext(
+  input: {
+    outline: OutlineDraftDto
+    characters: CharacterDraftDto[]
+    entityStore?: ProjectEntityStoreDto | null
+    storyIntent?: StoryIntentPackageDto | null
+    runtimeConfig: RuntimeProviderConfig
+    diagnosticLogger?: DetailedOutlineDiagnosticLogger
+    signal?: AbortSignal
+  },
+  deps: {
+    invokeAct?: InvokeDetailedOutlineActFn
+    decorateSegmentWithEpisodeControlCards?: DecorateSegmentWithEpisodeControlCardsFn
+  } = {}
+): Promise<{
   segments: DetailedOutlineSegmentDto[]
   source: DetailedOutlineSource
   diagnostic: string
