@@ -4,15 +4,12 @@ import type {
   EpisodeControlCardDto,
   OutlineDraftDto,
   ScreenplaySceneBlockDto
-} from '../../contracts/workflow'
-import type {
-  ShortDramaConstitutionDto,
-  StoryIntentPackageDto
-} from '../../contracts/intake'
+} from '../../contracts/workflow.ts'
+import type { ShortDramaConstitutionDto, StoryIntentPackageDto } from '../../contracts/intake.ts'
 import {
   buildShortDramaConstitutionFromStoryIntent,
   normalizeShortDramaConstitution
-} from './short-drama-constitution'
+} from './short-drama-constitution.ts'
 
 function cleanText(value: string | undefined, fallback = ''): string {
   const text = String(value || '')
@@ -29,11 +26,15 @@ function pickFirstNonEmpty(...values: Array<string | undefined>): string {
   return ''
 }
 
-function getFirstScene(scenes: ScreenplaySceneBlockDto[] | undefined): ScreenplaySceneBlockDto | null {
+function getFirstScene(
+  scenes: ScreenplaySceneBlockDto[] | undefined
+): ScreenplaySceneBlockDto | null {
   return Array.isArray(scenes) && scenes.length > 0 ? scenes[0] : null
 }
 
-function getLastScene(scenes: ScreenplaySceneBlockDto[] | undefined): ScreenplaySceneBlockDto | null {
+function getLastScene(
+  scenes: ScreenplaySceneBlockDto[] | undefined
+): ScreenplaySceneBlockDto | null {
   return Array.isArray(scenes) && scenes.length > 0 ? scenes[scenes.length - 1] : null
 }
 
@@ -57,8 +58,12 @@ export function normalizeEpisodeControlCard(
           .filter(Boolean)
       : [],
     // 新增字段
-    episodeIndex: typeof card.episodeIndex === 'number' && card.episodeIndex > 0 ? card.episodeIndex : undefined,
-    sceneCount: typeof card.sceneCount === 'number' && card.sceneCount > 0 ? card.sceneCount : undefined,
+    episodeIndex:
+      typeof card.episodeIndex === 'number' && card.episodeIndex > 0
+        ? card.episodeIndex
+        : undefined,
+    sceneCount:
+      typeof card.sceneCount === 'number' && card.sceneCount > 0 ? card.sceneCount : undefined,
     coreGoal: cleanText(card.coreGoal),
     villainPressure: cleanText(card.villainPressure),
     pressureType: cleanText(card.pressureType),
@@ -151,7 +156,7 @@ export function buildEpisodeControlCard(input: {
     twistPoint: '',
     cliffhanger: hookLanding,
     nextEpisodeTeaser: '',
-    protagonistActionType: undefined  // 由控制卡 Agent 生成，默认为空
+    protagonistActionType: undefined // 由控制卡 Agent 生成，默认为空
   }
 }
 

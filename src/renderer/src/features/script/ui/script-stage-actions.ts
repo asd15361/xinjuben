@@ -4,7 +4,7 @@ import type {
   ScriptGenerationExecutionPlanDto,
   ScriptGenerationMode,
   ScriptRuntimeFailureHistoryCode
-} from '../../../../../shared/contracts/script-generation'
+} from '../../../../../shared/contracts/script-generation.ts'
 import type { ProjectEntityStoreDto } from '../../../../../shared/contracts/entities.ts'
 import type { StoryIntentPackageDto } from '../../../../../shared/contracts/intake.ts'
 import type {

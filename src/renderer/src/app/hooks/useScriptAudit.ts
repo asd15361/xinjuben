@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
-import type { ScriptAuditReportDto, ScriptRepairPlanDto } from '../../../../shared/contracts/script-audit'
-import { useWorkflowStore } from '../store/useWorkflowStore'
-import { useStageStore } from '../../store/useStageStore'
+import type {
+  ScriptAuditReportDto,
+  ScriptRepairPlanDto
+} from '../../../../shared/contracts/script-audit.ts'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
+import { useStageStore } from '../../store/useStageStore.ts'
 
-export function useScriptAudit() {
+export function useScriptAudit(): {
+  report: ScriptAuditReportDto | null
+  repairPlan: ScriptRepairPlanDto | null
+  isRefreshing: boolean
+} {
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)

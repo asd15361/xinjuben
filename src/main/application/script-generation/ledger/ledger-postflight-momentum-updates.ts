@@ -2,7 +2,7 @@ import type {
   ScriptLedgerIssueDto,
   ScriptLedgerPostflightDto,
   ScriptStateLedgerDto
-} from '../../../../shared/contracts/script-ledger'
+} from '../../../../shared/contracts/script-ledger.ts'
 import { getLedgerHashFromState } from './ledger-semantic-hash.ts'
 
 export function collectLedgerMomentumPostflight(input: {

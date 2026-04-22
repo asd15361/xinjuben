@@ -179,9 +179,11 @@ test('generateEpisodeControlCardsForSegment decorates every beat through episode
 
   assert.equal(capturedTask, 'episode_control')
   assert.match(capturedPrompt, /【当前人物小传】/)
-  assert.match(capturedPrompt, /人物行为边界检查/)
+  assert.match(capturedPrompt, /人物行为边界/)
   assert.match(capturedPrompt, /少年守钥人/)
-  assert.match(capturedPrompt, /openingBomb 和 conflictUpgrade/)
+  assert.match(capturedPrompt, /coreGoal/)
+  assert.match(capturedPrompt, /villainPressure/)
+  assert.match(capturedPrompt, /catharsisMoment/)
   assert.equal(
     result.episodeBeats?.[0]?.episodeControlCard?.episodeMission,
     '第1集先炸场，立刻把人和钥匙绑成一道选择题。'

@@ -3,7 +3,9 @@ import { switchStageSession } from '../app/services/stage-session-service'
 import { useWorkflowStore } from '../app/store/useWorkflowStore'
 import { useProjectGenerationProgress } from '../app/hooks/useProjectGenerationProgress'
 
-export function ProjectGenerationBanner(props: { status: ProjectGenerationStatusDto | null }) {
+export function ProjectGenerationBanner(props: {
+  status: ProjectGenerationStatusDto | null
+}): JSX.Element | null {
   const notice = useWorkflowStore((state) => state.generationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
@@ -13,7 +15,7 @@ export function ProjectGenerationBanner(props: { status: ProjectGenerationStatus
 
   async function handleSwitch(
     stage: NonNullable<NonNullable<typeof notice>['primaryAction']>['stage']
-  ) {
+  ): Promise<void> {
     clearGenerationNotice()
     if (!projectId) return
     const result = await switchStageSession(projectId, stage)

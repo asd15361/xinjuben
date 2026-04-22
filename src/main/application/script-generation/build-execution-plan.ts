@@ -1,18 +1,18 @@
 import type {
   BuildScriptGenerationPlanInputDto,
   ScriptGenerationExecutionPlanDto
-} from '../../../shared/contracts/script-generation'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+} from '../../../shared/contracts/script-generation.ts'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineBlockDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 import { buildScriptGenerationContract } from '../../../shared/domain/script-generation/contract-policy.ts'
 import { buildScriptGenerationControlPackage } from '../../../shared/domain/script-generation/script-control-package.ts'
-import { validateStageInputContract } from '../input-contract/validate-stage-input.ts'
+import { validateStageInputContract } from '../../../shared/domain/workflow/validate-stage-input-contract.ts'
 import { buildEpisodePlans } from './plan/build-episode-plans.ts'
 import { clampTargetEpisodes, resolveMode } from './plan/resolve-generation-mode.ts'
 import { resolveLaneStrategy } from './plan/resolve-lane-strategy.ts'
@@ -59,11 +59,7 @@ export function buildScriptGenerationExecutionPlan(
     targetEpisodes,
     runtimeFailureHistory: input.runtimeFailureHistory
   })
-  const lanes = resolveLaneStrategy({
-    mode,
-    targetEpisodes,
-    hasDenseStructure
-  })
+  const lanes = resolveLaneStrategy()
   const resumeStartEpisode =
     mode === 'resume' && existingSceneCount > 0 ? existingSceneCount + 1 : 1
   const episodePlans = buildEpisodePlans({

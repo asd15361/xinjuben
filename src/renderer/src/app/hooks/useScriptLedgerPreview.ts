@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import { useWorkflowStore } from '../store/useWorkflowStore'
-import { useStageStore } from '../../store/useStageStore'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
+import { useStageStore } from '../../store/useStageStore.ts'
 
 export function useScriptLedgerPreview(): ScriptStateLedgerDto | null {
   const storyIntent = useWorkflowStore((s) => s.storyIntent)

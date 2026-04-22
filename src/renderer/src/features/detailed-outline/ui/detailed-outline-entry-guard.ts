@@ -1,4 +1,7 @@
-import type { CharacterDraftDto, OutlineDraftDto } from '../../../../../shared/contracts/workflow'
+import type {
+  CharacterDraftDto,
+  OutlineDraftDto
+} from '../../../../../shared/contracts/workflow.ts'
 
 export type DetailedOutlineEntryBlockCode = 'detailed_outline_character_missing'
 

@@ -108,7 +108,15 @@ export interface ScriptLedgerKnowledgeBoundaryDto {
 }
 
 export interface ScriptLedgerEventDto {
-  type: 'hook_opened' | 'anchor_missing' | 'formal_fact_confirmed' | 'semantic_shift' | 'pressure_shift' | 'trait_binding_weak' | 'memory_echo_missing' | 'hard_anchor_pending'
+  type:
+    | 'hook_opened'
+    | 'anchor_missing'
+    | 'formal_fact_confirmed'
+    | 'semantic_shift'
+    | 'pressure_shift'
+    | 'trait_binding_weak'
+    | 'memory_echo_missing'
+    | 'hard_anchor_pending'
   detail: string
   sceneNo: number | null
 }

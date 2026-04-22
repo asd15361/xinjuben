@@ -10,14 +10,17 @@
  * 本文件只做测量和信号输出，不做门禁、不做硬限制。
  */
 
-import type { ScriptSegmentDto } from '../../contracts/workflow'
-import { detectProtagonistWeakness, type WeaknessDetectionResult } from './screenplay-weakness-detection'
+import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import {
+  detectProtagonistWeakness,
+  type WeaknessDetectionResult
+} from './screenplay-weakness-detection.ts'
 import {
   TACTIC_CATEGORY_LABELS,
   type TacticCategory,
   mapPressureTypeToCategory,
   validateTacticRotation
-} from './screenplay-tactic-rotation'
+} from './screenplay-tactic-rotation.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KNOWN_LOOP_PATTERNS
@@ -213,12 +216,17 @@ export interface BatchContentQualityReport {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function normalize(text: string | undefined): string {
-  return String(text || '').replace(/\r\n/g, '\n').trim()
+  return String(text || '')
+    .replace(/\r\n/g, '\n')
+    .trim()
 }
 
 function getScreenplayLines(scene: ScriptSegmentDto): string[] {
   const screenplay = normalize(scene.screenplay)
-  return screenplay.split('\n').map((l) => l.trim()).filter(Boolean)
+  return screenplay
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
 }
 
 function countKeywordHits(lines: string[], keywords: string[]): number {
@@ -235,10 +243,7 @@ function hasAnyKeyword(text: string, keywords: string[]): boolean {
  * 检测某段正文是否命中已知循环模式。
  * 使用启发式匹配：触发词出现 + 验证词紧随其后。
  */
-function detectLoopsInScreenplay(
-  screenplay: string,
-  sceneNo: number | null
-): LoopDetection[] {
+function detectLoopsInScreenplay(screenplay: string, sceneNo: number | null): LoopDetection[] {
   const lines = normalize(screenplay).split('\n')
   const detections: LoopDetection[] = []
 
@@ -333,9 +338,54 @@ export function computeThemeAnchoring(
 
   let score = 0
 
-  const genericChoiceKeywords = ['决定', '选择', '放弃', '退让', '让出', '不追', '不抢', '压住', '收手', '不打开', '交给他', '先忍', '先退', '暂不', '不揭穿', '不翻脸', '藏住']
-  const costKeywords = ['代价', '失去', '受伤', '挨打', '被逼', '牺牲', '冒险', '顶上去', '换伤', '扛住', '硬吃', '流血', '暴露']
-  const consequenceKeywords = ['于是', '结果', '因此', '当场', '随即', '立刻', '逼得', '换来', '反而', '却让', '局面', '转成']
+  const genericChoiceKeywords = [
+    '决定',
+    '选择',
+    '放弃',
+    '退让',
+    '让出',
+    '不追',
+    '不抢',
+    '压住',
+    '收手',
+    '不打开',
+    '交给他',
+    '先忍',
+    '先退',
+    '暂不',
+    '不揭穿',
+    '不翻脸',
+    '藏住'
+  ]
+  const costKeywords = [
+    '代价',
+    '失去',
+    '受伤',
+    '挨打',
+    '被逼',
+    '牺牲',
+    '冒险',
+    '顶上去',
+    '换伤',
+    '扛住',
+    '硬吃',
+    '流血',
+    '暴露'
+  ]
+  const consequenceKeywords = [
+    '于是',
+    '结果',
+    '因此',
+    '当场',
+    '随即',
+    '立刻',
+    '逼得',
+    '换来',
+    '反而',
+    '却让',
+    '局面',
+    '转成'
+  ]
   const competitionKeywords = ['必须赢', '一定要', '非拿不可', '志在必得', '不能输']
 
   const protagonistLines = lines.filter((line) => line.includes(protagonistName))
@@ -348,8 +398,10 @@ export function computeThemeAnchoring(
   const hasCost = hasAnyKeyword(screenplay, costKeywords)
   const hasConsequence = hasAnyKeyword(screenplay, consequenceKeywords)
   const hasThemeKeyword = themeKeywords.some((kw) => screenplay.includes(kw))
-  const protagonistChoiceLine = protagonistLines.find((line) => hasAnyKeyword(line, genericChoiceKeywords)) || ''
-  const protagonistCostLine = protagonistLines.find((line) => hasAnyKeyword(line, costKeywords)) || ''
+  const protagonistChoiceLine =
+    protagonistLines.find((line) => hasAnyKeyword(line, genericChoiceKeywords)) || ''
+  const protagonistCostLine =
+    protagonistLines.find((line) => hasAnyKeyword(line, costKeywords)) || ''
   const nearbyConsequenceLine = lines.find((line) => hasAnyKeyword(line, consequenceKeywords)) || ''
   const hasStructuredThemeAction =
     protagonistChoiceLine.length > 0 &&
@@ -408,7 +460,20 @@ export function computePlotNovelty(
   if (hasNewLocation) noveltyScore += 10
 
   // 集尾有结果落地（VS 集尾停在"看到某物"或"准备做某事"）
-  const resultMarkers = ['落下', '被打开', '被杀', '被抓', '被发现', '被毁', '崩塌', '弯折', '撕裂', '渗血', '燃起', '熄灭']
+  const resultMarkers = [
+    '落下',
+    '被打开',
+    '被杀',
+    '被抓',
+    '被发现',
+    '被毁',
+    '崩塌',
+    '弯折',
+    '撕裂',
+    '渗血',
+    '燃起',
+    '熄灭'
+  ]
   const lastLines = lines.slice(-5)
   const hasResultEnding = lastLines.some((line) => resultMarkers.some((m) => line.includes(m)))
   if (hasResultEnding) noveltyScore += 15
@@ -430,17 +495,77 @@ export function computeDramaticTurnScore(scene: ScriptSegmentDto): number {
   const lines = getScreenplayLines(scene)
   if (lines.length === 0) return 0
 
-  const turnKeywords = ['突然', '却', '反手', '转身', '发现', '原来', '改口', '当场', '逼得', '拦住', '夺包', '翻出', '截住', '压回去']
-  const decisionKeywords = ['决定', '选择', '放弃', '交出', '抢回', '揭开', '念出', '答应', '拒绝', '不给', '先退', '先忍', '不揭穿']
-  const resultKeywords = ['落下', '被抓', '被打开', '撕裂', '渗血', '撞开', '带走', '押走', '点燃', '炸开', '夺走', '翻出', '卡住', '断裂', '扑空', '落进', '散开']
-  const weakEndingKeywords = ['看见', '望向', '盯着', '准备', '打算', '似乎', '仿佛', '像是', '将要']
+  const turnKeywords = [
+    '突然',
+    '却',
+    '反手',
+    '转身',
+    '发现',
+    '原来',
+    '改口',
+    '当场',
+    '逼得',
+    '拦住',
+    '夺包',
+    '翻出',
+    '截住',
+    '压回去'
+  ]
+  const decisionKeywords = [
+    '决定',
+    '选择',
+    '放弃',
+    '交出',
+    '抢回',
+    '揭开',
+    '念出',
+    '答应',
+    '拒绝',
+    '不给',
+    '先退',
+    '先忍',
+    '不揭穿'
+  ]
+  const resultKeywords = [
+    '落下',
+    '被抓',
+    '被打开',
+    '撕裂',
+    '渗血',
+    '撞开',
+    '带走',
+    '押走',
+    '点燃',
+    '炸开',
+    '夺走',
+    '翻出',
+    '卡住',
+    '断裂',
+    '扑空',
+    '落进',
+    '散开'
+  ]
+  const weakEndingKeywords = [
+    '看见',
+    '望向',
+    '盯着',
+    '准备',
+    '打算',
+    '似乎',
+    '仿佛',
+    '像是',
+    '将要'
+  ]
 
   const lastLines = lines.slice(-6)
   let score = 25
   score += Math.min(30, countKeywordHits(lines, turnKeywords) * 10)
   score += Math.min(25, countKeywordHits(lines, decisionKeywords) * 8)
   score += Math.min(35, countKeywordHits(lastLines, resultKeywords) * 14)
-  if (countKeywordHits(lastLines, resultKeywords) === 0 && countKeywordHits(lastLines, weakEndingKeywords) > 0) {
+  if (
+    countKeywordHits(lastLines, resultKeywords) === 0 &&
+    countKeywordHits(lastLines, weakEndingKeywords) > 0
+  ) {
     score = Math.max(0, score - 20)
   }
 
@@ -452,12 +577,47 @@ export function computeSceneEngineScore(scene: ScriptSegmentDto): number {
   if (screenplayScenes.length === 0) return 40
 
   const obstacleKeywords = ['拦', '逼', '搜', '追', '抢', '压', '威胁', '阻', '踹', '挡', '逼近']
-  const resultKeywords = ['于是', '结果', '当场', '随即', '立刻', '带走', '打开', '撞开', '发现', '落下', '扔出', '夺包', '断裂', '扑空', '翻出', '卡住']
-  const choiceKeywords = ['决定', '选择', '放弃', '答应', '拒绝', '交出', '转身', '冲上去', '退后', '先藏起来', '不给', '先忍', '暂不', '不揭穿']
+  const resultKeywords = [
+    '于是',
+    '结果',
+    '当场',
+    '随即',
+    '立刻',
+    '带走',
+    '打开',
+    '撞开',
+    '发现',
+    '落下',
+    '扔出',
+    '夺包',
+    '断裂',
+    '扑空',
+    '翻出',
+    '卡住'
+  ]
+  const choiceKeywords = [
+    '决定',
+    '选择',
+    '放弃',
+    '答应',
+    '拒绝',
+    '交出',
+    '转身',
+    '冲上去',
+    '退后',
+    '先藏起来',
+    '不给',
+    '先忍',
+    '暂不',
+    '不揭穿'
+  ]
 
   let total = 0
   for (const item of screenplayScenes) {
-    const lines = normalize(item.body).split('\n').map((line) => line.trim()).filter(Boolean)
+    const lines = normalize(item.body)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
     let sceneScore = 20
     const obstacleHits = countKeywordHits(lines, obstacleKeywords)
     const resultHits = countKeywordHits(lines, resultKeywords)
@@ -487,24 +647,80 @@ export function computeCharacterFunctionScore(
   const supportingLines = lines.filter((line) => line.includes(supportingName))
   const antagonistLines = lines.filter((line) => line.includes(antagonistName))
 
-  const choiceKeywords = ['决定', '选择', '交出', '拒绝', '放弃', '抢回', '念出', '答应', '先忍', '先退', '不揭穿', '不给']
-  const leverageKeywords = ['账册', '线索', '契书', '钥匙', '药', '藏', '递给', '提醒', '拖住', '掩护', '挡住', '塞进', '喊出去']
-  const pressureKeywords = ['逼', '搜', '抢', '压', '威胁', '带走', '封', '烧', '踹', '押', '撞开', '追', '围住']
-  const consequenceKeywords = ['当场', '结果', '于是', '随即', '立刻', '扑空', '断裂', '翻出', '卡住', '退了半步']
+  const choiceKeywords = [
+    '决定',
+    '选择',
+    '交出',
+    '拒绝',
+    '放弃',
+    '抢回',
+    '念出',
+    '答应',
+    '先忍',
+    '先退',
+    '不揭穿',
+    '不给'
+  ]
+  const leverageKeywords = [
+    '账册',
+    '线索',
+    '契书',
+    '钥匙',
+    '药',
+    '藏',
+    '递给',
+    '提醒',
+    '拖住',
+    '掩护',
+    '挡住',
+    '塞进',
+    '喊出去'
+  ]
+  const pressureKeywords = [
+    '逼',
+    '搜',
+    '抢',
+    '压',
+    '威胁',
+    '带走',
+    '封',
+    '烧',
+    '踹',
+    '押',
+    '撞开',
+    '追',
+    '围住'
+  ]
+  const consequenceKeywords = [
+    '当场',
+    '结果',
+    '于是',
+    '随即',
+    '立刻',
+    '扑空',
+    '断裂',
+    '翻出',
+    '卡住',
+    '退了半步'
+  ]
 
   let score = 0
   if (
     protagonistLines.length > 0 &&
     countKeywordHits(protagonistLines, choiceKeywords) > 0 &&
     countKeywordHits(lines, consequenceKeywords) > 0
-  ) score += 40
-  else if (protagonistLines.length > 0 && countKeywordHits(protagonistLines, choiceKeywords) > 0) score += 25
+  )
+    score += 40
+  else if (protagonistLines.length > 0 && countKeywordHits(protagonistLines, choiceKeywords) > 0)
+    score += 25
   else if (protagonistLines.length > 0) score += 15
 
-  if (supportingLines.length > 0 && countKeywordHits(supportingLines, leverageKeywords) > 0) score += 30
+  if (supportingLines.length > 0 && countKeywordHits(supportingLines, leverageKeywords) > 0)
+    score += 30
   else if (supportingLines.length > 0) score += 5
 
-  if (antagonistLines.length > 0 && countKeywordHits(antagonistLines, pressureKeywords) > 0) score += 35
+  if (antagonistLines.length > 0 && countKeywordHits(antagonistLines, pressureKeywords) > 0)
+    score += 35
   else if (antagonistLines.length > 0) score += 10
 
   return Math.min(100, score)
@@ -537,7 +753,20 @@ export function computeCharacterArcProgress(
   }
 
   // 检测变化信号：优先看动作/选择/关系推进，不靠内心独白
-  const changeKeywords = ['决定', '选择', '交出', '拒绝', '冲上', '拦住', '抢回', '念出', '护住', '转身', '终于', '开始']
+  const changeKeywords = [
+    '决定',
+    '选择',
+    '交出',
+    '拒绝',
+    '冲上',
+    '拦住',
+    '抢回',
+    '念出',
+    '护住',
+    '转身',
+    '终于',
+    '开始'
+  ]
   const regressionKeywords = ['依然', '还是', '照旧', '依旧', '再次', '又被', '只能', '只好']
   const evidence: string[] = []
 
@@ -667,7 +896,9 @@ export function inspectContentQualityEpisode(
   const arcScore = Math.max(0, 100 - stalledOrRegressed * 20)
 
   // 窝囊严重度扣分
-  const weaknessPenalty = weaknessDetection.hasForbiddenBehavior ? weaknessDetection.severity * 10 : 0
+  const weaknessPenalty = weaknessDetection.hasForbiddenBehavior
+    ? weaknessDetection.severity * 10
+    : 0
   // 打法轮换违规扣分
   const tacticPenalty = tacticRotationResult.isDuplicate ? 10 : 0
 
@@ -675,20 +906,25 @@ export function inspectContentQualityEpisode(
     0,
     Math.round(
       themeAnchoringScore * 0.2 +
-      plotNoveltyScore * 0.2 +
-      dramaticTurnScore * 0.2 +
-      sceneEngineScore * 0.2 +
-      ((arcScore + characterFunctionScore) / 2) * 0.2 -
-      loopPenalty * loopWeight -
-      weaknessPenalty -
-      tacticPenalty
+        plotNoveltyScore * 0.2 +
+        dramaticTurnScore * 0.2 +
+        sceneEngineScore * 0.2 +
+        ((arcScore + characterFunctionScore) / 2) * 0.2 -
+        loopPenalty * loopWeight -
+        weaknessPenalty -
+        tacticPenalty
     )
   )
 
   // 生成返修推荐
   const repairRecommendations: ContentRepairRecommendation[] = []
 
-  if (realLoops.length > 0 || plotNoveltyScore < 55 || dramaticTurnScore < 55 || sceneEngineScore < 55) {
+  if (
+    realLoops.length > 0 ||
+    plotNoveltyScore < 55 ||
+    dramaticTurnScore < 55 ||
+    sceneEngineScore < 55
+  ) {
     repairRecommendations.push({
       type: 'episode_engine',
       priority: realLoops.length >= 2 || dramaticTurnScore < 45 ? 'high' : 'medium',
@@ -720,15 +956,22 @@ export function inspectContentQualityEpisode(
 
   // 窝囊行为返修推荐
   if (weaknessDetection.hasForbiddenBehavior) {
-    const behaviorLabels = weaknessDetection.behaviorTypes.map((t) => {
-      switch (t) {
-        case 'kneeling': return '下跪'
-        case 'begging': return '求饶'
-        case 'freeze': return '呆住无反应'
-        case 'empty_threat': return '空头威胁'
-        case 'excessive_apology': return '过度道歉'
-      }
-    }).join('、')
+    const behaviorLabels = weaknessDetection.behaviorTypes
+      .map((t) => {
+        switch (t) {
+          case 'kneeling':
+            return '下跪'
+          case 'begging':
+            return '求饶'
+          case 'freeze':
+            return '呆住无反应'
+          case 'empty_threat':
+            return '空头威胁'
+          case 'excessive_apology':
+            return '过度道歉'
+        }
+      })
+      .join('、')
     repairRecommendations.push({
       type: 'arc_control',
       priority: weaknessDetection.severity >= 2 ? 'high' : 'medium',
@@ -740,9 +983,7 @@ export function inspectContentQualityEpisode(
   // 打法轮换违规返修推荐
   if (tacticRotationResult.isDuplicate) {
     const suggestion = tacticRotationResult.suggestion
-    const suggested = suggestion
-      ? `（建议换成${TACTIC_CATEGORY_LABELS[suggestion]}）`
-      : ''
+    const suggested = suggestion ? `（建议换成${TACTIC_CATEGORY_LABELS[suggestion]}）` : ''
     repairRecommendations.push({
       type: 'episode_engine',
       priority: 'medium',
@@ -798,7 +1039,10 @@ export function inspectContentQualityBatch(
 
   for (const scene of scenes) {
     // 从 episode 控制卡或剧本中提取 pressureType（如果可用）
-    const pressureType = ('pressureType' in scene ? String((scene as Record<string, unknown>).pressureType) : undefined) || undefined
+    const pressureType =
+      ('pressureType' in scene
+        ? String((scene as Record<string, unknown>).pressureType)
+        : undefined) || undefined
     const currentCategory = mapPressureTypeToCategory(pressureType)
 
     const signal = inspectContentQualityEpisode(scene, {

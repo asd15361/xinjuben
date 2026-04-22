@@ -2,7 +2,7 @@ import type {
   ScriptLedgerIssueDto,
   ScriptLedgerPostflightDto,
   ScriptStateLedgerDto
-} from '../../../../shared/contracts/script-ledger'
+} from '../../../../shared/contracts/script-ledger.ts'
 import { collectLedgerFactPostflight } from './ledger-postflight-fact-updates.ts'
 import { collectLedgerCharacterPostflight } from './ledger-postflight-character-updates.ts'
 import { collectLedgerMomentumPostflight } from './ledger-postflight-momentum-updates.ts'

@@ -1,19 +1,19 @@
 import { app, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
-import { createWindow } from './app/bootstrap/create-window'
-import { registerIpcHandlers } from './app/bootstrap/register-ipc'
-import { loadRuntimeEnv } from './infrastructure/runtime-env/load-runtime-env'
-import { loadRuntimeProviderConfig } from './infrastructure/runtime-env/provider-config'
-import { resolveStorageRuntime } from './infrastructure/storage/storage-runtime'
+import { createWindow } from './app/bootstrap/create-window.ts'
+import { registerIpcHandlers } from './app/bootstrap/register-ipc.ts'
+import { loadRuntimeEnv } from './infrastructure/runtime-env/load-runtime-env.ts'
+import { loadRuntimeProviderConfig } from './infrastructure/runtime-env/provider-config.ts'
+import { resolveStorageRuntime } from './infrastructure/storage/storage-runtime.ts'
 import {
   appendRuntimeDiagnosticLog,
   getRuntimeDiagnosticLogPath
-} from './infrastructure/diagnostics/runtime-diagnostic-log'
+} from './infrastructure/diagnostics/runtime-diagnostic-log.ts'
 import {
   runtimeConsoleError,
   runtimeConsoleWarn,
   runtimeConsoleLog
-} from './infrastructure/diagnostics/runtime-console'
+} from './infrastructure/diagnostics/runtime-console.ts'
 
 process.on('uncaughtException', (error) => {
   void appendRuntimeDiagnosticLog(
@@ -49,7 +49,10 @@ app.whenReady().then(() => {
       'main',
       `ignored_e2e_user_data_dir_outside_e2e_mode path=${storageRuntime.ignoredOverride}`
     )
-    runtimeConsoleWarn('[main] ignored E2E_USER_DATA_DIR outside e2e mode', storageRuntime.ignoredOverride)
+    runtimeConsoleWarn(
+      '[main] ignored E2E_USER_DATA_DIR outside e2e mode',
+      storageRuntime.ignoredOverride
+    )
   }
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.xinjuben.app')

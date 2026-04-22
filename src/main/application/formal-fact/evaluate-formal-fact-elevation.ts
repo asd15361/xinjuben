@@ -1,5 +1,5 @@
-import type { FormalFactElevationEvaluationDto } from '../../../shared/contracts/formal-fact'
-import { evaluateFormalFactElevation } from '../../../shared/domain/formal-fact/elevation-engine'
+import type { FormalFactElevationEvaluationDto } from '../../../shared/contracts/formal-fact.ts'
+import { evaluateFormalFactElevation } from '../../../shared/domain/formal-fact/elevation-engine.ts'
 
 export function evaluateFormalFactElevationUseCase(input: {
   formalFactLabel: string

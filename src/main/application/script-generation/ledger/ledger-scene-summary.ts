@@ -1,4 +1,4 @@
-import type { ScriptSegmentDto } from '../../../../shared/contracts/workflow'
+import type { ScriptSegmentDto } from '../../../../shared/contracts/workflow.ts'
 
 function clipText(value: string, maxLength: number): string {
   const text = String(value || '')
@@ -36,7 +36,14 @@ export function summarizeSceneFragment(
 
   const screenplaySummary = (scene.screenplayScenes || [])
     .slice(0, sentenceLimit)
-    .map((item) => clipText(String(item.body || '').replace(/\s+/g, ' ').trim(), 40))
+    .map((item) =>
+      clipText(
+        String(item.body || '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+        40
+      )
+    )
     .filter(Boolean)
     .join('；')
   if (screenplaySummary) return clipText(screenplaySummary, maxLength)

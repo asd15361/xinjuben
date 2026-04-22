@@ -45,14 +45,19 @@ describe('KNOWN_LOOP_PATTERNS', () => {
   it('每个模式都有 triggerKeywords 和 verifiedKeywords', () => {
     for (const pattern of KNOWN_LOOP_PATTERNS) {
       assert.ok(pattern.triggerKeywords.length > 0, `pattern ${pattern.id} missing triggerKeywords`)
-      assert.ok(pattern.verifiedKeywords.length > 0, `pattern ${pattern.id} missing verifiedKeywords`)
+      assert.ok(
+        pattern.verifiedKeywords.length > 0,
+        `pattern ${pattern.id} missing verifiedKeywords`
+      )
     }
   })
 })
 
 describe('detectLoopsInEpisode', () => {
   it('检测到假钥循环', () => {
-    const scene = makeScene('黎明：（假钥匙）他们追来了。\n小柔：（扔掉）丢掉它！\n黎明：又是假钥匙。')
+    const scene = makeScene(
+      '黎明：（假钥匙）他们追来了。\n小柔：（扔掉）丢掉它！\n黎明：又是假钥匙。'
+    )
     const loops = detectLoopsInEpisode(scene)
     assert.ok(loops.length > 0)
     assert.ok(loops.some((l) => l.patternId === 'throwFakeKey' && l.isRealLoop))
@@ -111,7 +116,9 @@ describe('computeThemeAnchoring', () => {
   })
 
   it('选择-代价-后果完整出现时主题分更高', () => {
-    const scene = makeScene('黎明：我先忍，不揭穿他。\n黎明：哪怕我自己先挨这一刀，也不能现在翻脸。\n△结果李科的人当场扑空，局面反而倒向黎明。')
+    const scene = makeScene(
+      '黎明：我先忍，不揭穿他。\n黎明：哪怕我自己先挨这一刀，也不能现在翻脸。\n△结果李科的人当场扑空，局面反而倒向黎明。'
+    )
     const score = computeThemeAnchoring(scene, '黎明', '隐忍反咬')
     assert.ok(score >= 60)
   })
@@ -131,12 +138,16 @@ describe('computeThemeAnchoring', () => {
 
 describe('screenplay craft scoring', () => {
   it('dramaticTurnScore 在有选择和结果时更高', () => {
-    const scene = makeScene('第1集\n1-1 夜\n人物：黎明、李科\n△李科逼近。\n黎明：我交出假的。\n△门当场被撞开。')
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明、李科\n△李科逼近。\n黎明：我交出假的。\n△门当场被撞开。'
+    )
     assert.ok(computeDramaticTurnScore(scene) >= 50)
   })
 
   it('dramaticTurnScore 在集尾只停在观察时更低', () => {
-    const scene = makeScene('第1集\n1-1 夜\n人物：黎明、李科\n△李科逼近。\n黎明：我再想想。\n△黎明望向门外，似乎准备做什么。')
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明、李科\n△李科逼近。\n黎明：我再想想。\n△黎明望向门外，似乎准备做什么。'
+    )
     assert.ok(computeDramaticTurnScore(scene) < 50)
   })
 
@@ -157,14 +168,28 @@ describe('screenplay craft scoring', () => {
     ].join('\n')
     const scene = makeScene(screenplay)
     scene.screenplayScenes = [
-      { sceneNo: 1, sceneCode: '1-1', sceneHeading: '1-1 夜', characterRoster: ['黎明', '李科'], body: '人物：黎明、李科\n△李科拦住黎明。\n黎明：我不给。\n△李科反手夺包。' },
-      { sceneNo: 2, sceneCode: '1-2', sceneHeading: '1-2 夜', characterRoster: ['黎明', '小柔'], body: '人物：黎明、小柔\n△小柔递出账册。\n黎明：先藏起来。\n△门外脚步声逼近。' }
+      {
+        sceneNo: 1,
+        sceneCode: '1-1',
+        sceneHeading: '1-1 夜',
+        characterRoster: ['黎明', '李科'],
+        body: '人物：黎明、李科\n△李科拦住黎明。\n黎明：我不给。\n△李科反手夺包。'
+      },
+      {
+        sceneNo: 2,
+        sceneCode: '1-2',
+        sceneHeading: '1-2 夜',
+        characterRoster: ['黎明', '小柔'],
+        body: '人物：黎明、小柔\n△小柔递出账册。\n黎明：先藏起来。\n△门外脚步声逼近。'
+      }
     ]
     assert.ok(computeSceneEngineScore(scene) >= 60)
   })
 
   it('characterFunctionScore 看主角选择、配角杠杆、对手施压', () => {
-    const scene = makeScene('黎明：我决定把账册交给你。\n小柔：鞋底还有一页。\n李科：把门踹开，搜！\n△结果门外的人当场扑空。')
+    const scene = makeScene(
+      '黎明：我决定把账册交给你。\n小柔：鞋底还有一页。\n李科：把门踹开，搜！\n△结果门外的人当场扑空。'
+    )
     assert.ok(computeCharacterFunctionScore(scene, '黎明', '小柔', '李科') >= 70)
   })
 
@@ -230,7 +255,9 @@ describe('computeCharacterArcProgress', () => {
   })
 
   it('evidence 最多保留 3 条', () => {
-    const scene = makeScene('黎明：（决定）一\n黎明：（选择）二\n黎明：（终于）三\n黎明：（开始）四')
+    const scene = makeScene(
+      '黎明：（决定）一\n黎明：（选择）二\n黎明：（终于）三\n黎明：（开始）四'
+    )
     const arc = computeCharacterArcProgress(scene, '黎明', 'stagnant')
     assert.ok(arc.evidence.length <= 3)
   })
@@ -258,7 +285,10 @@ describe('inspectContentQualityEpisode', () => {
   })
 
   it('循环问题生成 episode_engine 修复推荐', () => {
-    const scene = makeScene('小柔：（捂伤口）\n小柔：（踉跄）\n小柔：（血迹斑斑）\n黎明：（扔掉）假钥匙！\n黎明：（扔掉）假钥匙！', 20)
+    const scene = makeScene(
+      '小柔：（捂伤口）\n小柔：（踉跄）\n小柔：（血迹斑斑）\n黎明：（扔掉）假钥匙！\n黎明：（扔掉）假钥匙！',
+      20
+    )
     const signal = inspectContentQualityEpisode(scene, {
       protagonistName: '黎明',
       supportingName: '小柔',
@@ -330,9 +360,15 @@ describe('inspectContentQualityBatch', () => {
     })
 
     // 第一集 advanced
-    assert.ok(report.episodes[0].characterArcs.find((a) => a.characterName === '黎明')?.status === 'advanced')
+    assert.ok(
+      report.episodes[0].characterArcs.find((a) => a.characterName === '黎明')?.status ===
+        'advanced'
+    )
     // 第二集 regressed
-    assert.ok(report.episodes[1].characterArcs.find((a) => a.characterName === '黎明')?.status === 'regressed')
+    assert.ok(
+      report.episodes[1].characterArcs.find((a) => a.characterName === '黎明')?.status ===
+        'regressed'
+    )
   })
 
   it('循环问题汇总正确', () => {

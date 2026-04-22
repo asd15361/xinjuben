@@ -183,10 +183,20 @@ test('codex sample: 2 scenes → passes SCENE_COUNT_QUALITY 2-4 gate', () => {
   assert.equal(scenes[1]?.sceneCode, '1-2')
 
   // Quality evaluation: 2 scenes is within 2-4 range → no scene count problem
-  const report = inspectScreenplayQualityEpisode({ sceneNo: 1, screenplay: QUALITY_CODEX_SAMPLE, action: '', dialogue: '', emotion: '' })
+  const report = inspectScreenplayQualityEpisode({
+    sceneNo: 1,
+    screenplay: QUALITY_CODEX_SAMPLE,
+    action: '',
+    dialogue: '',
+    emotion: ''
+  })
   assert.equal(report.sceneCount, 2, 'quality report should show 2 scenes')
-  const sceneCountProblem = report.problems.find(p => p.includes('场次数'))
-  assert.equal(sceneCountProblem, undefined, '2 scenes should NOT trigger scene count quality problem')
+  const sceneCountProblem = report.problems.find((p) => p.includes('场次数'))
+  assert.equal(
+    sceneCountProblem,
+    undefined,
+    '2 scenes should NOT trigger scene count quality problem'
+  )
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

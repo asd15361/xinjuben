@@ -1,4 +1,4 @@
-import type { ScriptRuntimeFailureHistoryCode } from '../../contracts/script-generation'
+import type { ScriptRuntimeFailureHistoryCode } from '../../contracts/script-generation.ts'
 
 export function classifyRuntimeFailureHistory(input: {
   reason?: string

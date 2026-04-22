@@ -28,8 +28,26 @@ test('parseFactionMatrixResponseWithEpisodeCount accepts lighter 20-episode matr
               positioning: '强压',
               coreDemand: '压住异动',
               characters: [
-                { id: 'c1', name: '李科', roleInFaction: 'leader', branchId: 'b1', depthLevel: 'core', identity: '执法头目', coreMotivation: '稳住位置', plotFunction: '施压' },
-                { id: 'c2', name: '赵武', roleInFaction: 'enforcer', branchId: 'b1', depthLevel: 'mid', identity: '打手', coreMotivation: '听命', plotFunction: '动手' }
+                {
+                  id: 'c1',
+                  name: '李科',
+                  roleInFaction: 'leader',
+                  branchId: 'b1',
+                  depthLevel: 'core',
+                  identity: '执法头目',
+                  coreMotivation: '稳住位置',
+                  plotFunction: '施压'
+                },
+                {
+                  id: 'c2',
+                  name: '赵武',
+                  roleInFaction: 'enforcer',
+                  branchId: 'b1',
+                  depthLevel: 'mid',
+                  identity: '打手',
+                  coreMotivation: '听命',
+                  plotFunction: '动手'
+                }
               ]
             },
             {
@@ -39,8 +57,26 @@ test('parseFactionMatrixResponseWithEpisodeCount accepts lighter 20-episode matr
               positioning: '中立保命',
               coreDemand: '保住伤者',
               characters: [
-                { id: 'c3', name: '苏婉', roleInFaction: 'leader', branchId: 'b2', depthLevel: 'mid', identity: '医者', coreMotivation: '救人', plotFunction: '换药传信' },
-                { id: 'c4', name: '药童', roleInFaction: 'functional', branchId: 'b2', depthLevel: 'extra', identity: '药童', coreMotivation: '保命', plotFunction: '跑腿' }
+                {
+                  id: 'c3',
+                  name: '苏婉',
+                  roleInFaction: 'leader',
+                  branchId: 'b2',
+                  depthLevel: 'mid',
+                  identity: '医者',
+                  coreMotivation: '救人',
+                  plotFunction: '换药传信'
+                },
+                {
+                  id: 'c4',
+                  name: '药童',
+                  roleInFaction: 'functional',
+                  branchId: 'b2',
+                  depthLevel: 'extra',
+                  identity: '药童',
+                  coreMotivation: '保命',
+                  plotFunction: '跑腿'
+                }
               ]
             }
           ]
@@ -61,8 +97,26 @@ test('parseFactionMatrixResponseWithEpisodeCount accepts lighter 20-episode matr
               positioning: '外线围猎',
               coreDemand: '盯人',
               characters: [
-                { id: 'c5', name: '头目甲', roleInFaction: 'leader', branchId: 'b3', depthLevel: 'mid', identity: '残党头目', coreMotivation: '夺钥匙', plotFunction: '围猎' },
-                { id: 'c6', name: '探子乙', roleInFaction: 'variable', branchId: 'b3', depthLevel: 'extra', identity: '探子', coreMotivation: '卖消息', plotFunction: '倒戈' }
+                {
+                  id: 'c5',
+                  name: '头目甲',
+                  roleInFaction: 'leader',
+                  branchId: 'b3',
+                  depthLevel: 'mid',
+                  identity: '残党头目',
+                  coreMotivation: '夺钥匙',
+                  plotFunction: '围猎'
+                },
+                {
+                  id: 'c6',
+                  name: '探子乙',
+                  roleInFaction: 'variable',
+                  branchId: 'b3',
+                  depthLevel: 'extra',
+                  identity: '探子',
+                  coreMotivation: '卖消息',
+                  plotFunction: '倒戈'
+                }
               ]
             },
             {
@@ -72,8 +126,26 @@ test('parseFactionMatrixResponseWithEpisodeCount accepts lighter 20-episode matr
               positioning: '宗门内鬼',
               coreDemand: '翻旧账',
               characters: [
-                { id: 'c7', name: '内鬼甲', roleInFaction: 'leader', branchId: 'b4', depthLevel: 'mid', identity: '内鬼', coreMotivation: '翻盘', plotFunction: '埋雷' },
-                { id: 'c8', name: '内鬼乙', roleInFaction: 'variable', branchId: 'b4', depthLevel: 'extra', identity: '眼线', coreMotivation: '押宝', plotFunction: '放风' }
+                {
+                  id: 'c7',
+                  name: '内鬼甲',
+                  roleInFaction: 'leader',
+                  branchId: 'b4',
+                  depthLevel: 'mid',
+                  identity: '内鬼',
+                  coreMotivation: '翻盘',
+                  plotFunction: '埋雷'
+                },
+                {
+                  id: 'c8',
+                  name: '内鬼乙',
+                  roleInFaction: 'variable',
+                  branchId: 'b4',
+                  depthLevel: 'extra',
+                  identity: '眼线',
+                  coreMotivation: '押宝',
+                  plotFunction: '放风'
+                }
               ]
             }
           ]
@@ -114,7 +186,7 @@ test('generateFactionMatrix retries once before failing', async () => {
         } as never,
         totalEpisodes: 20,
         runtimeConfig: {} as never,
-      generateText: async () => {
+        generateText: async () => {
           attempts += 1
           return {
             text: '{"title":"坏结构","factions":[{"id":"f1","branches":[]}],"crossRelations":[]}',

@@ -17,11 +17,11 @@ import type {
   DecompositionImmutableFact,
   DecompositionUnresolved,
   DecompositionSourceInfo
-} from '../../../shared/contracts/decomposition'
+} from '../../../shared/contracts/decomposition.ts'
 import type {
   FormalFactProvenanceTier,
   FormalFactAuthorityType
-} from '../../../shared/contracts/formal-fact'
+} from '../../../shared/contracts/formal-fact.ts'
 import {
   extractSectionMap,
   collectStructuredSections,
@@ -56,7 +56,7 @@ function extractCharactersFromSections(
     name: string,
     summary?: string,
     roleHint?: DecompositionCharacter['roleHint']
-  ) => {
+  ): void => {
     if (!name || seen.has(name)) return
     seen.add(name)
     characters.push({
@@ -152,11 +152,7 @@ function extractFactionsFromSectionMap(
   ])
 
   const inferFactionType = (name: string): DecompositionFaction['factionType'] => {
-    if (
-      name.endsWith('家族') ||
-      name.endsWith('世家') ||
-      name.endsWith('门阀')
-    ) {
+    if (name.endsWith('家族') || name.endsWith('世家') || name.endsWith('门阀')) {
       return 'family'
     }
     if (
@@ -200,11 +196,21 @@ function extractFactionsFromSectionMap(
     /(?:^|[，。；、：\s]|在|于|是|有|还|和|与|并|等)(朝廷|皇宫|官府|衙门|法院|公安系统|[一-龥]{2,8}(?:宗门|门派|道观|公安局|分局|司|局|院|府|帮|会|盟|堂|门|派|宗|宫|阁))(?=(?:等(?:\d+座)?道观|[，。；、：\s]|与|和|并|共|同|中|里|内|外|被|暗|仍|又|及|还有|共同|$))/g
   const cardFactionPattern =
     /(朝廷|皇宫|官府|衙门|法院|公安系统|[一-龥]{2,8}(?:帮|会|盟|堂|门|派|宗|宫|阁))(?=(?:香主|堂主|帮主|弟子|道长|长老|掌门|成员|门人))/g
-  const invalidFactionPrefixes = ['修仙', '凡俗', '民间', '反清复明组织', '等级世界', '意外成为', '却陷入', '长大的']
+  const invalidFactionPrefixes = [
+    '修仙',
+    '凡俗',
+    '民间',
+    '反清复明组织',
+    '等级世界',
+    '意外成为',
+    '却陷入',
+    '长大的'
+  ]
 
   const collectNamedFactions = (): string[] => {
     const names: string[] = []
-    const factionTokenPattern = /(朝廷|皇宫|官府|衙门|法院|公安系统|[一-龥]{2,8}?(?:帮|会|盟|堂|门|派|宗|宫|阁|府|院|司|局))/g
+    const factionTokenPattern =
+      /(朝廷|皇宫|官府|衙门|法院|公安系统|[一-龥]{2,8}?(?:帮|会|盟|堂|门|派|宗|宫|阁|府|院|司|局))/g
     const normalizeFactionNameCandidate = (candidate: string): string[] => {
       const compact = candidate.trim().replace(/等.+$/u, '')
       const parts = [...compact.matchAll(factionTokenPattern)]
@@ -213,7 +219,7 @@ function extractFactionsFromSectionMap(
       return parts.length > 0 ? parts : [compact]
     }
 
-    const addName = (name: string) => {
+    const addName = (name: string): void => {
       const cleaned = name.trim()
       if (
         !cleaned ||

@@ -103,7 +103,8 @@ export function buildScriptGenerationRuntimeState(input: {
   }
 }
 
-export function ScriptProjectRuntimeProvider(props: ScriptProjectRuntimeProviderProps): ReactNode {
+// Extracted component to fix react-refresh warning
+function ScriptProjectRuntimeProviderInner(props: ScriptProjectRuntimeProviderProps): JSX.Element {
   const persistedBoard = useWorkflowStore((state) => state.scriptProgressBoard)
   const persistedFailurePreview = useWorkflowStore((state) => state.scriptFailureResolution)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
@@ -142,6 +143,12 @@ export function ScriptProjectRuntimeProvider(props: ScriptProjectRuntimeProvider
       {props.children}
     </ScriptProjectRuntimeContext.Provider>
   )
+}
+
+export function ScriptProjectRuntimeProvider(
+  props: ScriptProjectRuntimeProviderProps
+): JSX.Element {
+  return ScriptProjectRuntimeProviderInner(props)
 }
 
 export function useScriptProjectRuntime(): ScriptGenerationRuntimeState {

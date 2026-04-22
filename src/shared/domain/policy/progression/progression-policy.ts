@@ -1,5 +1,5 @@
-import type { ScriptSegmentDto } from '../../../contracts/workflow'
-import type { PolicyMetadata } from '../policy-metadata'
+import type { ScriptSegmentDto } from '../../../contracts/workflow.ts'
+import type { PolicyMetadata } from '../policy-metadata.ts'
 
 export interface DramaProgressionSnapshot {
   conflictSignal: boolean
@@ -40,7 +40,9 @@ export function buildDramaProgressionSnapshot(scene: ScriptSegmentDto): DramaPro
   }
 }
 
-export function buildProgressionExecutionSnapshot(scenes: ScriptSegmentDto[] | null | undefined): ProgressionPolicyExecutionSnapshot {
+export function buildProgressionExecutionSnapshot(
+  scenes: ScriptSegmentDto[] | null | undefined
+): ProgressionPolicyExecutionSnapshot {
   if (!scenes || scenes.length === 0) {
     return {
       weakSceneCount: 0,

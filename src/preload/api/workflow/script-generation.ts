@@ -1,25 +1,27 @@
 import { ipcRenderer } from 'electron'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type {
-  BuildScriptGenerationPlanInputDto,
-  ScriptGenerationFailureResolutionDto,
   ScriptGenerationExecutionPlanDto,
+  ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto,
-  ScriptGenerationResumeResolutionDto,
-  RewriteScriptEpisodeInputDto,
-  RewriteScriptEpisodeResultDto,
-  StartScriptGenerationInputDto,
-  StartScriptGenerationResultDto
-} from '../../../shared/contracts/script-generation'
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
-import type { RuntimeConsoleStateDto } from '../../../shared/contracts/runtime-task'
+  ScriptGenerationResumeResolutionDto
+} from '../../../shared/contracts/script-generation.ts'
+import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger.ts'
+import type { RuntimeConsoleStateDto } from '../../../shared/contracts/runtime-task.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
+import type { BuildScriptGenerationPlanInputDto } from '../../../shared/contracts/script-generation.ts'
 
+/**
+ * Script Generation IPC API - 只保留纯计算、只读能力
+ *
+ * startScriptGeneration 和 rewriteScriptEpisode 已迁移到 HTTP server
+ * stopScriptGeneration 和 getRuntimeConsoleState 已删除（死代码）
+ */
 export const workflowScriptGenerationApi = {
   buildScriptGenerationPlan(input: {
     plan: BuildScriptGenerationPlanInputDto
@@ -51,16 +53,6 @@ export const workflowScriptGenerationApi = {
   }): Promise<ScriptGenerationFailureResolutionDto> {
     return ipcRenderer.invoke('workflow:create-script-generation-failure-resolution', input)
   },
-  startScriptGeneration(
-    input: StartScriptGenerationInputDto
-  ): Promise<StartScriptGenerationResultDto> {
-    return ipcRenderer.invoke('workflow:start-script-generation', input)
-  },
-  rewriteScriptEpisode(
-    input: RewriteScriptEpisodeInputDto
-  ): Promise<RewriteScriptEpisodeResultDto> {
-    return ipcRenderer.invoke('workflow:rewrite-script-episode', input)
-  },
   buildScriptLedgerPreview(input: {
     storyIntent?: StoryIntentPackageDto | null
     outline: OutlineDraftDto
@@ -69,12 +61,6 @@ export const workflowScriptGenerationApi = {
   }): Promise<ScriptStateLedgerDto> {
     return ipcRenderer.invoke('workflow:build-script-ledger-preview', input)
   },
-  stopScriptGeneration(input: { projectId: string }): Promise<boolean> {
-    return ipcRenderer.invoke('workflow:stop-script-generation', input)
-  },
-  getRuntimeConsoleState(projectId: string): Promise<RuntimeConsoleStateDto> {
-    return ipcRenderer.invoke('workflow:get-runtime-console-state', { projectId })
-  },
   onRuntimeConsoleUpdated(
     listener: (payload: { projectId: string; state: RuntimeConsoleStateDto }) => void
   ): () => void {
@@ -82,7 +68,7 @@ export const workflowScriptGenerationApi = {
     const handler = (
       _event: Electron.IpcRendererEvent,
       payload: { projectId: string; state: RuntimeConsoleStateDto }
-    ) => {
+    ): void => {
       listener(payload)
     }
     ipcRenderer.on(channel, handler)

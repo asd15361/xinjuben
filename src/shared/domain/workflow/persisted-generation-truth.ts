@@ -1,15 +1,18 @@
-import type { ProjectGenerationStatusDto } from '../../contracts/generation'
-import type { ScriptGenerationFailureResolutionDto } from '../../contracts/script-generation'
-import type { ScriptStateLedgerDto } from '../../contracts/script-ledger'
-import type { ScriptSegmentDto } from '../../contracts/workflow'
-import type { FormalReleaseState, VisibleResultState } from '../../contracts/visible-release-state'
+import type { ProjectGenerationStatusDto } from '../../contracts/generation.ts'
+import type { ScriptGenerationFailureResolutionDto } from '../../contracts/script-generation.ts'
+import type { ScriptStateLedgerDto } from '../../contracts/script-ledger.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import type {
+  FormalReleaseState,
+  VisibleResultState
+} from '../../contracts/visible-release-state.ts'
 import {
   createFormalBlockedState,
   createFormalReleasedState,
   createInitialVisibleResult,
   createVisibleFailureState,
   createVisibleSuccessState
-} from '../../contracts/visible-release-state'
+} from '../../contracts/visible-release-state.ts'
 
 export interface PersistedGenerationTruthInput {
   generationStatus: ProjectGenerationStatusDto | null

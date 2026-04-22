@@ -3,11 +3,11 @@ import type {
   AuthorityFailureNoticeKeyDto,
   AuthorityFailureLikeDto,
   LegacyFailureShapeDto
-} from '../../../../shared/contracts/authority-failure'
+} from '../../../../shared/contracts/authority-failure.ts'
 export type WorkflowAuthorityErrorEnvelopeDto = {
   error: AuthorityFailureDto
 }
-import type { GenerationNotice } from '../store/useWorkflowStore'
+import type { GenerationNotice } from '../store/useWorkflowStore.ts'
 
 /**
  * Canonical renderer mapping from authority failure DTO to GenerationNotice.

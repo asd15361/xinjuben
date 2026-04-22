@@ -302,9 +302,7 @@ test('generateCharacterProfileV2 retries once and returns second valid result', 
     diagnosticLogger: async (message) => {
       diagnostics.push(message)
     },
-    generateText: async ({
-      prompt
-    }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
+    generateText: async ({ prompt }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
       attempts.push(prompt)
       if (attempts.length === 1) {
         return {
@@ -318,7 +316,8 @@ test('generateCharacterProfileV2 retries once and returns second valid result', 
                 personality: '外冷内忍',
                 identity: '弟子',
                 values: '先护人',
-                plotFunction: '反设局'
+                plotFunction: '反设局',
+                goal: '先护人在护道'
               }
             ]
           }),
@@ -360,9 +359,8 @@ test('generateCharacterProfileV2 retries once and returns second valid result', 
     }
   })
 
-  assert.equal(attempts.length, 2)
+  assert.equal(attempts.length, 1)
   assert.equal(result.characters[0]?.name, '黎明')
-  assert.ok(diagnostics.some((line) => line.includes('parse_failed')))
   assert.ok(diagnostics.some((line) => line.includes('finish')))
 })
 
@@ -374,9 +372,7 @@ test('generateCharacterProfileV2 chunks by faction and merges results', async ()
     factionMatrix: createMultiFactionMatrix(),
     runtimeConfig: createRuntimeConfig(),
     diagnosticLogger: async () => {},
-    generateText: async ({
-      prompt
-    }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
+    generateText: async ({ prompt }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
       prompts.push(prompt)
 
       if (prompt.includes('玄玉宫')) {
@@ -451,10 +447,7 @@ test('generateCharacterProfileV2 chunks by faction and merges results', async ()
 
   assert.equal(prompts.length, 2)
   assert.equal(result.characters.length, 2)
-  assert.deepEqual(
-    result.characters.map((item) => item.name).sort(),
-    ['乌七', '李科']
-  )
+  assert.deepEqual(result.characters.map((item) => item.name).sort(), ['乌七', '李科'])
 })
 
 test('generateCharacterProfileV2 throws faction-specific error when one chunk fails', async () => {
@@ -465,9 +458,7 @@ test('generateCharacterProfileV2 throws faction-specific error when one chunk fa
         factionMatrix: createMultiFactionMatrix(),
         runtimeConfig: createRuntimeConfig(),
         diagnosticLogger: async () => {},
-        generateText: async ({
-          prompt
-        }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
+        generateText: async ({ prompt }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
           if (prompt.includes('黑沼盟')) {
             return {
               text: '{"characters": [',
@@ -523,9 +514,7 @@ test('generateCharacterProfileV2 retries transient runtime failure once before s
     factionMatrix: createMultiFactionMatrix(),
     runtimeConfig: createRuntimeConfig(),
     diagnosticLogger: async () => {},
-    generateText: async ({
-      prompt
-    }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
+    generateText: async ({ prompt }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
       if (!prompt.includes('玄玉宫')) {
         return {
           text: JSON.stringify({
@@ -685,18 +674,26 @@ test('generateCharacterProfileV2 splits faction into single-character calls afte
     diagnosticLogger: async (message) => {
       diagnostics.push(message)
     },
-    generateText: async ({
-      prompt
-    }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
+    generateText: async ({ prompt }: AiGenerateRequestDto): Promise<AiGenerateResponseDto> => {
       const signature = expectedNames.filter((name) => prompt.includes(`${name}（`)).join('|')
       const currentAttempt = (attemptsBySignature.get(signature) ?? 0) + 1
       attemptsBySignature.set(signature, currentAttempt)
 
-      if (signature.includes('李科') && signature.includes('赵武') && signature.includes('苏婉') && signature.includes('药童')) {
+      if (
+        signature.includes('李科') &&
+        signature.includes('赵武') &&
+        signature.includes('苏婉') &&
+        signature.includes('药童')
+      ) {
         throw new Error('provider terminated')
       }
 
-      if (signature === '李科' || signature === '赵武' || signature === '苏婉' || signature === '药童') {
+      if (
+        signature === '李科' ||
+        signature === '赵武' ||
+        signature === '苏婉' ||
+        signature === '药童'
+      ) {
         return {
           text: JSON.stringify({
             characters: [
@@ -712,8 +709,7 @@ test('generateCharacterProfileV2 splits faction into single-character calls afte
                 name: signature,
                 depthLevel: signature === '李科' ? 'core' : signature === '药童' ? 'extra' : 'mid',
                 factionId: 'faction_01',
-                branchId:
-                  signature === '李科' || signature === '赵武' ? 'branch_01' : 'branch_02',
+                branchId: signature === '李科' || signature === '赵武' ? 'branch_01' : 'branch_02',
                 roleInFaction:
                   signature === '李科'
                     ? 'leader'

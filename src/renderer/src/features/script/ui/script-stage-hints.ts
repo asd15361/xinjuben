@@ -1,4 +1,4 @@
-import type { Hint } from '../../../components/WorkspaceCommons'
+import type { Hint } from '../../../components/WorkspaceCommons.ts'
 
 export const SCRIPT_HINTS: Hint[] = [
   {

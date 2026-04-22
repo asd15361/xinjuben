@@ -5,7 +5,7 @@ function formatRole(role: ChatMessage['role']): string {
   return role === 'user' ? '你' : 'AI'
 }
 
-export function ChatMessageList(props: { messages: ChatMessage[] }) {
+export function ChatMessageList(props: { messages: ChatMessage[] }): JSX.Element {
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {

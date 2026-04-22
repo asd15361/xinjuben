@@ -2,7 +2,7 @@ import type {
   CreateProjectInputDto,
   ProjectSnapshotDto,
   ProjectSummaryDto
-} from '../../../shared/contracts/project'
+} from '../../../shared/contracts/project.ts'
 import type {
   ConfirmStoryIntentFromChatInputDto,
   ConfirmStoryIntentFromChatResultDto,
@@ -14,8 +14,12 @@ import type {
   SaveScriptDraftInputDto,
   SaveScriptRuntimeStateInputDto,
   SaveStoryIntentInputDto
-} from '../../../shared/contracts/workspace'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workspace.ts'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto
+} from '../../../shared/contracts/workflow.ts'
 
 /**
  * src/renderer/src/services/api-client.ts
@@ -29,7 +33,7 @@ import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } fr
  * - 生成接口（七问生成）
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001'
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE) || 'http://localhost:3001'
 
 // ========== Token 管理 ==========
 
@@ -60,14 +64,21 @@ export function clearToken(): void {
  * API 错误类型
  */
 export class ApiError extends Error {
+  code: string
+  status: number
+  shouldLogin?: boolean
+
   constructor(
     message: string,
-    public code: string,
-    public status: number,
-    public shouldLogin?: boolean
+    code: string,
+    status: number,
+    shouldLogin?: boolean
   ) {
     super(message)
     this.name = 'ApiError'
+    this.code = code
+    this.status = status
+    this.shouldLogin = shouldLogin
   }
 }
 
@@ -185,7 +196,10 @@ export async function apiLogin(input: LoginInput): Promise<AuthResult> {
 /**
  * 获取当前用户信息
  */
-export async function apiGetMe(): Promise<{ user: User; credits: { balance: number; frozenBalance: number } }> {
+export async function apiGetMe(): Promise<{
+  user: User
+  credits: { balance: number; frozenBalance: number }
+}> {
   return apiRequest('/api/auth/me')
 }
 
@@ -224,9 +238,7 @@ export async function apiGetProject(
   return apiRequest(`/api/projects/${projectId}`)
 }
 
-export async function apiDeleteProject(
-  projectId: string
-): Promise<{ ok: boolean }> {
+export async function apiDeleteProject(projectId: string): Promise<{ ok: boolean }> {
   return apiRequest(`/api/projects/${projectId}`, {
     method: 'DELETE'
   })
@@ -562,4 +574,95 @@ export function hasLocalToken(): boolean {
  */
 export function getApiBase(): string {
   return API_BASE
+}
+
+// ========== Stage Contract 接口 ==========
+
+import type { InputContractValidationDto } from '../../../shared/contracts/input-contract.ts'
+import type { StageContractType } from '../../../shared/contracts/stage-contract.ts'
+
+/**
+ * 阶段放行校验
+ *
+ * POST /api/stage/validate-contract
+ */
+export async function apiValidateStageContract(input: {
+  projectId: string
+  targetStage: StageContractType
+}): Promise<InputContractValidationDto> {
+  return apiRequest<InputContractValidationDto>('/api/stage/validate-contract', {
+    method: 'POST',
+    body: input
+  })
+}
+
+// ========== Formal Fact 接口 ==========
+
+import type {
+  DeclareFormalFactForProjectInputDto,
+  DeclareFormalFactForProjectResultDto,
+  ConfirmFormalFactForProjectInputDto,
+  ConfirmFormalFactForProjectResultDto,
+  RemoveFormalFactForProjectInputDto,
+  RemoveFormalFactForProjectResultDto
+} from '../../../shared/contracts/workspace.ts'
+
+/**
+ * 声明正式事实
+ *
+ * POST /api/formal-fact/declare
+ */
+export async function apiDeclareFormalFact(
+  input: DeclareFormalFactForProjectInputDto
+): Promise<DeclareFormalFactForProjectResultDto & { fact?: unknown }> {
+  return apiRequest('/api/formal-fact/declare', {
+    method: 'POST',
+    body: input
+  })
+}
+
+/**
+ * 确认正式事实
+ *
+ * POST /api/formal-fact/confirm
+ */
+export async function apiConfirmFormalFact(
+  input: ConfirmFormalFactForProjectInputDto
+): Promise<ConfirmFormalFactForProjectResultDto> {
+  return apiRequest('/api/formal-fact/confirm', {
+    method: 'POST',
+    body: input
+  })
+}
+
+/**
+ * 移除正式事实
+ *
+ * POST /api/formal-fact/remove
+ */
+export async function apiRemoveFormalFact(
+  input: RemoveFormalFactForProjectInputDto
+): Promise<RemoveFormalFactForProjectResultDto> {
+  return apiRequest('/api/formal-fact/remove', {
+    method: 'POST',
+    body: input
+  })
+}
+
+// ========== Script Audit 接口 ==========
+
+import type { ExecuteScriptRepairInputDto } from '../../../shared/contracts/script-audit.ts'
+
+/**
+ * 执行剧本修复
+ *
+ * POST /api/script-audit/execute-repair
+ */
+export async function apiExecuteScriptRepair(
+  input: ExecuteScriptRepairInputDto
+): Promise<{ success: boolean; message: string; projectId: string; suggestionCount: number }> {
+  return apiRequest('/api/script-audit/execute-repair', {
+    method: 'POST',
+    body: input
+  })
 }

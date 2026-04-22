@@ -23,8 +23,9 @@ interface CharacterStageEditorProps {
   onCharacterChange: (index: number, next: Partial<CharacterDraft>) => void
 }
 
-export function CharacterStageEditor(props: CharacterStageEditorProps) {
-  const { characters, draft, editingIndex, downstreamLocked, onDraftChange, onCharacterChange } = props
+export function CharacterStageEditor(props: CharacterStageEditorProps): JSX.Element {
+  const { characters, draft, editingIndex, downstreamLocked, onDraftChange, onCharacterChange } =
+    props
   const currentCharacter = editingIndex !== null ? characters[editingIndex] : draft
 
   return (
@@ -39,7 +40,9 @@ export function CharacterStageEditor(props: CharacterStageEditorProps) {
           placeholder="例：陆以橙"
           value={currentCharacter.name}
           onChange={(value) =>
-            editingIndex !== null ? onCharacterChange(editingIndex, { name: value }) : onDraftChange({ ...draft, name: value })
+            editingIndex !== null
+              ? onCharacterChange(editingIndex, { name: value })
+              : onDraftChange({ ...draft, name: value })
           }
           disabled={downstreamLocked}
         />
@@ -48,7 +51,9 @@ export function CharacterStageEditor(props: CharacterStageEditorProps) {
           placeholder="例：拿回属于自己的一切"
           value={currentCharacter.goal}
           onChange={(value) =>
-            editingIndex !== null ? onCharacterChange(editingIndex, { goal: value }) : onDraftChange({ ...draft, goal: value })
+            editingIndex !== null
+              ? onCharacterChange(editingIndex, { goal: value })
+              : onDraftChange({ ...draft, goal: value })
           }
           disabled={downstreamLocked}
         />
@@ -85,7 +90,9 @@ export function CharacterStageEditor(props: CharacterStageEditorProps) {
           placeholder="例：最怕小柔因为自己出事"
           value={currentCharacter.fear}
           onChange={(value) =>
-            editingIndex !== null ? onCharacterChange(editingIndex, { fear: value }) : onDraftChange({ ...draft, fear: value })
+            editingIndex !== null
+              ? onCharacterChange(editingIndex, { fear: value })
+              : onDraftChange({ ...draft, fear: value })
           }
           disabled={downstreamLocked}
         />
@@ -163,7 +170,9 @@ export function CharacterStageEditor(props: CharacterStageEditorProps) {
         placeholder="例：从被动承受→主动出击→完成内心蜕变，宣告价值觉醒"
         value={currentCharacter.arc}
         onChange={(value) =>
-          editingIndex !== null ? onCharacterChange(editingIndex, { arc: value }) : onDraftChange({ ...draft, arc: value })
+          editingIndex !== null
+            ? onCharacterChange(editingIndex, { arc: value })
+            : onDraftChange({ ...draft, arc: value })
         }
         multiline
         rows={3}

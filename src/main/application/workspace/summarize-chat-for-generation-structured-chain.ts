@@ -37,7 +37,9 @@ function inferSeasonResistanceLine(sections: StructuredBriefSections): string {
   const keyAsset = pickKeyAsset(sections)
   const worldPressure = pickWorldPressure(sections)
   const pieces = [
-    sections.antagonist ? `${sections.antagonist}会围绕${protectTarget || '主角软肋'}和${keyAsset || '关键底牌'}持续施压` : '',
+    sections.antagonist
+      ? `${sections.antagonist}会围绕${protectTarget || '主角软肋'}和${keyAsset || '关键底牌'}持续施压`
+      : '',
     worldPressure,
     '把主角一步步逼到不得不亮底'
   ].filter(Boolean)
@@ -80,7 +82,10 @@ function inferRelationshipLeverLine(sections: StructuredBriefSections): string {
     sections.relationSummary[0] || ''
   ].filter(Boolean)
 
-  return pieces.join('；') || `${sections.protagonist || '主角'}与${sections.antagonist || '对手'}形成主压强关系，关键人物会反复被拿来施压与反制。`
+  return (
+    pieces.join('；') ||
+    `${sections.protagonist || '主角'}与${sections.antagonist || '对手'}形成主压强关系，关键人物会反复被拿来施压与反制。`
+  )
 }
 
 function inferHookChainLine(sections: StructuredBriefSections): string {
@@ -108,7 +113,10 @@ function inferHookChainLine(sections: StructuredBriefSections): string {
   return '每一集的结尾都要从上一轮没解决的冲突里继续挂钩，把下一个动作逼出来。'
 }
 
-function inferCharacterDuty(name: string, sections: StructuredBriefSections): { layer: string; duty: string } {
+function inferCharacterDuty(
+  name: string,
+  sections: StructuredBriefSections
+): { layer: string; duty: string } {
   if (name === sections.protagonist) {
     return {
       layer: '主驱动层',
@@ -160,7 +168,9 @@ export function inferChainFromStructuredSections(sections: StructuredBriefSectio
   }
 }
 
-export function inferCharacterLayersFromSections(sections: StructuredBriefSections): GenerationBriefCharacterLayer[] {
+export function inferCharacterLayersFromSections(
+  sections: StructuredBriefSections
+): GenerationBriefCharacterLayer[] {
   return sections.keyCharacters.map((name) => ({
     name,
     ...inferCharacterDuty(name, sections)

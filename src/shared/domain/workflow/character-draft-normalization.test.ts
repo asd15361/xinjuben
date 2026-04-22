@@ -71,7 +71,8 @@ test('normalizeCharacterDrafts drops legacy external-pressure pseudo characters'
       name: '被妖兽蛇子',
       biography: '被妖兽蛇子围着并缠身和小柔持续施压',
       publicMask: '被妖兽蛇子表面像一股越来越近的外压，不跟任何人讲道理。',
-      hiddenPressure: '被妖兽蛇子不是站队角色，而是会顺着钥匙和局势裂口不断放大代价，谁失手它就咬谁。',
+      hiddenPressure:
+        '被妖兽蛇子不是站队角色，而是会顺着钥匙和局势裂口不断放大代价，谁失手它就咬谁。',
       fear: '被妖兽蛇子最怕的不是输赢，而是自己真正被看穿和被提前压回去。',
       protectTarget: '被妖兽蛇子只会守自己的扩张节奏和外压边界，不会替任何人守体面。',
       conflictTrigger: '只要李科继续逼近钥匙，或黎明亮底过猛，被妖兽蛇子就会立刻把外压推上台面。',

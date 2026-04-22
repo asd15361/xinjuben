@@ -2,7 +2,7 @@ import { HomeHeroPanel } from './HomeHeroPanel'
 import { ProjectListPanel } from './ProjectListPanel'
 import { useHomePageActions } from './useHomePageActions'
 
-export function HomePage() {
+export function HomePage(): JSX.Element {
   const {
     busy,
     canCreate,

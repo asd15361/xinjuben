@@ -1,6 +1,9 @@
-import type { ScriptRepairPlanDto, ScriptRepairSuggestionDto } from '../../../contracts/script-audit'
-import type { ScriptStateLedgerDto } from '../../../contracts/script-ledger'
-import type { PolicyMetadata } from '../policy-metadata'
+import type {
+  ScriptRepairPlanDto,
+  ScriptRepairSuggestionDto
+} from '../../../contracts/script-audit.ts'
+import type { ScriptStateLedgerDto } from '../../../contracts/script-ledger.ts'
+import type { PolicyMetadata } from '../policy-metadata.ts'
 
 export interface FallbackRepairDirectives {
   actionHint: string
@@ -33,10 +36,12 @@ export const repairPolicySnapshot: RepairPolicySnapshot = {
   metadata: {
     name: 'script_repair_policy_v1',
     version: 'v1.3',
-    lineage: 'stage5-repair-closure -> stage6-ledger-driven-repair -> stage7-execution-snapshot -> stage7-policy-lineage',
+    lineage:
+      'stage5-repair-closure -> stage6-ledger-driven-repair -> stage7-execution-snapshot -> stage7-policy-lineage',
     source: '旧项目修补经验 + ledger 驱动修补主链'
   },
-  summary: '优先按 ledger 的动量、开放钩子和关系张力定向修补；保底只保留最小结构兜住，不再代替创作本身。',
+  summary:
+    '优先按 ledger 的动量、开放钩子和关系张力定向修补；保底只保留最小结构兜住，不再代替创作本身。',
   fallbackEnabled: true
 }
 
@@ -66,7 +71,8 @@ export function buildRepairPromptSnapshot(input: {
 }): RepairPromptSnapshot {
   const openHook = input.ledger.openHooks[0]?.hookText || '当前未解信号'
   const nextBridge = input.ledger.storyMomentum.nextRequiredBridge || '承接当前冲突'
-  const relationTension = input.ledger.characters[0]?.relationshipPressure[0]?.currentTension || 'medium'
+  const relationTension =
+    input.ledger.characters[0]?.relationshipPressure[0]?.currentTension || 'medium'
   const perspective = input.ledger.knowledgeBoundaries.perspectiveCharacter || '当前主视角人物'
   const forbiddenRuleCount = input.ledger.knowledgeBoundaries.forbiddenOmniscienceRules.length
 
@@ -91,7 +97,9 @@ export function buildRepairExecutionSnapshot(
     }
   }
 
-  const targetSceneCount = new Set(plan.suggestions.map((item) => item.targetSceneNo).filter((item) => item !== null)).size
+  const targetSceneCount = new Set(
+    plan.suggestions.map((item) => item.targetSceneNo).filter((item) => item !== null)
+  ).size
   return {
     suggestionCount: plan.suggestions.length,
     targetSceneCount,

@@ -28,10 +28,12 @@ interface FieldProps {
   onChange: (value: string) => void
 }
 
-function Field(props: FieldProps) {
+function Field(props: FieldProps): JSX.Element {
   return (
     <label className="block space-y-2">
-      <span className="block text-[10px] uppercase tracking-widest text-white/25 font-bold">{props.label}</span>
+      <span className="block text-[10px] uppercase tracking-widest text-white/25 font-bold">
+        {props.label}
+      </span>
       {props.multiline ? (
         <textarea
           rows={3}
@@ -52,15 +54,19 @@ function Field(props: FieldProps) {
   )
 }
 
-export function WorkspaceStoryIntentPanel(props: WorkspaceStoryIntentPanelProps) {
+export function WorkspaceStoryIntentPanel(props: WorkspaceStoryIntentPanelProps): JSX.Element {
   return (
     <div className="rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">故事方向卡</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">
+            故事方向卡
+          </p>
           <h4 className="text-sm font-bold mt-1">{props.activeProject?.name || '未选择项目'}</h4>
         </div>
-        <span className={`text-[10px] uppercase tracking-widest ${props.storyIntentReady ? 'text-green-400/80' : 'text-white/25'}`}>
+        <span
+          className={`text-[10px] uppercase tracking-widest ${props.storyIntentReady ? 'text-green-400/80' : 'text-white/25'}`}
+        >
           {props.storyIntentReady ? '已保存' : '待补充'}
         </span>
       </div>

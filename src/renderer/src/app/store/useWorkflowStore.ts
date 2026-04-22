@@ -1,18 +1,18 @@
-import type { ChatMessageDto } from '../../../../shared/contracts/chat'
-import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
+import type { ChatMessageDto } from '../../../../shared/contracts/chat.ts'
+import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation.ts'
 import { create } from 'zustand'
-import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
-import type { ProjectEntityStoreDto } from '../../../../shared/contracts/entities'
+import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake.ts'
+import type { ProjectEntityStoreDto } from '../../../../shared/contracts/entities.ts'
 import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto,
   ScriptRuntimeFailureHistoryCode
-} from '../../../../shared/contracts/script-generation'
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+} from '../../../../shared/contracts/script-generation.ts'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
 import type {
   FormalReleaseState,
   VisibleResultState
-} from '../../../../shared/contracts/visible-release-state'
+} from '../../../../shared/contracts/visible-release-state.ts'
 
 export interface GenerationNoticeAction {
   label: string
@@ -105,4 +105,3 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       formalRelease: null
     }))
 }))
-

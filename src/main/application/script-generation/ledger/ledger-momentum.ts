@@ -1,5 +1,5 @@
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import type { OutlineDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
+import type { OutlineDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow.ts'
 import { hasMemoryEchoSignal } from '../../../../shared/domain/script-generation/signal-policy.ts'
 import { summarizeSceneFragment } from './ledger-scene-summary.ts'
 

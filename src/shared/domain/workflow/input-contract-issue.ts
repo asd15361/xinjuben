@@ -1,4 +1,4 @@
-import type { InputContractIssueDto } from '../../contracts/input-contract'
+import type { InputContractIssueDto } from '../../contracts/input-contract.ts'
 
 export interface InputContractIssueDisplayDto {
   title: string

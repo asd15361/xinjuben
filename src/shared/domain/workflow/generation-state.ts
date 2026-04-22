@@ -1,5 +1,5 @@
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
-import type { ProjectGenerationStatusDto } from '../../../shared/contracts/generation'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
+import type { ProjectGenerationStatusDto } from '../../../shared/contracts/generation.ts'
 
 /**
  * Stale detection for persisted generationStatus.

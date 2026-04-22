@@ -4,9 +4,12 @@ import { AppBackdrop } from './AppBackdrop'
 import { AppHeader } from './AppHeader'
 import { HomePage } from '../../features/home/ui/HomePage'
 
-export function HomeShell() {
+export function HomeShell(): JSX.Element {
   return (
-    <div className="flex h-screen w-full overflow-hidden" style={{ background: '#050505', color: '#f8fafc' }}>
+    <div
+      className="flex h-screen w-full overflow-hidden"
+      style={{ background: '#050505', color: '#f8fafc' }}
+    >
       <main className="flex-1 flex flex-col relative overflow-hidden">
         <AppBackdrop />
         <AppHeader />
@@ -21,7 +24,9 @@ export function HomeShell() {
             >
               <div className="flex items-center gap-2 mb-6">
                 <Zap className="fill-current text-orange-500" size={18} />
-                <p className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">创作总览</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-medium">
+                  创作总览
+                </p>
               </div>
               <HomePage />
             </motion.div>

@@ -50,8 +50,7 @@ function normalizeFacts(value: unknown): OutlineFactPayload[] {
     .filter((item) => item && typeof item === 'object')
     .map((item) => {
       const fact = item as Record<string, unknown>
-      const level: OutlineFactPayload['level'] =
-        fact.level === 'supporting' ? 'supporting' : 'core'
+      const level: OutlineFactPayload['level'] = fact.level === 'supporting' ? 'supporting' : 'core'
       return {
         label: toStringOrEmpty(fact.label),
         description: toStringOrEmpty(fact.description),
@@ -71,7 +70,9 @@ export function assembleOutlineBundleFromStages(input: {
   const episodes = input.batches
     .flatMap((batch) => (Array.isArray(batch?.episodes) ? batch.episodes : []))
     .map((episode, index) => ({
-      episodeNo: Number.isFinite(Number(episode?.episodeNo)) ? Number(episode?.episodeNo) : index + 1,
+      episodeNo: Number.isFinite(Number(episode?.episodeNo))
+        ? Number(episode?.episodeNo)
+        : index + 1,
       summary: toStringOrEmpty(episode?.summary)
     }))
     .sort((left, right) => left.episodeNo - right.episodeNo)

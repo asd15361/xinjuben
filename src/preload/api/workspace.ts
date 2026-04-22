@@ -1,60 +1,23 @@
 import { ipcRenderer } from 'electron'
-import type { CreateProjectInputDto, ProjectSnapshotDto } from '../../shared/contracts/project'
-import type { ProjectGenerationStatusDto } from '../../shared/contracts/generation'
+import type { ProjectGenerationStatusDto } from '../../shared/contracts/generation.ts'
 import type {
-  ConfirmStoryIntentFromChatInputDto,
-  ConfirmStoryIntentFromChatResultDto,
-  CreateOutlineSeedInputDto,
-  CreateProjectResultDto,
-  DeleteProjectInputDto,
-  DeleteProjectResultDto,
   ExportProjectStageMarkdownInputDto,
-  ExportProjectStageMarkdownResultDto,
-  GenerateDetailedOutlineInputDto,
-  GenerateDetailedOutlineResultDto,
-  OutlineSeedDto,
-  LegacyGenerateOutlineAndCharactersBlockedInputDto,
-  LegacyGenerateOutlineAndCharactersBlockedResultDto,
-  GenerateSevenQuestionsDraftInputDto,
-  GenerateSevenQuestionsDraftResultDto,
-  SaveConfirmedSevenQuestionsInputDto,
-  SaveConfirmedSevenQuestionsResultDto,
-  GenerateOutlineAndCharactersFromConfirmedSevenQuestionsInputDto,
-  GenerateOutlineAndCharactersFromConfirmedSevenQuestionsResultDto,
-  SaveChatMessagesInputDto,
-  SaveCharacterDraftsInputDto,
-  SaveDetailedOutlineSegmentsInputDto,
-  SaveOutlineDraftInputDto,
-  SaveScriptDraftInputDto,
-  SaveScriptRuntimeStateInputDto,
-  SaveStoryIntentInputDto,
-  WorkspaceListDto
-} from '../../shared/contracts/workspace'
+  ExportProjectStageMarkdownResultDto
+} from '../../shared/contracts/workspace.ts'
 
+/**
+ * workspace IPC API - 仅保留桌面壳能力
+ *
+ * 正式业务读写已全部迁移到 HTTP api-client
+ * 这里只保留：
+ * - 事件订阅（实时推送）
+ * - 导出功能（桌面壳能力）
+ */
 export const workspaceApi = {
-  listProjects(): Promise<WorkspaceListDto> {
-    return ipcRenderer.invoke('workspace:list-projects')
-  },
-  createProject(input: CreateProjectInputDto): Promise<CreateProjectResultDto> {
-    return ipcRenderer.invoke('workspace:create-project', input)
-  },
-  deleteProject(input: DeleteProjectInputDto): Promise<DeleteProjectResultDto> {
-    return ipcRenderer.invoke('workspace:delete-project', input)
-  },
-  getProject(projectId: string): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:get-project', projectId)
-  },
-  saveStoryIntent(input: SaveStoryIntentInputDto): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-story-intent', input)
-  },
-  confirmStoryIntentFromChat(
-    input: ConfirmStoryIntentFromChatInputDto
-  ): Promise<ConfirmStoryIntentFromChatResultDto> {
-    return ipcRenderer.invoke('workspace:confirm-story-intent-from-chat', input)
-  },
-  saveChatMessages(input: SaveChatMessagesInputDto): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-chat-messages', input)
-  },
+  /**
+   * 生成状态更新事件订阅
+   * 用于实时推送后台生成进度到前端
+   */
   onGenerationStatusUpdated(
     listener: (payload: {
       projectId: string
@@ -65,7 +28,7 @@ export const workspaceApi = {
     const handler = (
       _event: Electron.IpcRendererEvent,
       payload: { projectId: string; generationStatus: ProjectGenerationStatusDto | null }
-    ) => {
+    ): void => {
       listener(payload)
     }
     ipcRenderer.on(channel, handler)
@@ -73,59 +36,14 @@ export const workspaceApi = {
       ipcRenderer.removeListener(channel, handler)
     }
   },
-  saveOutlineDraft(input: SaveOutlineDraftInputDto): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-outline-draft', input)
-  },
-  saveCharacterDrafts(input: SaveCharacterDraftsInputDto): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-character-drafts', input)
-  },
-  saveDetailedOutlineSegments(
-    input: SaveDetailedOutlineSegmentsInputDto
-  ): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-detailed-outline-segments', input)
-  },
-  saveScriptDraft(input: SaveScriptDraftInputDto): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-script-draft', input)
-  },
+
+  /**
+   * 导出项目阶段为 Markdown
+   * 桌面壳能力，不走 HTTP
+   */
   exportProjectStageMarkdown(
     input: ExportProjectStageMarkdownInputDto
   ): Promise<ExportProjectStageMarkdownResultDto> {
     return ipcRenderer.invoke('workspace:export-project-stage-markdown', input)
-  },
-  saveScriptRuntimeState(
-    input: SaveScriptRuntimeStateInputDto
-  ): Promise<ProjectSnapshotDto | null> {
-    return ipcRenderer.invoke('workspace:save-script-runtime-state', input)
-  },
-  createOutlineSeed(input: CreateOutlineSeedInputDto): Promise<OutlineSeedDto | null> {
-    return ipcRenderer.invoke('workspace:create-outline-seed', input)
-  },
-  generateOutlineAndCharactersLegacyBlocked(
-    input: LegacyGenerateOutlineAndCharactersBlockedInputDto
-  ): Promise<LegacyGenerateOutlineAndCharactersBlockedResultDto> {
-    return ipcRenderer.invoke('workspace:generate-outline-and-characters', input)
-  },
-  generateDetailedOutline(
-    input: GenerateDetailedOutlineInputDto
-  ): Promise<GenerateDetailedOutlineResultDto> {
-    return ipcRenderer.invoke('workspace:generate-detailed-outline', input)
-  },
-  generateSevenQuestionsDraft(
-    input: GenerateSevenQuestionsDraftInputDto
-  ): Promise<GenerateSevenQuestionsDraftResultDto> {
-    return ipcRenderer.invoke('workspace:generate-seven-questions-draft', input)
-  },
-  saveConfirmedSevenQuestions(
-    input: SaveConfirmedSevenQuestionsInputDto
-  ): Promise<SaveConfirmedSevenQuestionsResultDto> {
-    return ipcRenderer.invoke('workspace:save-confirmed-seven-questions', input)
-  },
-  generateOutlineAndCharactersFromConfirmedSevenQuestions(
-    input: GenerateOutlineAndCharactersFromConfirmedSevenQuestionsInputDto
-  ): Promise<GenerateOutlineAndCharactersFromConfirmedSevenQuestionsResultDto> {
-    return ipcRenderer.invoke(
-      'workspace:generate-outline-and-characters-from-confirmed-seven-questions',
-      input
-    )
   }
 }

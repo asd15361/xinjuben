@@ -1,6 +1,6 @@
-import type { InputContractIssueDto } from '../../../../shared/contracts/input-contract'
-import type { InputContractIssueDisplayDto } from '../../../../shared/domain/workflow/input-contract-issue'
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+import type { InputContractIssueDto } from '../../../../shared/contracts/input-contract.ts'
+import type { InputContractIssueDisplayDto } from '../../../../shared/domain/workflow/input-contract-issue.ts'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
 
 export interface InputContractDisplayState {
   title: string

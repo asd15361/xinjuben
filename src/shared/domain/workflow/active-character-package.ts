@@ -1,4 +1,4 @@
-import type { CharacterEntityDto, ProjectEntityStoreDto } from '../../contracts/entities'
+import type { CharacterEntityDto, ProjectEntityStoreDto } from '../../contracts/entities.ts'
 import type {
   ActiveCharacterPackageDto,
   ActiveCharacterPackageMemberDto,
@@ -7,9 +7,13 @@ import type {
   OutlineBlockDto,
   OutlineDraftDto,
   OutlineEpisodeDto
-} from '../../contracts/workflow'
-import { getGovernanceOutlineBlockSize } from './batching-contract'
-import { findCharacterEntityByName, fromMasterEntity, resolveMasterEntityId } from '../entities/character-draft-mapper'
+} from '../../contracts/workflow.ts'
+import { getGovernanceOutlineBlockSize } from './batching-contract.ts'
+import {
+  findCharacterEntityByName,
+  fromMasterEntity,
+  resolveMasterEntityId
+} from '../entities/character-draft-mapper.ts'
 
 const EMPTY_ENTITY_STORE: ProjectEntityStoreDto = {
   characters: [],
@@ -26,14 +30,18 @@ const ROLE_WEIGHT: Record<'core' | 'active' | 'functional', number> = {
 }
 
 function normalizeText(value: string | undefined): string {
-  return String(value || '').trim().toLowerCase()
+  return String(value || '')
+    .trim()
+    .toLowerCase()
 }
 
 function uniq(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)))
 }
 
-function buildOutlineBlocks(outline: Pick<OutlineDraftDto, 'summaryEpisodes' | 'outlineBlocks' | 'planningUnitEpisodes'>): OutlineBlockDto[] {
+function buildOutlineBlocks(
+  outline: Pick<OutlineDraftDto, 'summaryEpisodes' | 'outlineBlocks' | 'planningUnitEpisodes'>
+): OutlineBlockDto[] {
   if (Array.isArray(outline.outlineBlocks) && outline.outlineBlocks.length > 0) {
     return outline.outlineBlocks
   }
@@ -52,7 +60,9 @@ function buildOutlineBlocks(outline: Pick<OutlineDraftDto, 'summaryEpisodes' | '
       label: `第${blockEpisodes[0].episodeNo}-${blockEpisodes[blockEpisodes.length - 1].episodeNo}集规划块`,
       startEpisode: blockEpisodes[0].episodeNo,
       endEpisode: blockEpisodes[blockEpisodes.length - 1].episodeNo,
-      summary: blockEpisodes.map((episode) => `第${episode.episodeNo}集：${episode.summary}`).join('\n'),
+      summary: blockEpisodes
+        .map((episode) => `第${episode.episodeNo}集：${episode.summary}`)
+        .join('\n'),
       episodes: blockEpisodes
     })
   }
@@ -65,7 +75,9 @@ function findOutlineBlockNo(
   episodeNo: number
 ): number | null {
   const blocks = buildOutlineBlocks(outline)
-  const block = blocks.find((item) => episodeNo >= item.startEpisode && episodeNo <= item.endEpisode)
+  const block = blocks.find(
+    (item) => episodeNo >= item.startEpisode && episodeNo <= item.endEpisode
+  )
   return block?.blockNo ?? null
 }
 
@@ -107,7 +119,11 @@ function buildTextCorpus(input: {
   episodeBeats?: DetailedOutlineEpisodeBeatDto[]
 }): string {
   return [
-    ...collectEpisodeTexts(input.outline.summaryEpisodes || [], input.startEpisode, input.endEpisode),
+    ...collectEpisodeTexts(
+      input.outline.summaryEpisodes || [],
+      input.startEpisode,
+      input.endEpisode
+    ),
     ...collectEpisodeBeatTexts(input.episodeBeats, input.startEpisode, input.endEpisode)
   ]
     .join('\n')
@@ -163,7 +179,10 @@ function buildMemberFromLightEntity(input: {
   }
 }
 
-function compareMembers(left: ActiveCharacterPackageMemberDto, right: ActiveCharacterPackageMemberDto): number {
+function compareMembers(
+  left: ActiveCharacterPackageMemberDto,
+  right: ActiveCharacterPackageMemberDto
+): number {
   const roleDelta = ROLE_WEIGHT[left.roleLayer] - ROLE_WEIGHT[right.roleLayer]
   if (roleDelta !== 0) return roleDelta
   if (left.source !== right.source) return left.source === 'full_profile' ? -1 : 1
@@ -202,7 +221,9 @@ export function deriveActiveCharacterPackage(input: {
 
     const entity =
       (resolveMasterEntityId(draft, entityStore)
-        ? entityStore.characters.find((item) => item.id === resolveMasterEntityId(draft, entityStore))
+        ? entityStore.characters.find(
+            (item) => item.id === resolveMasterEntityId(draft, entityStore)
+          )
         : null) || findCharacterEntityByName(entityStore, draft.name)
 
     return mentionsName(batchText, draft.name, entity?.aliases || [])
@@ -254,9 +275,15 @@ export function deriveActiveCharacterPackage(input: {
     startEpisode: input.startEpisode,
     endEpisode: input.endEpisode,
     memberNames: members.map((member) => member.name),
-    debutCharacterNames: members.filter((member) => member.isNewThisBatch).map((member) => member.name),
-    carryOverCharacterNames: members.filter((member) => !member.isNewThisBatch).map((member) => member.name),
-    upgradeCandidateNames: members.filter((member) => member.needsUpgrade).map((member) => member.name),
+    debutCharacterNames: members
+      .filter((member) => member.isNewThisBatch)
+      .map((member) => member.name),
+    carryOverCharacterNames: members
+      .filter((member) => !member.isNewThisBatch)
+      .map((member) => member.name),
+    upgradeCandidateNames: members
+      .filter((member) => member.needsUpgrade)
+      .map((member) => member.name),
     members,
     characters
   }

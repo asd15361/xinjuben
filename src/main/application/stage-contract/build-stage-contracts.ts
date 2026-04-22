@@ -5,14 +5,14 @@ import type {
   ScriptStageContractDto,
   StageContractFingerprintDto,
   StageContractType
-} from '../../../shared/contracts/stage-contract'
+} from '../../../shared/contracts/stage-contract.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import { getConfirmedFormalFactLabels } from '../../../shared/domain/formal-fact/selectors'
+} from '../../../shared/contracts/workflow.ts'
+import { getConfirmedFormalFactLabels } from '../../../shared/domain/formal-fact/selectors.ts'
 
 function computeChecksum(input: string): string {
   let hash = 0
@@ -23,7 +23,10 @@ function computeChecksum(input: string): string {
   return `sc_${Math.abs(hash).toString(36)}`
 }
 
-function createFingerprint(sourceStage: StageContractType, payload: unknown): StageContractFingerprintDto {
+function createFingerprint(
+  sourceStage: StageContractType,
+  payload: unknown
+): StageContractFingerprintDto {
   return {
     checksum: computeChecksum(JSON.stringify(payload)),
     sourceStage,

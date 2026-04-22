@@ -1,7 +1,7 @@
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AppShell } from './app/shell/AppShell'
 
-function App() {
+function App(): JSX.Element {
   return (
     <ErrorBoundary>
       <AppShell />

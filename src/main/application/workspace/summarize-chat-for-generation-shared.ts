@@ -1,4 +1,4 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import {
   cleanCharacterLikeName,
   normalizeCharacterLikeName
@@ -61,7 +61,9 @@ export function normalizeAnchorName(value: string): string {
   if (direct) return direct
 
   const normalized = value.trim()
-  const roleMatch = normalized.match(/(少年守钥人|小镇少女|恶霸|反派|仇家|族长|城主|掌柜|恶少|师父|师妹)/)
+  const roleMatch = normalized.match(
+    /(少年守钥人|小镇少女|恶霸|反派|仇家|族长|城主|掌柜|恶少|师父|师妹)/
+  )
   if (roleMatch) return roleMatch[1]
 
   const tailMatch = normalized.match(/([一-龥]{2,8})(?:的|被|正|会|先|拿|逼|盯)/)
@@ -87,7 +89,9 @@ export function splitNameList(text: string): string[] {
 }
 
 export function extractNamesFromText(text: string): string[] {
-  const candidates = [...text.matchAll(/([一-龥]{2,4})/g)].map((match) => cleanPossibleName(match[1]))
+  const candidates = [...text.matchAll(/([一-龥]{2,4})/g)].map((match) =>
+    cleanPossibleName(match[1])
+  )
   return uniqueList(
     candidates.filter((name) => name && !NAME_STOP_WORDS.has(name)),
     10
@@ -105,10 +109,14 @@ export function extractRoleSummary(raw: unknown): Array<{ name: string; summary:
         summary: toText(record.summary || record.description || record.note)
       }
     })
-    .filter((item): item is { name: string; summary: string } => Boolean(item?.name && item.summary))
+    .filter((item): item is { name: string; summary: string } =>
+      Boolean(item?.name && item.summary)
+    )
 }
 
-export function extractCharacterLayers(raw: unknown): Array<{ name: string; layer: string; duty: string }> {
+export function extractCharacterLayers(
+  raw: unknown
+): Array<{ name: string; layer: string; duty: string }> {
   if (!Array.isArray(raw)) return []
   return raw
     .map((item) => {
@@ -120,7 +128,9 @@ export function extractCharacterLayers(raw: unknown): Array<{ name: string; laye
         duty: toText(record.duty || record.function || record.job)
       }
     })
-    .filter((item): item is { name: string; layer: string; duty: string } => Boolean(item?.name && item.layer && item.duty))
+    .filter((item): item is { name: string; layer: string; duty: string } =>
+      Boolean(item?.name && item.layer && item.duty)
+    )
 }
 
 export function uniqueCharacterCards(
@@ -159,7 +169,10 @@ export function uniqueCharacterLayers(
 }
 
 export function normalizeStoryIntent(input: unknown): Partial<StoryIntentPackageDto> {
-  const record = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {}
+  const record =
+    input && typeof input === 'object' && !Array.isArray(input)
+      ? (input as Record<string, unknown>)
+      : {}
   return {
     titleHint: toText(record.titleHint),
     genre: toText(record.genre),

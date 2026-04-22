@@ -1,5 +1,9 @@
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '../../../shared/contracts/workflow'
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto
+} from '../../../shared/contracts/workflow.ts'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import { guardianEnforceDetailedOutlineSave } from '../../../shared/domain/workflow/stage-guardians.ts'
 
 function createEmptyOutlineDraft(): OutlineDraftDto {
@@ -23,12 +27,12 @@ export function resolveDetailedOutlinePersistence(input: {
   now?: string
 }): Pick<ProjectSnapshotDto, 'outlineDraft' | 'detailedOutlineSegments' | 'stage' | 'updatedAt'> {
   const outlineDraft = input.outlineDraft ?? createEmptyOutlineDraft()
-  guardianEnforceDetailedOutlineSave(
-    outlineDraft,
-    input.characterDrafts,
-    input.detailedOutlineSegments,
-    input.activeCharacterBlocks
-  )
+  guardianEnforceDetailedOutlineSave({
+    outline: outlineDraft,
+    characters: input.characterDrafts,
+    detailedOutlineSegments: input.detailedOutlineSegments,
+    activeCharacterBlocks: input.activeCharacterBlocks
+  })
 
   return {
     outlineDraft: input.outlineDraft,

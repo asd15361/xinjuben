@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname } from 'path'
 
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import { normalizeProjectSnapshot } from './project-snapshot-normalize.ts'
 import {
   migrateLegacyElectronStoreIfNeeded,

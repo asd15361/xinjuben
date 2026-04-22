@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { RuntimeConsoleStateDto } from '../../../../shared/contracts/runtime-task'
+import type { RuntimeConsoleStateDto } from '../../../../shared/contracts/runtime-task.ts'
 
 interface RuntimeConsoleStoreState {
   byProjectId: Record<string, RuntimeConsoleStateDto>

@@ -1,4 +1,4 @@
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
 
 interface DirtyStageEntry {
   dirty: boolean

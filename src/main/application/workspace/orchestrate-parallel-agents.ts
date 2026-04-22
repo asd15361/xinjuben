@@ -27,7 +27,7 @@
  * - 人物小传：真源 → 图谱/关系/背景（作为 RAG 底料）
  */
 
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text.ts'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout.ts'
@@ -218,9 +218,11 @@ export async function orchestrateParallelAgents(
     invokeCharacterProfileAgent(input)
   ])
 
-  const finalCharacters: CharacterDraftDto[] = characterProfilesResult.characters.map((character) => ({
-    ...character
-  }))
+  const finalCharacters: CharacterDraftDto[] = characterProfilesResult.characters.map(
+    (character) => ({
+      ...character
+    })
+  )
 
   await appendRuntimeDiagnosticLog(
     'parallel_agents',

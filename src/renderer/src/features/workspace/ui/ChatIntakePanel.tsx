@@ -8,6 +8,7 @@ import { ChatMessageList } from './chat/ChatMessageList'
 import { CHAT_PENDING_MESSAGE_TEXT, createInitialChatMessages } from './chat/ChatTypes'
 import type { ChatMessage } from './chat/ChatTypes'
 import { buildWorkspaceChatFailureMessage } from './workspace-chat-error-message'
+import { apiSaveChatMessages, apiGenerateText } from '../../../services/api-client.ts'
 
 export function ChatIntakePanel(props: {
   disabled: boolean
@@ -15,7 +16,7 @@ export function ChatIntakePanel(props: {
   generationStatus: ProjectGenerationStatusDto | null
   onConfirmIntent: (chatTranscript: string) => Promise<string>
   onGenerate: (chatTranscript: string) => Promise<void>
-}) {
+}): JSX.Element | null {
   const projectId = useWorkflowStore((state) => state.projectId)
   const messages = useWorkflowStore((state) => state.chatMessages)
   const setMessages = useWorkflowStore((state) => state.setChatMessages)
@@ -25,7 +26,7 @@ export function ChatIntakePanel(props: {
 
   async function persistChatMessages(nextMessages: ChatMessage[]): Promise<void> {
     if (!projectId) return
-    await window.api.workspace.saveChatMessages({
+    await apiSaveChatMessages({
       projectId,
       chatMessages: nextMessages.filter((message) => message.text !== CHAT_PENDING_MESSAGE_TEXT)
     })
@@ -66,13 +67,13 @@ export function ChatIntakePanel(props: {
     setBusy(true)
 
     try {
-      const response = await window.api.ai.generate({
-        task: 'free_chat' as any, // 确保符合 DTO 要求的任务类型
-        prompt: `你是一个专业的剧本策划助手。当前用户输入是：“${text}”。
+      const response = await apiGenerateText({
+        task: 'general',
+        prompt: `你是一个专业的剧本策划助手。当前用户输入是：”${text}”。
         之前的对话历史是：\n${chatTranscript}\n
         你的任务：
         1. 哪怕用户只发了一句话，也要基于你的戏剧知识给出专业评论。
-        2. 主动、自然地引导用户补充“题材、主角困境、核心冲突、爽点、反转”中的某一项细节。
+        2. 主动、自然地引导用户补充”题材、主角困境、核心冲突、爽点、反转”中的某一项细节。
         3. 说话要专业、直接、清楚，不要撒娇，不要扮演暧昧人格，不要用夸张口头禅。
         4. 回复必须短小精悍，不要超过 120 字。
         5. 优先帮用户把故事说实，不要空泛鼓励。`

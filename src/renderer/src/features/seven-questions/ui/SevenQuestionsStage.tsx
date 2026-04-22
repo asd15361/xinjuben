@@ -1,7 +1,7 @@
 import { GitBranch } from 'lucide-react'
 import { SevenQuestionsReviewPanel } from './SevenQuestionsReviewPanel'
 
-export function SevenQuestionsStage() {
+export function SevenQuestionsStage(): JSX.Element {
   return (
     <div className="h-full overflow-hidden flex flex-col relative">
       <div className="shrink-0 flex items-center justify-between gap-4 mb-4 border-b border-white/[0.05] pb-4">

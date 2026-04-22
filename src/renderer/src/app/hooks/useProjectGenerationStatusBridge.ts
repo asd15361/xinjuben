@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useWorkflowStore } from '../store/useWorkflowStore'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
 
 /**
  * Bridge hook that subscribes to main-pushed generationStatus updates.

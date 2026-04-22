@@ -1,6 +1,12 @@
-import type { AuditScriptInputDto, ScriptRepairPlanDto } from '../../../../shared/contracts/script-audit'
-import { buildRepairSuggestion, enhanceRepairSuggestionWithProgression } from '../../../../shared/domain/policy/repair/repair-mapping'
-import { auditGeneratedScript } from './audit-generated-script'
+import type {
+  AuditScriptInputDto,
+  ScriptRepairPlanDto
+} from '../../../../shared/contracts/script-audit.ts'
+import {
+  buildRepairSuggestion,
+  enhanceRepairSuggestionWithProgression
+} from '../../../../shared/domain/policy/repair/repair-mapping.ts'
+import { auditGeneratedScript } from './audit-generated-script.ts'
 
 function resolveRepairTargetSceneNo(input: AuditScriptInputDto, issueCode: string): number | null {
   const sceneMatch = issueCode.match(/scene_(\d+)_/)
@@ -35,7 +41,9 @@ export function buildScriptRepairPlan(input: AuditScriptInputDto): ScriptRepairP
         targetSceneNo: sceneNo,
         ...buildRepairSuggestion(issue)
       }
-      const targetScene = sceneNo ? input.script.find((scene) => scene.sceneNo === sceneNo) : undefined
+      const targetScene = sceneNo
+        ? input.script.find((scene) => scene.sceneNo === sceneNo)
+        : undefined
       return enhanceRepairSuggestionWithProgression({
         suggestion,
         targetScene,

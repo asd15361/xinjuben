@@ -19,7 +19,7 @@ interface LoginModalProps {
   onClose: () => void
 }
 
-export function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element | null {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,7 +29,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
   const { login, register, error, clearError } = useAuthStore()
 
-  const resetForm = () => {
+  const resetForm = (): void => {
     setEmail('')
     setPassword('')
     setPasswordConfirm('')
@@ -37,12 +37,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     clearError()
   }
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     resetForm()
     onClose()
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     setIsSubmitting(true)
     clearError()
 
@@ -71,7 +71,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     }
   }
 
-  const switchMode = () => {
+  const switchMode = (): void => {
     setMode(mode === 'login' ? 'register' : 'login')
     clearError()
   }
@@ -130,9 +130,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 {mode === 'login' ? '欢迎回来' : '创建账号'}
               </h2>
               <p className="text-sm text-white/40 mt-2">
-                {mode === 'login'
-                  ? '登录继续你的创作之旅'
-                  : '注册送 100 积分，立即开始创作'}
+                {mode === 'login' ? '登录继续你的创作之旅' : '注册送 100 积分，立即开始创作'}
               </p>
             </div>
 
@@ -213,7 +211,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {/* 提交按钮 */}
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !email || !password || (mode === 'register' && !passwordConfirm)}
+              disabled={
+                isSubmitting || !email || !password || (mode === 'register' && !passwordConfirm)
+              }
               className="w-full mt-6 rounded-xl py-3 font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: isSubmitting

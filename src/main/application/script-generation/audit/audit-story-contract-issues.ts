@@ -1,6 +1,9 @@
 import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit'
 import type { CharacterDraftDto, OutlineDraftDto } from '../../../../shared/contracts/workflow'
-import type { StoryContractDto, UserAnchorLedgerDto } from '../../../../shared/contracts/story-contract'
+import type {
+  StoryContractDto,
+  UserAnchorLedgerDto
+} from '../../../../shared/contracts/story-contract'
 import {
   collectMissingUserAnchorNames,
   hasHeroineAnchorCoverage
@@ -9,7 +12,7 @@ import { hasRelationshipVerbs } from './audit-helpers'
 
 function normalizeText(value: string): string {
   return value
-    .replace(/[，。、“”‘’：；！？（）()【】\[\],.!?;:'"`~\-_/\\]/g, ' ')
+    .replace(/[，。、“”‘’：；！？（）()【】[\],.!?;:'"`~\-_/\\]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -24,7 +27,18 @@ function extractSemanticTokens(normalizedAnchor: string): string[] {
   const compact = normalizedAnchor.replace(/\s+/g, '')
   if (compact.length < 4) return compact ? [compact] : []
 
-  const stopTokens = new Set(['当前', '继续', '以及', '因为', '所以', '已经', '一个', '一种', '不能', '然后'])
+  const stopTokens = new Set([
+    '当前',
+    '继续',
+    '以及',
+    '因为',
+    '所以',
+    '已经',
+    '一个',
+    '一种',
+    '不能',
+    '然后'
+  ])
   const grams = new Set<string>()
   for (let index = 0; index <= compact.length - 2; index += 2) {
     grams.add(compact.slice(index, index + 2))
@@ -45,8 +59,13 @@ function hasSemanticAnchor(text: string, anchorText: string): boolean {
   if (filtered.length === 0) return false
 
   let hits = 0
-  const shouldTreatAsThemeMotto = filtered.length <= 2 && filtered.every((token) => token.length >= 4)
-  const requiredHits = shouldTreatAsThemeMotto ? 1 : filtered.length >= 6 ? 3 : Math.min(2, filtered.length)
+  const shouldTreatAsThemeMotto =
+    filtered.length <= 2 && filtered.every((token) => token.length >= 4)
+  const requiredHits = shouldTreatAsThemeMotto
+    ? 1
+    : filtered.length >= 6
+      ? 3
+      : Math.min(2, filtered.length)
   for (const token of filtered) {
     if (normalizedText.includes(token)) {
       hits += 1
@@ -112,7 +131,11 @@ export function collectStoryContractAuditIssues(
   const antagonist = storyContract.characterSlots.antagonist
   const heroine = storyContract.characterSlots.heroine
 
-  if (storyContract.requirements.requireAntagonistContinuity && antagonist && !hasSemanticAnchor(mergedScript, antagonist)) {
+  if (
+    storyContract.requirements.requireAntagonistContinuity &&
+    antagonist &&
+    !hasSemanticAnchor(mergedScript, antagonist)
+  ) {
     issues.push({
       code: 'antagonist_continuity_missing',
       severity: 'high',
@@ -123,7 +146,9 @@ export function collectStoryContractAuditIssues(
   if (
     storyContract.requirements.requireRelationshipShift &&
     heroine &&
-    (!hasSemanticAnchor(mergedScript, heroine) || (!hasRelationshipVerbs(mergedScript) && !/(失望|冷淡|嫌弃|护在身前|挡在身前|看向.*眼神|心头一紧)/.test(mergedScript)))
+    (!hasSemanticAnchor(mergedScript, heroine) ||
+      (!hasRelationshipVerbs(mergedScript) &&
+        !/(失望|冷淡|嫌弃|护在身前|挡在身前|看向.*眼神|心头一紧)/.test(mergedScript)))
   ) {
     issues.push({
       code: 'relationship_shift_missing',
@@ -134,7 +159,9 @@ export function collectStoryContractAuditIssues(
 
   if (
     storyContract.requirements.requireAntagonistLoveConflict &&
-    !/(逼婚|抢走|夺走|强占|争夺|拿她威胁|拿他威胁|情敌|所爱|爱人|小娘子|这丫头|带走|送到李府|收尸)/.test(mergedScript)
+    !/(逼婚|抢走|夺走|强占|争夺|拿她威胁|拿他威胁|情敌|所爱|爱人|小娘子|这丫头|带走|送到李府|收尸)/.test(
+      mergedScript
+    )
   ) {
     issues.push({
       code: 'antagonist_love_conflict_missing',

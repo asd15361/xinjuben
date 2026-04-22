@@ -12,14 +12,16 @@ export function FormalFactList(input: {
   facts: FormalFact[]
   onConfirm: (factId: string) => void
   onRemove: (factId: string) => void
-}) {
+}): JSX.Element | null {
   if (input.facts.length === 0) {
     return null
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">已添加的关键设定</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">
+        已添加的关键设定
+      </p>
       {input.facts.map((fact) => (
         <div
           key={fact.id}

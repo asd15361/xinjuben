@@ -43,7 +43,6 @@ import { mapV2ToLegacyCharacterDraft } from '../../../shared/contracts/character
 import { normalizeOutlineStoryIntent } from './outline-story-intent.ts'
 import { validateStructuredOutline } from './rough-outline-validation.ts'
 import { toDraftFacts, type OutlineFactCandidate } from './outline-facts.ts'
-import { confirmFormalFact } from '../formal-fact/confirm-formal-fact.ts'
 import {
   hasConfirmedSevenQuestions,
   extractConfirmedSevenQuestions
@@ -301,13 +300,14 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     // User has already confirmed the chapter-level direction through seven questions.
     // Facts produced inside this same outline confirmation flow must land as confirmed,
     // otherwise detailed_outline is guaranteed to block on the very next step.
-    facts: toDraftFacts(validatedOutline.facts || []).map((fact) =>
-      confirmFormalFact({
-        actor: 'user',
-        stage: 'outline',
-        fact
-      })
-    )
+    facts: toDraftFacts(validatedOutline.facts || []).map((fact) => ({
+      ...fact,
+      authorityType: 'user_declared' as const,
+      status: 'confirmed' as const,
+      declaredBy: 'user',
+      declaredStage: 'outline',
+      updatedAt: new Date().toISOString()
+    }))
   }
 
   const summaryEpisodes = normalizeOutlineEpisodes(

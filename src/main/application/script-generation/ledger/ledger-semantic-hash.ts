@@ -1,4 +1,4 @@
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
 
 function hashText(value: string): string {
   let hash = 2166136261
@@ -30,7 +30,10 @@ export function computeLedgerSemanticHash(input: {
       requiredAnchorNames: input.requiredAnchorNames,
       missingAnchorNames: input.missingAnchorNames,
       heroineCovered: input.heroineCovered,
-      openHooks: input.openHooks.map((hook) => ({ hookText: hook.hookText, urgency: hook.urgency })),
+      openHooks: input.openHooks.map((hook) => ({
+        hookText: hook.hookText,
+        urgency: hook.urgency
+      })),
       perspectiveCharacter: input.perspectiveCharacter,
       nextRequiredBridge: input.nextRequiredBridge,
       relationshipPressure: input.relationshipPressure,
@@ -52,10 +55,15 @@ export function getLedgerHashFromState(ledger: ScriptStateLedgerDto): string {
     perspectiveCharacter: ledger.knowledgeBoundaries.perspectiveCharacter,
     nextRequiredBridge: ledger.storyMomentum.nextRequiredBridge,
     relationshipPressure: ledger.characters.flatMap((character) =>
-      character.relationshipPressure.map((pressure) => `${character.name}:${pressure.targetName}:${pressure.currentTension}:${pressure.leverageType}`)
+      character.relationshipPressure.map(
+        (pressure) =>
+          `${character.name}:${pressure.targetName}:${pressure.currentTension}:${pressure.leverageType}`
+      )
     ),
     unresolvedTraitBindings: ledger.characters.flatMap((character) =>
-      character.traitBindings.filter((binding) => !binding.isBound).map((binding) => `${character.name}:${binding.trait}:${binding.landingType}`)
+      character.traitBindings
+        .filter((binding) => !binding.isBound)
+        .map((binding) => `${character.name}:${binding.trait}:${binding.landingType}`)
     ),
     memoryEchoes: ledger.storyMomentum.memoryEchoes,
     hardAnchors: ledger.storyMomentum.hardAnchors

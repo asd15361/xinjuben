@@ -33,8 +33,8 @@
  * - T4: failureHistory persistence baseline
  */
 
-import type { TruthOwnerType } from './truth-authority'
-import { TruthOwner } from './truth-authority'
+import type { TruthOwnerType } from './truth-authority.ts'
+import { TruthOwner } from './truth-authority.ts'
 
 // =============================================================================
 // TRUTH DOMAIN IDENTIFIERS
@@ -411,4 +411,4 @@ export function getConsumedDomains(owner: TruthOwnerType): TruthDomainType[] {
 // TYPE EXPORTS
 // =============================================================================
 
-export type { TruthOwnerType } from './truth-authority'
+export type { TruthOwnerType } from './truth-authority.ts'

@@ -1,5 +1,5 @@
-import type { OutlineDraftDto } from '../../contracts/workflow'
-import { getConfirmedFormalFacts } from './selectors'
+import type { OutlineDraftDto } from '../../contracts/workflow.ts'
+import { getConfirmedFormalFacts } from './selectors.ts'
 
 export interface FormalFactStageHint {
   title: string
@@ -32,7 +32,9 @@ function buildFactSpecificPromptRules(outline: OutlineDraftDto): string[] {
   return []
 }
 
-export function buildCharacterStageFormalFactHints(outline: OutlineDraftDto): FormalFactStageHint[] {
+export function buildCharacterStageFormalFactHints(
+  outline: OutlineDraftDto
+): FormalFactStageHint[] {
   const labels = formatFactLabels(outline)
   return [
     {
@@ -48,7 +50,9 @@ export function buildCharacterStageFormalFactHints(outline: OutlineDraftDto): Fo
   ]
 }
 
-export function buildDetailedOutlineFormalFactHints(outline: OutlineDraftDto): FormalFactStageHint[] {
+export function buildDetailedOutlineFormalFactHints(
+  outline: OutlineDraftDto
+): FormalFactStageHint[] {
   const labels = formatFactLabels(outline)
   return [
     {
@@ -93,9 +97,9 @@ export function buildFormalFactPromptBlock(input: {
   }
 
   const hasFinalPressure =
-    typeof input.episodeNo === 'number'
-    && typeof input.totalEpisodes === 'number'
-    && input.episodeNo >= Math.max(3, input.totalEpisodes - 1)
+    typeof input.episodeNo === 'number' &&
+    typeof input.totalEpisodes === 'number' &&
+    input.episodeNo >= Math.max(3, input.totalEpisodes - 1)
   const stageRule =
     input.mode === 'script_repair'
       ? '修补时只能加强这些已确认正式事实的落地、升格和承接，不得新增新的核心真相。'

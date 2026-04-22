@@ -16,10 +16,10 @@
  * - entityStore (master entities with roleLayer)
  */
 
-import type { CharacterDraftDto, CharacterBlockDto } from '../../contracts/workflow'
-import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract'
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import type { ProjectEntityStoreDto } from '../../contracts/entities'
+import type { CharacterDraftDto, CharacterBlockDto } from '../../contracts/workflow.ts'
+import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract.ts'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import type { ProjectEntityStoreDto } from '../../contracts/entities.ts'
 
 // ---------------------------------------------------------------------------
 // Annotation types
@@ -98,7 +98,7 @@ export function analyzeLoadBearingRoles(input: {
   const annotations: LoadBearingRoleAnnotation[] = []
   const addedNames = new Set<string>()
 
-  const addAnnotation = (annotation: LoadBearingRoleAnnotation) => {
+  const addAnnotation = (annotation: LoadBearingRoleAnnotation): void => {
     if (!addedNames.has(annotation.name)) {
       annotations.push(annotation)
       addedNames.add(annotation.name)
@@ -265,7 +265,7 @@ export function analyzeLoadBearingEntities(input: {
   const annotations: LoadBearingEntityAnnotation[] = []
   const addedIds = new Set<string>()
 
-  const addAnnotation = (annotation: LoadBearingEntityAnnotation) => {
+  const addAnnotation = (annotation: LoadBearingEntityAnnotation): void => {
     if (!addedIds.has(annotation.entityId)) {
       annotations.push(annotation)
       addedIds.add(annotation.entityId)

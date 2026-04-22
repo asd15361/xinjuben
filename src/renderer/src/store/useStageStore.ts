@@ -1,12 +1,12 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
 import type {
   CharacterDraftDto,
   DetailedOutlineEpisodeBeatDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import type { OutlineSeedDto } from '../../../shared/contracts/workspace'
+} from '../../../shared/contracts/workflow.ts'
+import type { OutlineSeedDto } from '../../../shared/contracts/workspace.ts'
 import { ensureOutlineEpisodeShape } from '../../../shared/domain/workflow/outline-episodes.ts'
 
 export interface OutlineData extends OutlineDraftDto {}
@@ -14,10 +14,15 @@ export interface CharacterData extends CharacterDraftDto {}
 export interface OutlineSegment extends DetailedOutlineSegmentDto {}
 export interface ScriptSegment extends ScriptSegmentDto {}
 
-function normalizeDetailedOutlineEpisodeBeats(input?: DetailedOutlineEpisodeBeatDto[] | null): DetailedOutlineEpisodeBeatDto[] {
+function normalizeDetailedOutlineEpisodeBeats(
+  input?: DetailedOutlineEpisodeBeatDto[] | null
+): DetailedOutlineEpisodeBeatDto[] {
   return (input ?? [])
     .map((item, index) => ({
-      episodeNo: Number.isFinite(Number(item?.episodeNo)) && Number(item.episodeNo) > 0 ? Math.floor(Number(item.episodeNo)) : index + 1,
+      episodeNo:
+        Number.isFinite(Number(item?.episodeNo)) && Number(item.episodeNo) > 0
+          ? Math.floor(Number(item.episodeNo))
+          : index + 1,
       summary: item?.summary?.trim() || '',
       sceneByScene: (item?.sceneByScene ?? [])
         .map((scene, sceneIndex) => ({
@@ -31,7 +36,10 @@ function normalizeDetailedOutlineEpisodeBeats(input?: DetailedOutlineEpisodeBeat
           tension: scene?.tension?.trim() || '',
           hookEnd: scene?.hookEnd?.trim() || ''
         }))
-        .filter((scene) => scene.location || scene.timeOfDay || scene.setup || scene.tension || scene.hookEnd)
+        .filter(
+          (scene) =>
+            scene.location || scene.timeOfDay || scene.setup || scene.tension || scene.hookEnd
+        )
     }))
     .filter((item) => item.summary || item.sceneByScene.length > 0)
     .sort((left, right) => left.episodeNo - right.episodeNo)
@@ -88,37 +96,39 @@ function normalizeHydratedOutline(input?: OutlineData | null): OutlineData {
         ? Math.floor(input.planningUnitEpisodes)
         : undefined,
     summaryEpisodes: Array.isArray(input.summaryEpisodes) ? [...input.summaryEpisodes] : [],
-    outlineBlocks: Array.isArray(input.outlineBlocks) ? [...input.outlineBlocks] : input.outlineBlocks,
+    outlineBlocks: Array.isArray(input.outlineBlocks)
+      ? [...input.outlineBlocks]
+      : input.outlineBlocks,
     facts: Array.isArray(input.facts) ? [...input.facts] : []
   }
 }
 
 interface StageStore {
-  outline: OutlineData;
-  characters: CharacterData[];
-  segments: OutlineSegment[];
-  script: ScriptSegment[];
-  
-  setOutline: (data: Partial<OutlineData>) => void;
+  outline: OutlineData
+  characters: CharacterData[]
+  segments: OutlineSegment[]
+  script: ScriptSegment[]
+
+  setOutline: (data: Partial<OutlineData>) => void
   hydrateProjectDrafts: (input: {
     outline?: OutlineData | null
     characters?: CharacterData[]
     segments?: OutlineSegment[]
     script?: ScriptSegment[]
-  }) => void;
-  applyOutlineSeed: (seed: OutlineSeedDto) => void;
-  addCharacter: (c: CharacterData) => void;
-  removeCharacter: (index: number) => void;
-  replaceCharacters: (characters: CharacterData[]) => void;
-  updateCharacter: (index: number, c: Partial<CharacterData>) => void;
-  setSegment: (act: OutlineSegment['act'], content: string) => void;
-  setSegmentEpisodeBeat: (act: OutlineSegment['act'], episodeNo: number, summary: string) => void;
-  replaceSegments: (segments: OutlineSegment[]) => void;
-  addScriptSegment: (s: ScriptSegment) => void;
-  replaceScript: (script: ScriptSegment[]) => void;
-  appendScriptSegments: (segments: ScriptSegment[]) => void;
-  upsertScript: (script: ScriptSegment[]) => void;
-  reset: () => void;
+  }) => void
+  applyOutlineSeed: (seed: OutlineSeedDto) => void
+  addCharacter: (c: CharacterData) => void
+  removeCharacter: (index: number) => void
+  replaceCharacters: (characters: CharacterData[]) => void
+  updateCharacter: (index: number, c: Partial<CharacterData>) => void
+  setSegment: (act: OutlineSegment['act'], content: string) => void
+  setSegmentEpisodeBeat: (act: OutlineSegment['act'], episodeNo: number, summary: string) => void
+  replaceSegments: (segments: OutlineSegment[]) => void
+  addScriptSegment: (s: ScriptSegment) => void
+  replaceScript: (script: ScriptSegment[]) => void
+  appendScriptSegments: (segments: ScriptSegment[]) => void
+  upsertScript: (script: ScriptSegment[]) => void
+  reset: () => void
 }
 
 export const useStageStore = create<StageStore>((set) => ({
@@ -156,29 +166,31 @@ export const useStageStore = create<StageStore>((set) => ({
     set((state) => ({ characters: [...state.characters, normalizeCharacter(c)] })),
 
   removeCharacter: (index) =>
-    set((state) => ({ characters: state.characters.filter((_, currentIndex) => currentIndex !== index) })),
+    set((state) => ({
+      characters: state.characters.filter((_, currentIndex) => currentIndex !== index)
+    })),
 
   replaceCharacters: (characters) =>
     set(() => ({ characters: characters.map((item) => normalizeCharacter(item)) })),
 
   updateCharacter: (index, c) =>
     set((state) => {
-      const updated = [...state.characters];
-      updated[index] = normalizeCharacter({ ...updated[index], ...c });
-      return { characters: updated };
+      const updated = [...state.characters]
+      updated[index] = normalizeCharacter({ ...updated[index], ...c })
+      return { characters: updated }
     }),
 
   setSegment: (act, content) =>
     set((state) => {
-      const existing = state.segments.findIndex((s) => s.act === act);
+      const existing = state.segments.findIndex((s) => s.act === act)
       if (existing >= 0) {
-        const updated = [...state.segments];
-        updated[existing] = { ...updated[existing], content };
-        return { segments: updated };
+        const updated = [...state.segments]
+        updated[existing] = { ...updated[existing], content }
+        return { segments: updated }
       }
       return {
-        segments: [...state.segments, { act, content, hookType: '', episodeBeats: [] }],
-      };
+        segments: [...state.segments, { act, content, hookType: '', episodeBeats: [] }]
+      }
     }),
 
   setSegmentEpisodeBeat: (act, episodeNo, summary) =>
@@ -226,20 +238,15 @@ export const useStageStore = create<StageStore>((set) => ({
       return { segments: updated }
     }),
 
-  replaceSegments: (segments) =>
-    set(() => ({ segments: normalizeSegments(segments) })),
+  replaceSegments: (segments) => set(() => ({ segments: normalizeSegments(segments) })),
 
-  addScriptSegment: (s) =>
-    set((state) => ({ script: [...state.script, s] })),
+  addScriptSegment: (s) => set((state) => ({ script: [...state.script, s] })),
 
-  replaceScript: (script) =>
-    set(() => ({ script })),
+  replaceScript: (script) => set(() => ({ script })),
 
-  appendScriptSegments: (segments) =>
-    set((state) => ({ script: [...state.script, ...segments] })),
+  appendScriptSegments: (segments) => set((state) => ({ script: [...state.script, ...segments] })),
 
-  upsertScript: (script) =>
-    set(() => ({ script })),
+  upsertScript: (script) => set(() => ({ script })),
 
   reset: () =>
     set(() => ({
@@ -247,5 +254,5 @@ export const useStageStore = create<StageStore>((set) => ({
       characters: [],
       segments: [],
       script: []
-    })),
-}));
+    }))
+}))

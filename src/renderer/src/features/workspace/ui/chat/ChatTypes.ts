@@ -1,4 +1,4 @@
-import type { ChatMessageDto, ChatRoleDto } from '../../../../../../shared/contracts/chat'
+import type { ChatMessageDto, ChatRoleDto } from '../../../../../../shared/contracts/chat.ts'
 
 export type ChatRole = ChatRoleDto
 export type ChatMessage = ChatMessageDto

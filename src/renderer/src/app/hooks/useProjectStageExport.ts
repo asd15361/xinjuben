@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import type { ExportableProjectStage } from '../../../../shared/contracts/workspace'
-import { useWorkflowStore } from '../store/useWorkflowStore'
+import type { ExportableProjectStage } from '../../../../shared/contracts/workspace.ts'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
 
 function stageLabel(stage: ExportableProjectStage): string {
   switch (stage) {
@@ -15,11 +15,11 @@ function stageLabel(stage: ExportableProjectStage): string {
   }
 }
 
-export function useProjectStageExport() {
+export function useProjectStageExport(): (stage: ExportableProjectStage) => Promise<void> {
   const projectId = useWorkflowStore((state) => state.projectId)
   const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
 
-  return useCallback(
+  const exportStage = useCallback(
     async (stage: ExportableProjectStage): Promise<void> => {
       if (!projectId) {
         setGenerationNotice({
@@ -55,4 +55,6 @@ export function useProjectStageExport() {
     },
     [projectId, setGenerationNotice]
   )
+
+  return exportStage
 }

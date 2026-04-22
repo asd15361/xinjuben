@@ -30,24 +30,16 @@ test('extractLatestDeclaredEpisodeCountFromText only trusts direct user declarat
 })
 
 test('extractLatestDeclaredEpisodeCountFromText ignores pending-confirmation counts', () => {
-  const text = [
-    '【项目】修仙传｜10集',
-    '【待确认】',
-    '- 具体30集剧情曲折细节'
-  ].join('\n')
+  const text = ['【项目】修仙传｜10集', '【待确认】', '- 具体30集剧情曲折细节'].join('\n')
 
   assert.equal(extractLatestDeclaredEpisodeCountFromText(text), 0)
 })
 
 test('extractLatestAuthoritativeEpisodeCountFromText respects whichever authority appears later', () => {
-  const directAfterStructured = [
-    '【项目】修仙传｜10集',
-    '现在改了，不做10集了，要做30集。'
-  ].join('\n')
-  const structuredAfterDirect = [
-    '先按30集聊。',
-    '【项目】修仙传｜10集'
-  ].join('\n')
+  const directAfterStructured = ['【项目】修仙传｜10集', '现在改了，不做10集了，要做30集。'].join(
+    '\n'
+  )
+  const structuredAfterDirect = ['先按30集聊。', '【项目】修仙传｜10集'].join('\n')
 
   assert.equal(extractLatestAuthoritativeEpisodeCountFromText(directAfterStructured), 30)
   assert.equal(extractLatestAuthoritativeEpisodeCountFromText(structuredAfterDirect), 10)
@@ -127,7 +119,8 @@ test('deriveOutlineEpisodeCount trusts summaryEpisodes.length over summary text 
     theme: '隐忍反咬',
     protagonist: '黎明',
     mainConflict: '黎明被逼亮底',
-    summary: '黎明这一段先被拖进局里：李科拿小柔逼他交出密库钥匙。推进到这一段收口前，更狠的代价已经顺着小柔追上来。', // 163 chars, no episode markers
+    summary:
+      '黎明这一段先被拖进局里：李科拿小柔逼他交出密库钥匙。推进到这一段收口前，更狠的代价已经顺着小柔追上来。', // 163 chars, no episode markers
     summaryEpisodes: Array.from({ length: 30 }, (_, index) => ({
       episodeNo: index + 1,
       summary: `第${index + 1}集推进`

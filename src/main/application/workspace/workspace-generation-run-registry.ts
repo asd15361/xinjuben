@@ -54,7 +54,7 @@ function resolveWorkspaceTaskTimeoutMs(task: WorkspaceGenerationTaskKind): numbe
     case 'detailed_outline':
       // 四幕 × ~70秒/幕 + 间隔 + 验证 + 保存 = 约 8-9 分钟
       // 需要足够空间让四个幕都完成
-      return 600_000  // 10分钟，给足够缓冲
+      return 600_000 // 10分钟，给足够缓冲
     default:
       return 180_000
   }

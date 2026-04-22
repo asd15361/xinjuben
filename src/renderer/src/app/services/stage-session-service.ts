@@ -1,10 +1,10 @@
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
 import type {
   AuthorityFailureDto,
   AuthorityFailureContextDto,
   AuthorityFailureNoticeKeyDto
-} from '../../../../shared/contracts/authority-failure'
-import type { ScriptRuntimeFailureHistoryCode } from '../../../../shared/contracts/script-generation'
+} from '../../../../shared/contracts/authority-failure.ts'
+import type { ScriptRuntimeFailureHistoryCode } from '../../../../shared/contracts/script-generation.ts'
 import { useWorkflowStore } from '../store/useWorkflowStore.ts'
 import { useStageStore } from '../../store/useStageStore.ts'
 import { perfLog, startOpenChain } from '../timing/performance-logger.ts'

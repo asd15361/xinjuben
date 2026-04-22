@@ -11,7 +11,7 @@ const ProjectShell = lazy(async () =>
   import('./ProjectShell').then((module) => ({ default: module.ProjectShell }))
 )
 
-function AppShellFallback() {
+function AppShellFallback(): JSX.Element {
   return (
     <div
       className="flex h-screen w-full items-center justify-center"
@@ -27,12 +27,18 @@ function AppShellFallback() {
   )
 }
 
-function DynamicImportRecoverySuccessAck(props: { ackKey: string; children: ReactNode }) {
-  useDynamicImportRecoverySuccessAck(props.ackKey)
-  return <>{props.children}</>
+function DynamicImportRecoverySuccessAck({
+  ackKey,
+  children
+}: {
+  ackKey: string
+  children: ReactNode
+}): JSX.Element {
+  useDynamicImportRecoverySuccessAck(ackKey)
+  return <>{children}</>
 }
 
-export function AppShell() {
+export function AppShell(): JSX.Element {
   useProjectStagePersistence()
   useProjectGenerationStatusBridge()
   const projectId = useWorkflowStore((s) => s.projectId)

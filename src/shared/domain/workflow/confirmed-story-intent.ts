@@ -1,6 +1,6 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import { normalizeShortDramaConstitution } from '../short-drama/short-drama-constitution'
-import { cleanCharacterLikeName } from './character-draft-normalization'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import { normalizeShortDramaConstitution } from '../short-drama/short-drama-constitution.ts'
+import { cleanCharacterLikeName } from './character-draft-normalization.ts'
 
 export function isConfirmedStoryIntentForTranscript(
   storyIntent: StoryIntentPackageDto | null | undefined,
@@ -60,8 +60,12 @@ export function buildConfirmedStoryIntent(input: {
     antagonist,
     coreConflict: input.storyIntent.coreConflict || '',
     endingDirection: input.storyIntent.endingDirection || '',
-    officialKeyCharacters: normalizeConfirmedCharacterNameList(input.storyIntent.officialKeyCharacters),
-    lockedCharacterNames: normalizeConfirmedCharacterNameList(input.storyIntent.lockedCharacterNames),
+    officialKeyCharacters: normalizeConfirmedCharacterNameList(
+      input.storyIntent.officialKeyCharacters
+    ),
+    lockedCharacterNames: normalizeConfirmedCharacterNameList(
+      input.storyIntent.lockedCharacterNames
+    ),
     themeAnchors: input.storyIntent.themeAnchors || [],
     worldAnchors: input.storyIntent.worldAnchors || [],
     relationAnchors: input.storyIntent.relationAnchors || [],

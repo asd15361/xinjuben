@@ -4,7 +4,7 @@ interface DevCrashActionProps {
   onTrigger: () => void
 }
 
-export function DevCrashAction({ onTrigger }: DevCrashActionProps) {
+export function DevCrashAction({ onTrigger }: DevCrashActionProps): JSX.Element | null {
   if (!import.meta.env.DEV) return null
 
   return (

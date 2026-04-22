@@ -1,7 +1,7 @@
-import { workflowFormalFactApi } from './workflow/formal-fact'
-import { workflowScriptAuditApi } from './workflow/script-audit'
-import { workflowScriptGenerationApi } from './workflow/script-generation'
-import { workflowStageContractApi } from './workflow/stage-contract'
+import { workflowFormalFactApi } from './workflow/formal-fact.ts'
+import { workflowScriptAuditApi } from './workflow/script-audit.ts'
+import { workflowScriptGenerationApi } from './workflow/script-generation.ts'
+import { workflowStageContractApi } from './workflow/stage-contract.ts'
 
 export const workflowApi = {
   ...workflowFormalFactApi,

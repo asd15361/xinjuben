@@ -8,7 +8,7 @@ import { useChatStageActions } from './useChatStageActions'
 import { createInitialChatMessages } from '../../workspace/ui/chat/ChatTypes'
 import { isConfirmedStoryIntentForTranscript } from '../../../../../shared/domain/workflow/confirmed-story-intent'
 
-export function ChatStage() {
+export function ChatStage(): JSX.Element {
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const chatMessages = useWorkflowStore((s) => s.chatMessages)

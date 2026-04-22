@@ -1,5 +1,5 @@
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
-import { readStore, withStoreLock, writeStore } from './project-store-core'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
+import { readStore, withStoreLock, writeStore } from './project-store-core.ts'
 import { mirrorProjectSnapshot } from './project-store-shard-sync.ts'
 
 export async function updateProject(

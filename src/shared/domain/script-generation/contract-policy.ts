@@ -1,18 +1,18 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import type { ScriptGenerationContractDto } from '../../contracts/script-generation-contract'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import type { ScriptGenerationContractDto } from '../../contracts/script-generation-contract.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto
-} from '../../contracts/workflow'
-import { matchFormalFactLanding } from '../formal-fact/match-formal-fact-landing'
-import { getConfirmedFormalFacts } from '../formal-fact/selectors'
+} from '../../contracts/workflow.ts'
+import { matchFormalFactLanding } from '../formal-fact/match-formal-fact-landing.ts'
+import { getConfirmedFormalFacts } from '../formal-fact/selectors.ts'
 import {
   buildStoryContract,
   buildUserAnchorLedger,
   collectMissingUserAnchorNames,
   hasHeroineAnchorCoverage
-} from '../story-contract/story-contract-policy'
+} from '../story-contract/story-contract-policy.ts'
 
 export function buildScriptGenerationContract(input: {
   storyIntent?: StoryIntentPackageDto | null

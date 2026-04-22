@@ -2,7 +2,7 @@ import type {
   FormalReleaseState,
   GenerationResultState,
   VisibleResultState
-} from '../../../../shared/contracts/visible-release-state'
+} from '../../../../shared/contracts/visible-release-state.ts'
 import { createGenerationResultState } from '../../../../shared/contracts/visible-release-state.ts'
 
 export function buildPersistedGenerationResult(input: {

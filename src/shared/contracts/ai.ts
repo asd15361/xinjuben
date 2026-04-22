@@ -1,4 +1,8 @@
-export type ModelRouteLane = 'deepseek' | 'openrouter_gemini_flash_lite' | 'openrouter_qwen_free' | 'openrouter'
+export type ModelRouteLane =
+  | 'deepseek'
+  | 'openrouter_gemini_flash_lite'
+  | 'openrouter_qwen_free'
+  | 'openrouter'
 
 export interface AiProviderSummaryDto {
   configuredLanes: ModelRouteLane[]

@@ -4,13 +4,13 @@ import {
   buildDetailedOutlineStageContract,
   buildOutlineStageContract,
   buildScriptStageContract
-} from '../../application/stage-contract/build-stage-contracts'
+} from '../../application/stage-contract/build-stage-contracts.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 
 export function registerStageContractHandlers(): void {
   ipcMain.handle('workflow:build-outline-stage-contract', (_event, outline: OutlineDraftDto) =>
@@ -25,8 +25,14 @@ export function registerStageContractHandlers(): void {
 
   ipcMain.handle(
     'workflow:build-detailed-outline-stage-contract',
-    (_event, input: { outline: OutlineDraftDto; characters: CharacterDraftDto[]; segments: DetailedOutlineSegmentDto[] }) =>
-      buildDetailedOutlineStageContract(input)
+    (
+      _event,
+      input: {
+        outline: OutlineDraftDto
+        characters: CharacterDraftDto[]
+        segments: DetailedOutlineSegmentDto[]
+      }
+    ) => buildDetailedOutlineStageContract(input)
   )
 
   ipcMain.handle(

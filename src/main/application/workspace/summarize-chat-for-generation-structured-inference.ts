@@ -53,7 +53,11 @@ export function pickKeyAsset(sections: StructuredBriefSections): string {
 }
 
 export function pickThemeAnchor(sections: StructuredBriefSections): string {
-  const text = [sections.sectionMap.get('串联简介') || '', ...sections.softUnderstanding, ...sections.characterCards.map((item) => item.summary)].join(' ')
+  const text = [
+    sections.sectionMap.get('串联简介') || '',
+    ...sections.softUnderstanding,
+    ...sections.characterCards.map((item) => item.summary)
+  ].join(' ')
   const candidates = ['谦卦', '不争', '大道', '隐忍', '智慧', '守护', '反转成长']
   return candidates.find((item) => text.includes(item)) || ''
 }
@@ -131,14 +135,19 @@ export function pickEmotionalPayoff(sections: StructuredBriefSections): string {
   const protectTarget = pickProtectTarget(sections) || '她'
 
   if (/闺蜜|并肩|联手/.test(synopsis)) return '先让观众吃到两个人并肩反打、不再各挨各打的那口爽。'
-  if (/翻身|逆袭|夺回|荣耀/.test(synopsis)) return '先让观众看到她把那口被压着的气当场吃回来，再把位置翻过去。'
-  if (/守住|救人|护住/.test(synopsis)) return `先让观众看到他宁可把自己暴露，也要把${protectTarget}护下来的那口气。`
+  if (/翻身|逆袭|夺回|荣耀/.test(synopsis))
+    return '先让观众看到她把那口被压着的气当场吃回来，再把位置翻过去。'
+  if (/守住|救人|护住/.test(synopsis))
+    return `先让观众看到他宁可把自己暴露，也要把${protectTarget}护下来的那口气。`
   if (/觉醒|重启人生|站起来/.test(synopsis)) return '先让观众看到她不再忍了，真的站起来回敬这一刀。'
   return '先让观众吃到主角不再白挨打、开始反咬回去的那口爽。'
 }
 
 export function pickWorldPressure(sections: StructuredBriefSections): string {
-  const text = [sections.sectionMap.get('世界观与故事背景') || '', sections.sectionMap.get('串联简介') || ''].join(' ')
+  const text = [
+    sections.sectionMap.get('世界观与故事背景') || '',
+    sections.sectionMap.get('串联简介') || ''
+  ].join(' ')
   const worldKeywords = ['妖兽', '蛇子', '宗门', '道观', '门阀', '皇权', '家族', '世家', '朝堂']
   const hit = worldKeywords.find((item) => text.includes(item))
   if (!hit) return ''
@@ -157,6 +166,8 @@ export function inferChainFromStructuredSections(sections: StructuredBriefSectio
   return inferStructuredChain(sections)
 }
 
-export function inferCharacterLayersFromSections(sections: StructuredBriefSections): GenerationBriefCharacterLayer[] {
+export function inferCharacterLayersFromSections(
+  sections: StructuredBriefSections
+): GenerationBriefCharacterLayer[] {
   return inferStructuredCharacterLayers(sections)
 }

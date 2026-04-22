@@ -8,7 +8,7 @@ interface DetailedOutlineStageHeaderProps {
   aiGenerateLabel?: string
 }
 
-export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProps) {
+export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProps): JSX.Element {
   return (
     <div className="flex items-center justify-between gap-4 mb-8 border-b border-white/[0.05] pb-6">
       <div className="flex items-center gap-3">
@@ -17,7 +17,9 @@ export function DetailedOutlineStageHeader(props: DetailedOutlineStageHeaderProp
         </div>
         <div>
           <h2 className="text-lg font-black text-white/90">详细大纲</h2>
-          <p className="text-[11px] text-white/40 mt-0.5">先生成这一版详细大纲，再按阶段对照分集粗纲检查推进、翻面和下一步钩子。</p>
+          <p className="text-[11px] text-white/40 mt-0.5">
+            先生成这一版详细大纲，再按阶段对照分集粗纲检查推进、翻面和下一步钩子。
+          </p>
         </div>
       </div>
 

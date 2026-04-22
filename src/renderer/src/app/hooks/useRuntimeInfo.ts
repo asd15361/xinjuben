@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { AiProviderSummaryDto } from '../../../../shared/contracts/ai'
-import type { AppInfoDto } from '../../../../shared/contracts/system'
+import type { AiProviderSummaryDto } from '../../../../shared/contracts/ai.ts'
+import type { AppInfoDto } from '../../../../shared/contracts/system.ts'
 
 interface RuntimeInfoState {
   appInfo: AppInfoDto | null

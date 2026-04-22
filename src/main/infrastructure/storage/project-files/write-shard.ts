@@ -5,8 +5,8 @@ import type {
   ProjectCounts,
   ProjectShellDto,
   ProjectSnapshotDto
-} from '../../../../shared/contracts/project'
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+} from '../../../../shared/contracts/project.ts'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
 import { resolvePersistedGenerationTruth } from '../../../../shared/domain/workflow/persisted-generation-truth.ts'
 
 export type ShardName =
@@ -160,7 +160,6 @@ export async function writeJsonAtomic(filePath: string, payload: unknown): Promi
   }
 
   if (lastError) {
-    // eslint-disable-next-line no-console
     console.warn(
       '[project-store] rename fallback used',
       lastError instanceof Error ? lastError.message : String(lastError)

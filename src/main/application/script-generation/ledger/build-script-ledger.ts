@@ -1,10 +1,10 @@
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
+import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake.ts'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../../shared/contracts/workflow'
+} from '../../../../shared/contracts/workflow.ts'
 import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors.ts'
 import {
   buildUserAnchorLedger,
@@ -35,7 +35,11 @@ function buildUsedTactics(script: ScriptSegmentDto[]): string[] {
     if ('pressureType' in scene && typeof scene.pressureType === 'string' && scene.pressureType) {
       tactics.push(scene.pressureType)
     }
-    if ('protagonistActionType' in scene && typeof scene.protagonistActionType === 'string' && scene.protagonistActionType) {
+    if (
+      'protagonistActionType' in scene &&
+      typeof scene.protagonistActionType === 'string' &&
+      scene.protagonistActionType
+    ) {
       tactics.push(scene.protagonistActionType)
     }
     // 也从 screenplayScenes 的控制卡中尝试提取
@@ -43,10 +47,14 @@ function buildUsedTactics(script: ScriptSegmentDto[]): string[] {
     if (Array.isArray(scenes)) {
       for (const s of scenes) {
         if (s && typeof s === 'object' && 'episodeControlCard' in s) {
-          const card = (s as Record<string, unknown>).episodeControlCard as Record<string, unknown> | undefined
+          const card = (s as Record<string, unknown>).episodeControlCard as
+            | Record<string, unknown>
+            | undefined
           if (card) {
-            if (typeof card.pressureType === 'string' && card.pressureType) tactics.push(card.pressureType)
-            if (typeof card.protagonistActionType === 'string' && card.protagonistActionType) tactics.push(card.protagonistActionType)
+            if (typeof card.pressureType === 'string' && card.pressureType)
+              tactics.push(card.pressureType)
+            if (typeof card.protagonistActionType === 'string' && card.protagonistActionType)
+              tactics.push(card.protagonistActionType)
           }
         }
       }

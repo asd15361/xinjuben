@@ -1,7 +1,7 @@
-import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit'
-import type { CharacterDraftDto } from '../../../../shared/contracts/workflow'
-import { hasTraitBindingSignal } from './audit-helpers'
-import { hasMemoryEchoSignal } from '../../../../shared/domain/script-generation/signal-policy'
+import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit.ts'
+import type { CharacterDraftDto } from '../../../../shared/contracts/workflow.ts'
+import { hasTraitBindingSignal } from './audit-helpers.ts'
+import { hasMemoryEchoSignal } from '../../../../shared/domain/script-generation/signal-policy.ts'
 
 export function collectCharacterAuditIssues(
   characters: CharacterDraftDto[],

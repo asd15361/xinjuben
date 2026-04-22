@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import {
   createFormalReleasedState,
   createVisibleSuccessState
@@ -152,7 +152,10 @@ test('normalizeProjectSnapshot preserves persisted story text and polluted names
     ['黎明', '黎明表面无武功']
   )
   assert.match(normalized.outlineDraft?.summary || '', /被妖兽蛇子/)
-  assert.equal(normalized.storyIntent?.shortDramaConstitution?.corePrinciple, '快节奏、强冲突、稳情绪')
+  assert.equal(
+    normalized.storyIntent?.shortDramaConstitution?.corePrinciple,
+    '快节奏、强冲突、稳情绪'
+  )
 })
 
 test('normalizeProjectSnapshot ignores persisted activeCharacterBlocks and re-derives from outline plus characters', () => {
@@ -255,21 +258,21 @@ test('normalizeProjectSnapshot backfills legacy entityStore from confirmed gener
 
   const normalized = normalizeProjectSnapshot(project)
 
-  assert.ok(
-    normalized.entityStore.characters.some((character) => character.name === '黎明')
-  )
-  assert.ok(
-    normalized.entityStore.factions.some((faction) => faction.name === '玄玉宫')
-  )
+  assert.ok(normalized.entityStore.characters.some((character) => character.name === '黎明'))
+  assert.ok(normalized.entityStore.factions.some((faction) => faction.name === '玄玉宫'))
   const xuanYuGong = normalized.entityStore.factions.find((faction) => faction.name === '玄玉宫')
   const liMing = normalized.entityStore.characters.find((character) => character.name === '黎明')
-  const liChengYang = normalized.entityStore.characters.find((character) => character.name === '李诚阳')
+  const liChengYang = normalized.entityStore.characters.find(
+    (character) => character.name === '李诚阳'
+  )
 
   assert.ok(xuanYuGong)
   assert.ok(liMing)
   assert.ok(liChengYang)
   assert.deepEqual(xuanYuGong.memberCharacterIds.sort(), [liChengYang.id, liMing.id].sort())
-  const slotCharacters = normalized.entityStore.characters.filter((character) => character.identityMode === 'slot')
+  const slotCharacters = normalized.entityStore.characters.filter(
+    (character) => character.identityMode === 'slot'
+  )
   assert.ok(slotCharacters.length >= 3)
   assert.ok(slotCharacters.some((character) => character.factionRole === '执事位'))
   assert.ok(slotCharacters.every((character) => character.linkedFactionIds.includes(xuanYuGong.id)))
@@ -286,7 +289,9 @@ test('normalizeProjectSnapshot preserves episode control cards inside detailed o
         {
           episodeNo: 1,
           summary: '第1集先炸场并立主线。',
-          sceneByScene: [{ sceneNo: 1, setup: '李科先拿小柔逼黎明亮底。', tension: '黎明当场被逼表态。' }],
+          sceneByScene: [
+            { sceneNo: 1, setup: '李科先拿小柔逼黎明亮底。', tension: '黎明当场被逼表态。' }
+          ],
           episodeControlCard: {
             episodeMission: '第1集先炸场并立主线。',
             openingBomb: '李科先拿小柔逼黎明亮底。',
@@ -303,8 +308,7 @@ test('normalizeProjectSnapshot preserves episode control cards inside detailed o
   ]
 
   const normalized = normalizeProjectSnapshot(project)
-  const controlCard =
-    normalized.detailedOutlineSegments[0]?.episodeBeats?.[0]?.episodeControlCard
+  const controlCard = normalized.detailedOutlineSegments[0]?.episodeBeats?.[0]?.episodeControlCard
 
   assert.equal(controlCard?.episodeMission, '第1集先炸场并立主线。')
   assert.deepEqual(controlCard?.forbiddenDrift, ['不要铺垫日常再起事'])

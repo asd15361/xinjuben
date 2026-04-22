@@ -4,7 +4,7 @@ import { inspectSceneQuality } from './script-scene-quality-audit.ts'
 
 describe('inspectSceneQuality', () => {
   it('returns expected shape { qualityPass: boolean, qualityProblem: string | null }', () => {
-    const scene = {} as any
+    const scene: { sceneNo?: number; action?: string; dialogue?: string; emotion?: string } = {}
     const result = inspectSceneQuality(scene)
 
     assert.strictEqual(typeof result.qualityPass === 'boolean', true)
@@ -18,7 +18,7 @@ describe('inspectSceneQuality', () => {
     // inspectScreenplayQualityEpisode returns { pass: true, problems: [] } only for valid scenes
     // For an empty scene object, it returns { pass: false, problems: [...] }
     // This test verifies the function correctly maps pass/fail states
-    const scene = {} as any
+    const scene: { sceneNo?: number; action?: string; dialogue?: string; emotion?: string } = {}
     const result = inspectSceneQuality(scene)
 
     // When inspectScreenplayQualityEpisode returns pass:true, qualityProblem should be null
@@ -28,7 +28,7 @@ describe('inspectSceneQuality', () => {
   })
 
   it('returns qualityProblem as string when quality fails', () => {
-    const scene = {} as any
+    const scene: { sceneNo?: number; action?: string; dialogue?: string; emotion?: string } = {}
     const result = inspectSceneQuality(scene)
 
     // When inspectScreenplayQualityEpisode returns pass:false, qualityProblem should be a string

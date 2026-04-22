@@ -1,5 +1,5 @@
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
-import type { GenerationNotice } from '../store/useWorkflowStore'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
+import type { GenerationNotice } from '../store/useWorkflowStore.ts'
 
 export function createGenerationResultNotice(input: {
   kind: 'success' | 'error'

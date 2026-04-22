@@ -17,10 +17,10 @@
  * - Renderer process: MUST call via IPC to main, not compute locally
  */
 
-import type { ProjectSnapshotDto } from '../../contracts/project'
-import type { WorkflowStage } from '../../contracts/workflow'
-import type { InputContractIssueDto } from '../../contracts/input-contract'
-import { hasConfirmedSevenQuestions } from './seven-questions-authority'
+import type { ProjectSnapshotDto } from '../../contracts/project.ts'
+import type { WorkflowStage } from '../../contracts/workflow.ts'
+import type { InputContractIssueDto } from '../../contracts/input-contract.ts'
+import { hasConfirmedSevenQuestions } from './seven-questions-authority.ts'
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -127,9 +127,7 @@ function hasOutlineContent(project: Pick<ProjectSnapshotDto, 'outlineDraft'>): b
   )
 }
 
-function hasSevenQuestionsOnly(
-  project: Pick<ProjectSnapshotDto, 'outlineDraft'>
-): boolean {
+function hasSevenQuestionsOnly(project: Pick<ProjectSnapshotDto, 'outlineDraft'>): boolean {
   if (!project.outlineDraft) return false
   if (!hasConfirmedSevenQuestions(project.outlineDraft)) return false
 

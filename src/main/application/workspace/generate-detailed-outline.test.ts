@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import {
@@ -55,6 +55,8 @@ const THIRTY_EPISODE_REAL_PROJECT_DIR = path.resolve(
   process.cwd(),
   'tools/e2e/out/userdata-xiuxian-full-real-30ep-mncz0qkz/workspace/projects/project_mncz0sno'
 )
+
+const hasRealThirtyEpisodeFixture = existsSync(THIRTY_EPISODE_REAL_PROJECT_DIR)
 
 function readJsonFixture<T>(...segments: string[]): T {
   const filePath = path.join(THIRTY_EPISODE_REAL_PROJECT_DIR, ...segments)
@@ -352,7 +354,10 @@ test('generateDetailedOutlineFromContext feeds batch-specific active characters 
       return { ...episode, summary: `第${episode.episodeNo}集：李科把少年守钥人逼到祠堂门口。` }
     }
     if (episode.episodeNo >= 8) {
-      return { ...episode, summary: `第${episode.episodeNo}集：谢宁带边城军报逼少年守钥人立刻守城。` }
+      return {
+        ...episode,
+        summary: `第${episode.episodeNo}集：谢宁带边城军报逼少年守钥人立刻守城。`
+      }
     }
     return { ...episode, summary: `第${episode.episodeNo}集：少年守钥人继续扛压。` }
   })
@@ -568,42 +573,54 @@ test('normalizeDetailedOutlineSourceOutline keeps 30-episode outline coverage in
   assert.equal(normalized.summaryEpisodes[29]?.summary, '第30集推进')
 })
 
-test('deriveOutlineEpisodeCount returns 30 for real 30-episode outline data', () => {
-  const outline = loadRealThirtyEpisodeOutline()
+test(
+  'deriveOutlineEpisodeCount returns 30 for real 30-episode outline data',
+  { skip: !hasRealThirtyEpisodeFixture },
+  () => {
+    const outline = loadRealThirtyEpisodeOutline()
 
-  assert.equal(deriveOutlineEpisodeCount(outline), 30)
-})
+    assert.equal(deriveOutlineEpisodeCount(outline), 30)
+  }
+)
 
-test('buildFourActEpisodeRanges splits real 30-episode outline into exact 30-episode act ranges', () => {
-  const outline = loadRealThirtyEpisodeOutline()
-  const totalEpisodes = deriveOutlineEpisodeCount(outline)
+test(
+  'buildFourActEpisodeRanges splits real 30-episode outline into exact 30-episode act ranges',
+  { skip: !hasRealThirtyEpisodeFixture },
+  () => {
+    const outline = loadRealThirtyEpisodeOutline()
+    const totalEpisodes = deriveOutlineEpisodeCount(outline)
 
-  assert.deepEqual(buildFourActEpisodeRanges(totalEpisodes), [
-    { startEpisode: 1, endEpisode: 7 },
-    { startEpisode: 8, endEpisode: 14 },
-    { startEpisode: 15, endEpisode: 22 },
-    { startEpisode: 23, endEpisode: 30 }
-  ])
-})
+    assert.deepEqual(buildFourActEpisodeRanges(totalEpisodes), [
+      { startEpisode: 1, endEpisode: 7 },
+      { startEpisode: 8, endEpisode: 14 },
+      { startEpisode: 15, endEpisode: 22 },
+      { startEpisode: 23, endEpisode: 30 }
+    ])
+  }
+)
 
-test('real 30-episode detailed outline episodeBeats cover 1..30 and later 30-episode beats are not empty shells', () => {
-  const segments = loadRealThirtyEpisodeDetailedOutlineSegments()
-  const uniqueEpisodeNos = Array.from(
-    new Set(
-      segments.flatMap((segment) => segment.episodeBeats?.map((beat) => beat.episodeNo) || [])
+test(
+  'real 30-episode detailed outline episodeBeats cover 1..30 and later 30-episode beats are not empty shells',
+  { skip: !hasRealThirtyEpisodeFixture },
+  () => {
+    const segments = loadRealThirtyEpisodeDetailedOutlineSegments()
+    const uniqueEpisodeNos = Array.from(
+      new Set(
+        segments.flatMap((segment) => segment.episodeBeats?.map((beat) => beat.episodeNo) || [])
+      )
+    ).sort((left, right) => left - right)
+
+    assert.equal(segments.length, 4)
+    assert.deepEqual(
+      uniqueEpisodeNos,
+      Array.from({ length: 30 }, (_, index) => index + 1)
     )
-  ).sort((left, right) => left - right)
 
-  assert.equal(segments.length, 4)
-  assert.deepEqual(
-    uniqueEpisodeNos,
-    Array.from({ length: 30 }, (_, index) => index + 1)
-  )
+    const laterEpisodeBeats = segments
+      .flatMap((segment) => segment.episodeBeats || [])
+      .filter((beat) => beat.episodeNo >= 11 && beat.episodeNo <= 30)
 
-  const laterEpisodeBeats = segments
-    .flatMap((segment) => segment.episodeBeats || [])
-    .filter((beat) => beat.episodeNo >= 11 && beat.episodeNo <= 30)
-
-  assert.equal(laterEpisodeBeats.length, 20)
-  assert.equal(laterEpisodeBeats.every(hasEpisodeBeatContent), true)
-})
+    assert.equal(laterEpisodeBeats.length, 20)
+    assert.equal(laterEpisodeBeats.every(hasEpisodeBeatContent), true)
+  }
+)

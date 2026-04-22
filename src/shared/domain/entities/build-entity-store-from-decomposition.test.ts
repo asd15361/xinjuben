@@ -140,10 +140,7 @@ test('buildEntityStoreFromDecomposition creates linked world entities from decom
   assert.equal(item.ownerCharacterId, protagonist.id)
 
   assert.equal(relation.fromEntityId, protagonist.id)
-  assert.equal(
-    relation.toEntityId,
-    result.characters.find((entry) => entry.name === '恶霸')?.id
-  )
+  assert.equal(relation.toEntityId, result.characters.find((entry) => entry.name === '恶霸')?.id)
 })
 
 test('buildEntityStoreFromDecomposition merges into existing store without dropping stable ids or richer fields', () => {

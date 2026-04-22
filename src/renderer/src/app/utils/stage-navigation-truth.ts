@@ -3,22 +3,24 @@
  *
  * PURPOSE:
  * This module provides renderer-side utilities for stage navigation evaluation.
- * It acts as an IPC bridge — all actual stage derivation happens in main process.
+ * It acts as an HTTP bridge — all actual stage derivation happens in server.
  *
  * PRINCIPLES (from truth-authority.ts):
  * - Renderer is always Consumer, never Producer for core truths
- * - Stage derivation is done in main via IPC, not locally
- * - This module only transforms data for IPC calls
+ * - Stage derivation is done in server via HTTP, not locally
+ * - This module only transforms data for HTTP calls
  */
 
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
-import type { ScriptRuntimeFailureHistoryCode } from '../../../../shared/contracts/script-generation'
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
+import type { ScriptRuntimeFailureHistoryCode } from '../../../../shared/contracts/script-generation.ts'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
 import { resolveProjectEpisodeCount } from '../../../../shared/domain/workflow/episode-count.ts'
 import { countCoveredScriptEpisodes } from '../../../../shared/domain/workflow/script-episode-coverage.ts'
 import { getScriptGenerationPlan } from '../services/script-plan-service.ts'
+import { apiValidateStageContract } from '../../services/api-client.ts'
 
 export interface StageNavigationPayload {
+  projectId: string
   storyIntent: ProjectSnapshotDto['storyIntent']
   outline: ProjectSnapshotDto['outlineDraft']
   characters: ProjectSnapshotDto['characterDrafts']
@@ -116,13 +118,9 @@ export async function evaluateStageAccess(
     }
   }
 
-  const validation = await window.api.workflow.validateStageInputContract({
-    targetStage,
-    storyIntent: payload.storyIntent,
-    outline: payload.outline || getEmptyOutline(),
-    characters: payload.characters,
-    segments: payload.segments,
-    script: payload.script
+  const validation = await apiValidateStageContract({
+    projectId: payload.projectId,
+    targetStage
   })
 
   const issues = validation.issues.map((item) => item.message).filter(Boolean)
@@ -141,6 +139,7 @@ export async function evaluateStageAccess(
  */
 export function buildStagePayloadFromProject(project: ProjectSnapshotDto): StageNavigationPayload {
   return {
+    projectId: project.id,
     storyIntent: project.storyIntent,
     outline: project.outlineDraft,
     characters: project.characterDrafts,

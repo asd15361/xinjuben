@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { AppInfoDto } from '../../shared/contracts/system'
+import type { AppInfoDto } from '../../shared/contracts/system.ts'
 
 export const systemApi = {
   getAppInfo(): Promise<AppInfoDto> {

@@ -6,7 +6,7 @@ import {
   buildRepairPolicyStatus,
   buildRuntimePolicyStatus,
   type EngineAssetStatusInput
-} from './engine-asset-status-builders'
+} from './engine-asset-status-builders.ts'
 
 export interface EngineAssetStatus {
   key: string

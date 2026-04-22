@@ -2,16 +2,14 @@ import path from 'node:path'
 import type { App } from 'electron'
 
 import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
-import type {
-  ExportProjectStageMarkdownInputDto,
-  ExportableProjectStage
-} from '../../../shared/contracts/workspace.ts'
 import { buildScreenplayFromStructuredScene } from '../../../shared/domain/script/screenplay-format.ts'
 import {
   collectOverflowScriptEpisodeNos,
   countCoveredScriptEpisodes
 } from '../../../shared/domain/workflow/script-episode-coverage.ts'
 import { resolveProjectEpisodeCount } from '../../../shared/domain/workflow/episode-count.ts'
+
+type ExportableProjectStage = 'outline' | 'character' | 'detailed_outline' | 'script'
 
 function sanitizeFilenamePart(value: string, fallback: string): string {
   const normalized = value.trim().replace(/[\\/:*?"<>|]+/g, '-')
@@ -82,7 +80,7 @@ function buildCharacterMarkdown(project: ProjectSnapshotDto): string {
     '',
     ...(characters.length > 0
       ? characters.flatMap((character, index) => [
-          `## ${index + 1}. ${character.name || `未命名角色${index + 1}`}`,
+          `## ${index + 1}. ${character.name || '未命名角色' + (index + 1)}`,
           '',
           `- 小传：${character.biography || '未填写'}`,
           `- 表面：${character.publicMask || '未填写'}`,
@@ -198,7 +196,7 @@ export function buildProjectStageMarkdown(
 
 export function buildProjectStageExportDraft(
   project: ProjectSnapshotDto,
-  stage: ExportProjectStageMarkdownInputDto['stage'],
+  stage: ExportableProjectStage,
   app: App
 ): {
   defaultPath: string

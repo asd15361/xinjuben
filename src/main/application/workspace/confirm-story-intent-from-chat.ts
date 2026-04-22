@@ -1,6 +1,4 @@
-import type {
-  ProjectEntityStoreDto
-} from '../../../shared/contracts/entities.ts'
+import type { ProjectEntityStoreDto } from '../../../shared/contracts/entities.ts'
 import type {
   ShortDramaConstitutionDto,
   StoryIntentPackageDto

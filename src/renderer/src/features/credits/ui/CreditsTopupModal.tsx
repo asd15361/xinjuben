@@ -31,9 +31,9 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers
+    }
   })
 
   if (!res.ok) {
@@ -49,7 +49,7 @@ interface CreditsTopupModalProps {
   onClose: () => void
 }
 
-export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
+export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps): JSX.Element | null {
   const [packages, setPackages] = useState<CreditPackage[]>([])
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -62,13 +62,13 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
   useEffect(() => {
     if (isOpen) {
       apiRequest<{ packages: CreditPackage[] }>('/api/pay/packages')
-        .then(res => setPackages(res.packages))
-        .catch(err => console.error('Failed to load packages:', err))
+        .then((res) => setPackages(res.packages))
+        .catch((err) => console.error('Failed to load packages:', err))
     }
   }, [isOpen])
 
   // 轮询订单状态
-  const pollOrderStatus = async (outTradeNo: string) => {
+  const pollOrderStatus = async (outTradeNo: string): Promise<void> => {
     try {
       const result: OrderStatus = await apiRequest(`/api/pay/order/${outTradeNo}`)
       if (result.status === 'paid') {
@@ -84,7 +84,7 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
   }
 
   // 发起支付
-  async function handlePay() {
+  async function handlePay(): Promise<void> {
     if (!selectedPackage) {
       setError('请选择充值套餐')
       return
@@ -96,7 +96,7 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
     try {
       const result = await apiRequest<{ outTradeNo: string; payUrl: string }>('/api/pay/create', {
         method: 'POST',
-        body: JSON.stringify({ packageId: selectedPackage }),
+        body: JSON.stringify({ packageId: selectedPackage })
       })
 
       window.open(result.payUrl, '_blank')
@@ -138,7 +138,7 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
 
         {/* 套餐选择 */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          {packages.map(pkg => (
+          {packages.map((pkg) => (
             <button
               key={pkg.id}
               onClick={() => setSelectedPackage(pkg.id)}
@@ -155,9 +155,7 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
         </div>
 
         {/* 错误提示 */}
-        {error && (
-          <div className="mb-4 text-sm text-red-400 text-center">{error}</div>
-        )}
+        {error && <div className="mb-4 text-sm text-red-400 text-center">{error}</div>}
 
         {/* 支付按钮 */}
         <button
@@ -165,7 +163,8 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps) {
           disabled={loading || !selectedPackage || !!pendingOrder}
           className="w-full py-3 rounded-xl font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: loading || pendingOrder ? '#52525b' : 'linear-gradient(135deg, #FF7A00, #f97316)'
+            background:
+              loading || pendingOrder ? '#52525b' : 'linear-gradient(135deg, #FF7A00, #f97316)'
           }}
         >
           {loading ? '处理中...' : pendingOrder ? '等待支付完成...' : '去支付宝付款'}

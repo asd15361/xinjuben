@@ -35,18 +35,18 @@ import {
   AuthorityFailureError,
   AuthorityFailureType,
   AuthorityOwnedFacts
-} from './authority-constitution'
-// import { validateStageInputContract } from '../../../main/application/input-contract/validate-stage-input'
-import type { InputContractIssueDto } from '../../contracts/input-contract'
-import type { StageContractType } from '../../contracts/stage-contract'
+} from './authority-constitution.ts'
+// import { validateStageInputContract } from '../../../main/application/input-contract/validate-stage-input.ts'
+import type { InputContractIssueDto } from '../../contracts/input-contract.ts'
+import type { StageContractType } from '../../contracts/stage-contract.ts'
 import type {
   CharacterBlockDto,
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../contracts/workflow'
-import type { StoryIntentPackageDto } from '../../contracts/intake'
+} from '../../contracts/workflow.ts'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
 
 // =============================================================================
 // GUARDIAN CONTEXT LABELS
@@ -127,6 +127,7 @@ function validateForStage(
   _targetStage: StageContractType,
   _payload: StageGuardianPayload
 ): GuardianResult {
+  void _payload
   // Stub: always pass until server endpoint is available
   return guardianOk(_targetStage)
   // const validation = validateStageInputContract(_targetStage, {

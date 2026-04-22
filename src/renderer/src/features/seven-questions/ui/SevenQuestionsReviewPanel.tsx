@@ -4,18 +4,23 @@ import { useStageStore } from '../../../store/useStageStore'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
 import { LoginModal } from '../../../components/LoginModal'
-import type { SevenQuestionsResultDto, SevenQuestionsSectionDto } from '../../../../../shared/contracts/workflow'
+import type {
+  SevenQuestionsResultDto,
+  SevenQuestionsSectionDto
+} from '../../../../../shared/contracts/workflow'
+import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
+import type { StoryIntentPackageDto } from '../../../../../shared/contracts/intake'
 import { extractConfirmedSevenQuestions } from '../../../../../shared/domain/workflow/seven-questions-authority.ts'
-import {
-  generateSevenQuestionsDraft,
-  saveConfirmedSevenQuestions
-} from '../api'
+import { generateSevenQuestionsDraft, saveConfirmedSevenQuestions } from '../api'
 import { requireConfirmedSevenQuestionsPersisted } from '../model/confirmed-seven-questions-persistence.ts'
 import { normalizeWorkspaceChatErrorMessage } from '../../workspace/ui/workspace-chat-error-message'
 import { ApiError, apiGenerateOutlineAndCharacters } from '../../../services/api-client'
 import { motion } from 'framer-motion'
 
-const SEVEN_FIELD_LABELS: Array<{ key: keyof import('../../../../../shared/contracts/workflow').SevenQuestionsDto; label: string }> = [
+const SEVEN_FIELD_LABELS: Array<{
+  key: keyof import('../../../../../shared/contracts/workflow').SevenQuestionsDto
+  label: string
+}> = [
   { key: 'goal', label: '目标' },
   { key: 'obstacle', label: '阻碍' },
   { key: 'effort', label: '努力' },
@@ -25,12 +30,13 @@ const SEVEN_FIELD_LABELS: Array<{ key: keyof import('../../../../../shared/contr
   { key: 'ending', label: '结局' }
 ]
 
-function SectionCard(props: {
+function SectionCard({
+  section,
+  onChange
+}: {
   section: SevenQuestionsSectionDto
-  onChange: (updated: SevenQuestionsSectionDto) => void
-}) {
-  const { section, onChange } = props
-
+  onChange: (sectionNo: number, field: string, value: string) => void
+}): JSX.Element {
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5 space-y-3">
       <div className="flex items-center gap-3 pb-2 border-b border-white/5">
@@ -53,10 +59,7 @@ function SectionCard(props: {
             rows={2}
             value={section.sevenQuestions[key]}
             onChange={(e) => {
-              onChange({
-                ...section,
-                sevenQuestions: { ...section.sevenQuestions, [key]: e.target.value }
-              })
+              onChange(section.sectionNo, key, e.target.value)
             }}
           />
         </div>
@@ -65,7 +68,22 @@ function SectionCard(props: {
   )
 }
 
-export function useSevenQuestionsReviewActions() {
+export function useSevenQuestionsReviewActions(): {
+  storyIntent: StoryIntentPackageDto | null
+  generationStatus: ProjectGenerationStatusDto | null
+  status: string
+  draft: SevenQuestionsResultDto | null
+  editingSections: SevenQuestionsSectionDto[]
+  isSaved: boolean
+  creditsError: string | null
+  requireLogin: boolean
+  clearCreditsError: () => void
+  setRequireLogin: (value: boolean) => void
+  handleGenerateDraft: () => Promise<void>
+  handleSectionChange: (sectionNo: number, field: string, value: string) => void
+  handleSaveConfirmed: () => Promise<void>
+  handleGenerateOutlineAndCharacters: () => Promise<void>
+} {
   const projectId = useWorkflowStore((s) => s.projectId)
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
@@ -166,14 +184,23 @@ export function useSevenQuestionsReviewActions() {
     }
   }
 
-  const handleSectionChange = useCallback((updated: SevenQuestionsSectionDto) => {
-    setIsSaved(false)
-    clearGenerationNotice()
-    setStatus('你刚改了七问，但这版还没保存。请先点击“确认并保存七问”，再生成粗纲和人物。')
-    setEditingSections((prev) =>
-      prev.map((s) => (s.sectionNo === updated.sectionNo ? updated : s))
-    )
-  }, [clearGenerationNotice])
+  const handleSectionChange = useCallback(
+    (sectionNo: number, field: string, value: string) => {
+      setIsSaved(false)
+      clearGenerationNotice()
+      setStatus('你刚改了七问，但这版还没保存。请先点击”确认并保存七问”，再生成粗纲和人物。')
+      setEditingSections((prev) =>
+        prev.map((s) => {
+          if (s.sectionNo !== sectionNo) return s
+          return {
+            ...s,
+            sevenQuestions: { ...s.sevenQuestions, [field]: value }
+          }
+        })
+      )
+    },
+    [clearGenerationNotice]
+  )
 
   async function handleSaveConfirmed(): Promise<void> {
     // === 全局登录守卫：未登录拦截 ===
@@ -299,7 +326,6 @@ export function useSevenQuestionsReviewActions() {
   }
 
   return {
-    projectId,
     storyIntent,
     generationStatus,
     status,
@@ -317,7 +343,7 @@ export function useSevenQuestionsReviewActions() {
   }
 }
 
-export function SevenQuestionsReviewPanel() {
+export function SevenQuestionsReviewPanel(): JSX.Element {
   const {
     storyIntent,
     generationStatus,
@@ -345,9 +371,7 @@ export function SevenQuestionsReviewPanel() {
       {generationStatus && <ProjectGenerationBanner status={generationStatus} />}
 
       <div className={`rounded-xl border px-4 py-3 ${statusToneClass}`}>
-        <p className={`text-[11px] leading-relaxed ${statusTextClass}`}>
-          {status}
-        </p>
+        <p className={`text-[11px] leading-relaxed ${statusTextClass}`}>{status}</p>
       </div>
 
       {/* 积分不足提示 */}
@@ -400,21 +424,21 @@ export function SevenQuestionsReviewPanel() {
                 </p>
               )}
               <div className="flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={() => void handleSaveConfirmed()}
-                disabled={Boolean(generationStatus)}
-                className="rounded-xl px-6 py-3 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-orange-500/20"
-                style={{ background: '#FF7A00' }}
-              >
-                确认并保存七问
-              </button>
-              <button
-                onClick={() => void handleGenerateOutlineAndCharacters()}
-                disabled={Boolean(generationStatus) || !isSaved}
-                className="rounded-xl px-6 py-3 text-xs font-black border border-white/10 text-white/75 transition-all hover:text-white hover:bg-white/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-              >
-                生成粗纲和人物
-              </button>
+                <button
+                  onClick={() => void handleSaveConfirmed()}
+                  disabled={Boolean(generationStatus)}
+                  className="rounded-xl px-6 py-3 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-orange-500/20"
+                  style={{ background: '#FF7A00' }}
+                >
+                  确认并保存七问
+                </button>
+                <button
+                  onClick={() => void handleGenerateOutlineAndCharacters()}
+                  disabled={Boolean(generationStatus) || !isSaved}
+                  className="rounded-xl px-6 py-3 text-xs font-black border border-white/10 text-white/75 transition-all hover:text-white hover:bg-white/5 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                >
+                  生成粗纲和人物
+                </button>
               </div>
             </div>
           </div>
@@ -422,10 +446,7 @@ export function SevenQuestionsReviewPanel() {
       )}
 
       {/* 登录弹窗：未登录时点击生成触发 */}
-      <LoginModal
-        isOpen={requireLogin}
-        onClose={() => setRequireLogin(false)}
-      />
+      <LoginModal isOpen={requireLogin} onClose={() => setRequireLogin(false)} />
     </div>
   )
 }

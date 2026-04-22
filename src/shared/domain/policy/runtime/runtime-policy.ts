@@ -1,6 +1,6 @@
-import type { AiGenerateRequestDto, ModelRouteLane } from '../../../contracts/ai'
-import type { ScriptGenerationExecutionPlanDto } from '../../../contracts/script-generation'
-import type { PolicyMetadata } from '../policy-metadata'
+import type { AiGenerateRequestDto, ModelRouteLane } from '../../../contracts/ai.ts'
+import type { ScriptGenerationExecutionPlanDto } from '../../../contracts/script-generation.ts'
+import type { PolicyMetadata } from '../policy-metadata.ts'
 
 export interface RuntimeRouteDecisionSignal {
   orderedLanes: ModelRouteLane[]

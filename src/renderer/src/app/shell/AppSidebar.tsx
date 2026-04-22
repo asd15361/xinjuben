@@ -1,5 +1,14 @@
 import { motion } from 'framer-motion'
-import { ChevronRight, Sparkles, Users, FileText, PenTool, Zap, MessageCircle, GitBranch } from 'lucide-react'
+import {
+  ChevronRight,
+  Sparkles,
+  Users,
+  FileText,
+  PenTool,
+  Zap,
+  MessageCircle,
+  GitBranch
+} from 'lucide-react'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow'
 import { switchStageSession } from '../services/stage-session-service'
 import { useWorkflowStore } from '../store/useWorkflowStore'
@@ -13,7 +22,7 @@ const STAGES = [
   { id: 'script', label: '剧本定稿', icon: PenTool, desc: '把场景真正写出来' }
 ] as const
 
-export function AppSidebar() {
+export function AppSidebar(): JSX.Element {
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)

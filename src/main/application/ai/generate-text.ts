@@ -1,5 +1,5 @@
-import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai'
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai.ts'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 import { resolveLaneRuntime } from './ai-lane-runtime.ts'
 import { mockAiEnabled, createMockResponse } from './ai-mock-response.ts'
 import { invokeDeepSeek, invokeOpenRouter } from './ai-provider-invoke.ts'

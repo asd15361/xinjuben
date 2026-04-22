@@ -9,7 +9,7 @@ interface AppIdentityBadgeProps {
   onLoginClick: () => void
 }
 
-export function AppIdentityBadge({ appName, onLoginClick }: AppIdentityBadgeProps) {
+export function AppIdentityBadge({ appName, onLoginClick }: AppIdentityBadgeProps): JSX.Element {
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
   const creditsBalance = useAuthStore((state) => state.creditsBalance)
   const user = useAuthStore((state) => state.user)
@@ -32,9 +32,7 @@ export function AppIdentityBadge({ appName, onLoginClick }: AppIdentityBadgeProp
           </button>
 
           {/* 用户名 */}
-          {user?.name && (
-            <span className="text-xs text-white/50">{user.name}</span>
-          )}
+          {user?.name && <span className="text-xs text-white/50">{user.name}</span>}
 
           {/* 退出按钮 */}
           <button
@@ -63,7 +61,10 @@ export function AppIdentityBadge({ appName, onLoginClick }: AppIdentityBadgeProp
         <p className="text-[10px] font-black text-white">{appName}</p>
         <p className="text-[8px] text-white/30 font-bold tracking-widest uppercase">创作台</p>
       </div>
-      <div className="w-10 h-10 rounded-xl p-[1px]" style={{ background: 'linear-gradient(135deg, #FF7A00, #f97316)' }}>
+      <div
+        className="w-10 h-10 rounded-xl p-[1px]"
+        style={{ background: 'linear-gradient(135deg, #FF7A00, #f97316)' }}
+      >
         <div className="w-full h-full rounded-[11px] bg-black flex items-center justify-center gap-1">
           <User size={14} style={{ color: '#FF7A00' }} />
           <span className="text-[10px] font-bold text-orange-400">登录</span>

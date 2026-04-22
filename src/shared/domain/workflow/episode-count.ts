@@ -1,5 +1,5 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import type { OutlineDraftDto } from '../../contracts/workflow'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import type { OutlineDraftDto } from '../../contracts/workflow.ts'
 
 export const DEFAULT_EPISODE_COUNT = 10
 export const MAX_EPISODE_COUNT = 80

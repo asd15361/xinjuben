@@ -1,4 +1,4 @@
-import type { CharacterDraftDto } from '../../contracts/workflow'
+import type { CharacterDraftDto } from '../../contracts/workflow.ts'
 
 const CHARACTER_NAME_STOP_WORDS = new Set([
   '主角',
@@ -126,7 +126,9 @@ export function cleanCharacterLikeName(value: string): string {
   if (/[《》【】]/.test(text)) return ''
   if (/[，,。；、\s]/.test(text)) return ''
 
-  const markerPattern = CHARACTER_NAME_MARKERS.map((marker) => marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+  const markerPattern = CHARACTER_NAME_MARKERS.map((marker) =>
+    marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  ).join('|')
   const leadingMatch = text.match(new RegExp(`^([一-龥]{2,6})(?=(${markerPattern}))`))
   if (leadingMatch?.[1]) {
     text = leadingMatch[1]
@@ -152,12 +154,17 @@ function preferText(primary: string | undefined, secondary: string | undefined):
 }
 
 function mergeActiveBlockNos(left?: number[], right?: number[]): number[] | undefined {
-  const merged = [...(left || []), ...(right || [])].filter((item) => Number.isInteger(item) && item > 0)
+  const merged = [...(left || []), ...(right || [])].filter(
+    (item) => Number.isInteger(item) && item > 0
+  )
   if (merged.length === 0) return undefined
   return [...new Set(merged)].sort((a, b) => a - b)
 }
 
-function mergeCharacterDraft(primary: CharacterDraftDto, secondary: CharacterDraftDto): CharacterDraftDto {
+function mergeCharacterDraft(
+  primary: CharacterDraftDto,
+  secondary: CharacterDraftDto
+): CharacterDraftDto {
   return {
     ...primary,
     name: primary.name,

@@ -1,5 +1,5 @@
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import type { CharacterDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
+import type { CharacterDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow.ts'
 
 function createStableHookId(sceneNo: number, hookText: string): string {
   const normalized = hookText
@@ -29,7 +29,11 @@ export function buildOpenHooks(
 ): ScriptStateLedgerDto['openHooks'] {
   const latestSceneNo = script[script.length - 1]?.sceneNo ?? 0
   return script
-    .filter((scene) => /[？?]|\b为什么\b|\b怎么会\b|秘密|真相|下落/i.test(scene.dialogue + scene.action + scene.emotion))
+    .filter((scene) =>
+      /[？?]|\b为什么\b|\b怎么会\b|秘密|真相|下落/i.test(
+        scene.dialogue + scene.action + scene.emotion
+      )
+    )
     .slice(-5)
     .map((scene) => {
       const hookText = scene.dialogue.trim() || scene.action.trim() || scene.emotion.trim()
@@ -38,9 +42,10 @@ export function buildOpenHooks(
         .map((character) => character.name)
       const anchorRefs = [
         ...relatedCharacters.map((name) => `char:${name}`),
-        ...((hookText.match(/青铜钥匙|锁心钥|断鳞刃|虎符|兵符|令牌|祭器|密信|地图|玉钥|铜钥|钥匙/g) || []).map(
-          (item) => `artifact:${item}`
-        ))
+        ...(
+          hookText.match(/青铜钥匙|锁心钥|断鳞刃|虎符|兵符|令牌|祭器|密信|地图|玉钥|铜钥|钥匙/g) ||
+          []
+        ).map((item) => `artifact:${item}`)
       ]
 
       return {

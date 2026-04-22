@@ -1,7 +1,15 @@
+import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
 import { useState } from 'react'
-import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
+import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
+import { apiConfirmStoryIntentFromChat } from '../../../services/api-client.ts'
 
-export function useChatStageActions() {
+export function useChatStageActions(): {
+  projectId: string | null
+  status: string
+  generationStatus: ProjectGenerationStatusDto | null
+  setStatus: (value: string) => void
+  handleConfirmIntent: (chatTranscript: string) => Promise<string>
+} {
   const projectId = useWorkflowStore((state) => state.projectId)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
   const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
@@ -22,7 +30,7 @@ export function useChatStageActions() {
     setStatus('正在整理你刚才确认的内容，请先等我收成正式信息。')
 
     try {
-      const result = await window.api.workspace.confirmStoryIntentFromChat({
+      const result = await apiConfirmStoryIntentFromChat({
         projectId: requestProjectId,
         chatTranscript
       })

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import type { ScriptGenerationExecutionPlanDto } from '../../../../../shared/contracts/script-generation'
+import type { ScriptGenerationExecutionPlanDto } from '../../../../../shared/contracts/script-generation.ts'
 import type { OutlineDraftDto, ScriptSegmentDto } from '../../../../../shared/contracts/workflow.ts'
 import {
   buildRewriteScriptEpisodeRequest,
@@ -11,7 +11,9 @@ import {
   resolveRequestedScriptGenerationMeta
 } from './script-stage-actions.ts'
 
-function createPlan(input?: Partial<ScriptGenerationExecutionPlanDto>): ScriptGenerationExecutionPlanDto {
+function createPlan(
+  input?: Partial<ScriptGenerationExecutionPlanDto>
+): ScriptGenerationExecutionPlanDto {
   return {
     mode: 'resume',
     ready: true,
@@ -122,7 +124,7 @@ test('buildScriptCharactersSummary keeps the same character summary口径 for ge
   const result = buildScriptCharactersSummary([
     { name: '黎明', goal: '护住钥匙', protectTarget: '小柔', fear: '失手' },
     { name: '李科', goal: '', protectTarget: '自己', fear: '失势' }
-  ] as any)
+  ] as unknown as Array<{ name: string; goal: string; protectTarget: string; fear: string }>)
 
   assert.deepEqual(result, ['黎明:护住钥匙', '李科:自己'])
 })

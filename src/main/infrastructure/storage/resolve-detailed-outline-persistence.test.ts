@@ -4,12 +4,12 @@ import { access, mkdtemp, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 import { resolveDetailedOutlinePersistence } from './resolve-detailed-outline-persistence.ts'
 import { readProjectShards } from './project-files/read-project-shards.ts'
 import { upsertProjectsIndexEntry } from './project-files/write-index.ts'
@@ -19,7 +19,7 @@ import {
   writeShard
 } from './project-files/write-shard.ts'
 
-function createCharacter(name: string) {
+function createCharacter(name: string): CharacterDraftDto {
   return {
     name,
     biography: `${name}的人物小传`,
@@ -35,7 +35,7 @@ function createCharacter(name: string) {
   }
 }
 
-function createOutline() {
+function createOutline(): OutlineDraftDto {
   return {
     title: '修仙传',
     genre: '玄幻修仙',
@@ -141,7 +141,10 @@ test('resolveDetailedOutlinePersistence allows persisting detailed outline when 
   })
 
   assert.equal(result.stage, 'detailed_outline')
-  assert.equal(result.outlineDraft?.facts.some((fact) => fact.status === 'confirmed'), false)
+  assert.equal(
+    result.outlineDraft?.facts.some((fact) => fact.status === 'confirmed'),
+    false
+  )
 })
 
 test('resolveDetailedOutlinePersistence preserves 30-episode detailed outline across save and load cycle', async (t) => {

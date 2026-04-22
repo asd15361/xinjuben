@@ -14,7 +14,7 @@ import { resolveDetailedOutlineEntryBlock } from './detailed-outline-entry-guard
 import { buildDetailedOutlineFailureNotice } from './detailed-outline-generation-notice.ts'
 import { getDetailedOutlineGenerationActionLabel } from './detailed-outline-stage-label.ts'
 
-export function DetailedOutlineStage() {
+export function DetailedOutlineStage(): JSX.Element {
   const segments = useStageStore((s) => s.segments)
   const setSegmentEpisodeBeat = useStageStore((s) => s.setSegmentEpisodeBeat)
   const outline = useStageStore((s) => s.outline)
@@ -44,7 +44,7 @@ export function DetailedOutlineStage() {
 
   const handleSwitchToStage = async (
     targetStage: 'outline' | 'character' | 'detailed_outline' | 'script'
-  ) => {
+  ): Promise<void> => {
     if (!projectId) return
 
     try {
@@ -199,7 +199,8 @@ export function DetailedOutlineStage() {
                   正式详细大纲还没生成成功
                 </p>
                 <p className="mt-1 text-sm font-black text-white/90">
-                  你现在看到的如果只是下面那部分“规划块对照 / 粗纲原句”，那只是参考底稿，不算正式详纲。
+                  你现在看到的如果只是下面那部分“规划块对照 /
+                  粗纲原句”，那只是参考底稿，不算正式详纲。
                 </p>
                 <p className="mt-2 text-[11px] text-white/65">
                   先点上面的“AI 帮我补这一版”，等逐集细纲真正生成出来，再往剧本页走。

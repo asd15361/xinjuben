@@ -7,6 +7,7 @@ import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useStageStore } from '../../../store/useStageStore'
 import { useScriptStageActions } from './useScriptStageActions'
 import { useScriptGenerationPlan } from '../../../app/hooks/useScriptGenerationPlan'
+import { useScriptAudit } from '../../../app/hooks/useScriptAudit'
 import { resolveProjectEpisodeCount } from '../../../../../shared/domain/workflow/episode-count'
 import {
   collectOverflowScriptEpisodeNos,
@@ -59,7 +60,7 @@ function buildEpisodeCards(
   })
 }
 
-export function ScriptStage() {
+export function ScriptStage(): JSX.Element {
   const script = useStageStore((state) => state.script)
   const outline = useStageStore((state) => state.outline)
   const projectId = useWorkflowStore((state) => state.projectId)
@@ -67,10 +68,11 @@ export function ScriptStage() {
   const exportStage = useProjectStageExport()
   const targetEpisodes = resolveProjectEpisodeCount({ outline, storyIntent })
   const generationPlan = useScriptGenerationPlan({ targetEpisodes })
+  const audit = useScriptAudit()
   const { generationStatus, handleRewriteEpisode, handleStartGeneration } = useScriptStageActions({
     generationPlan,
     targetEpisodes,
-    audit: { report: null } as any
+    audit
   })
   const generationPlanPending = generationPlan === null
   const episodeCards = useMemo(

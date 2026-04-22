@@ -4,7 +4,7 @@ interface StageExportButtonProps {
   onClick: () => void
 }
 
-export function StageExportButton(props: StageExportButtonProps) {
+export function StageExportButton(props: StageExportButtonProps): JSX.Element {
   return (
     <button
       onClick={props.onClick}

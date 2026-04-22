@@ -1,12 +1,17 @@
-import type { ScriptAuditIssueDto, ScriptRepairSuggestionDto } from '../../../contracts/script-audit'
-import type { StoryIntentPackageDto } from '../../../contracts/intake'
-import type { ScriptStateLedgerDto } from '../../../contracts/script-ledger'
-import type { ScriptSegmentDto } from '../../../contracts/workflow'
-import { buildRelationshipPressureSnapshot } from '../pressure/pressure-policy'
-import { buildDramaProgressionSnapshot } from '../progression/progression-policy'
-import { DEFAULT_RULE, REPAIR_MAPPING_RULES } from './repair-mapping-rules'
+import type {
+  ScriptAuditIssueDto,
+  ScriptRepairSuggestionDto
+} from '../../../contracts/script-audit.ts'
+import type { StoryIntentPackageDto } from '../../../contracts/intake.ts'
+import type { ScriptStateLedgerDto } from '../../../contracts/script-ledger.ts'
+import type { ScriptSegmentDto } from '../../../contracts/workflow.ts'
+import { buildRelationshipPressureSnapshot } from '../pressure/pressure-policy.ts'
+import { buildDramaProgressionSnapshot } from '../progression/progression-policy.ts'
+import { DEFAULT_RULE, REPAIR_MAPPING_RULES } from './repair-mapping-rules.ts'
 
-export function buildRepairSuggestion(issue: ScriptAuditIssueDto): Omit<ScriptRepairSuggestionDto, 'targetSceneNo'> {
+export function buildRepairSuggestion(
+  issue: ScriptAuditIssueDto
+): Omit<ScriptRepairSuggestionDto, 'targetSceneNo'> {
   const matched = REPAIR_MAPPING_RULES.find((item) => item.match(issue))?.rule || DEFAULT_RULE
   const factLandingInstruction =
     issue.code.startsWith('formal_fact_') && issue.code !== 'formal_fact_not_landed'

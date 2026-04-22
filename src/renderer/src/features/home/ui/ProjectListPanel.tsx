@@ -12,8 +12,17 @@ interface ProjectListPanelProps {
   onRemoveProject: (projectId: string, name: string) => void
 }
 
-export function ProjectListPanel(props: ProjectListPanelProps) {
-  const { busy, projects, visibleProjects, query, onQueryChange, onReload, onOpenProject, onRemoveProject } = props
+export function ProjectListPanel(props: ProjectListPanelProps): JSX.Element {
+  const {
+    busy,
+    projects,
+    visibleProjects,
+    query,
+    onQueryChange,
+    onReload,
+    onOpenProject,
+    onRemoveProject
+  } = props
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white/[0.01] rounded-2xl border border-white/[0.05] p-5">
@@ -21,7 +30,9 @@ export function ProjectListPanel(props: ProjectListPanelProps) {
         <div>
           <h3 className="text-sm font-black text-white/80 flex items-center gap-2">
             我的项目库
-            <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[10px] text-white/30">{projects.length}</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-white/5 text-[10px] text-white/30">
+              {projects.length}
+            </span>
           </h3>
         </div>
         <div className="flex items-center gap-2">
@@ -75,7 +86,9 @@ export function ProjectListPanel(props: ProjectListPanelProps) {
                     <span className="text-white/20">|</span>
                     <span className="text-white/25">{project.stage}</span>
                   </div>
-                  <p className="text-[9px] text-white/15 mt-4 font-mono">最近更新：{formatProjectTime(project.updatedAt).split(',')[0]}</p>
+                  <p className="text-[9px] text-white/15 mt-4 font-mono">
+                    最近更新：{formatProjectTime(project.updatedAt).split(',')[0]}
+                  </p>
                 </button>
 
                 <button
@@ -84,7 +97,13 @@ export function ProjectListPanel(props: ProjectListPanelProps) {
                   disabled={busy}
                   title="删除项目"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-3 h-3">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    className="w-3 h-3"
+                  >
                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                   </svg>
                 </button>

@@ -67,7 +67,9 @@ export function normalizeWorkspaceChatErrorMessage(error: unknown): string {
     return '先去确认七问，再继续生成粗纲和人物'
   }
 
-  const outlineIncompleteMatch = summaryPrefixStripped.match(/^rough_outline_incomplete(?::([a-z_]+))?$/i)
+  const outlineIncompleteMatch = summaryPrefixStripped.match(
+    /^rough_outline_incomplete(?::([a-z_]+))?$/i
+  )
   if (outlineIncompleteMatch) {
     const code = (outlineIncompleteMatch[1] || '').toLowerCase()
     if (code === 'episode_count_short') {

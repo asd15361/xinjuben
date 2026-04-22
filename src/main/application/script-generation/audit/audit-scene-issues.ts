@@ -1,7 +1,7 @@
-import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit'
-import type { ScriptSegmentDto } from '../../../../shared/contracts/workflow'
-import { detectDramaProgressionDimensions } from '../../../../shared/domain/drama-progression/progression-engine'
-import { collectSceneCompletenessIssues } from '../../../../shared/domain/policy/audit/audit-policy'
+import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit.ts'
+import type { ScriptSegmentDto } from '../../../../shared/contracts/workflow.ts'
+import { detectDramaProgressionDimensions } from '../../../../shared/domain/drama-progression/progression-engine.ts'
+import { collectSceneCompletenessIssues } from '../../../../shared/domain/policy/audit/audit-policy.ts'
 
 function hasSectionPollution(scene: ScriptSegmentDto): boolean {
   return /Dialogue[:：]|Emotion[:：]/i.test(scene.action) || /Emotion[:：]/i.test(scene.dialogue)
@@ -9,7 +9,9 @@ function hasSectionPollution(scene: ScriptSegmentDto): boolean {
 
 function hasReportStyle(scene: ScriptSegmentDto): boolean {
   const text = `${scene.action}\n${scene.dialogue}\n${scene.emotion}`
-  return /(情绪层次|推进节点|记忆回声植入|表层[:：]|中层[:：]|深层[:：]|初始[:：]|中期[:：]|最后[:：]|总结[:：]|解析[:：]|说明[:：])/i.test(text)
+  return /(情绪层次|推进节点|记忆回声植入|表层[:：]|中层[:：]|深层[:：]|初始[:：]|中期[:：]|最后[:：]|总结[:：]|解析[:：]|说明[:：])/i.test(
+    text
+  )
 }
 
 function normalizeScene(scene: ScriptSegmentDto): string {
@@ -19,7 +21,16 @@ function normalizeScene(scene: ScriptSegmentDto): string {
 function hasExpositoryDialogue(dialogue: string): boolean {
   const normalized = dialogue.replace(/\s+/g, '')
   if (!normalized) return false
-  const explanationMarkers = ['因为', '所以', '总结', '说明', '代表', '意思是', '也就是说', '我们现在']
+  const explanationMarkers = [
+    '因为',
+    '所以',
+    '总结',
+    '说明',
+    '代表',
+    '意思是',
+    '也就是说',
+    '我们现在'
+  ]
   return explanationMarkers.some((marker) => normalized.includes(marker))
 }
 
@@ -40,21 +51,52 @@ function soundsStilted(dialogue: string): boolean {
 function lacksPlayableBlocking(scene: ScriptSegmentDto): boolean {
   const action = scene.action.replace(/\s+/g, '')
   if (!action) return false
-  const actionMarkers = ['推', '拉', '按', '退', '冲', '攥', '抬', '甩', '扑', '拦', '逼', '挡', '站', '跪', '抓']
+  const actionMarkers = [
+    '推',
+    '拉',
+    '按',
+    '退',
+    '冲',
+    '攥',
+    '抬',
+    '甩',
+    '扑',
+    '拦',
+    '逼',
+    '挡',
+    '站',
+    '跪',
+    '抓'
+  ]
   const emotionMarkers = ['沉默', '停了停', '顿了顿', '咬', '盯', '笑', '哽', '抖', '喘']
   const hasAction = actionMarkers.some((marker) => action.includes(marker))
-  const hasEmotion = emotionMarkers.some((marker) => action.includes(marker) || scene.emotion.includes(marker))
+  const hasEmotion = emotionMarkers.some(
+    (marker) => action.includes(marker) || scene.emotion.includes(marker)
+  )
   return !(hasAction && hasEmotion)
 }
 
 function lacksContinuationHook(scene: ScriptSegmentDto): boolean {
   const text = `${scene.action}${scene.dialogue}${scene.emotion}`.replace(/\s+/g, '')
   if (!text) return false
-  const continuationMarkers = ['转身', '扭头', '门外', '下一瞬', '话没说完', '忽然', '外头', '脚步', '抬眼', '压低声音']
+  const continuationMarkers = [
+    '转身',
+    '扭头',
+    '门外',
+    '下一瞬',
+    '话没说完',
+    '忽然',
+    '外头',
+    '脚步',
+    '抬眼',
+    '压低声音'
+  ]
   return !continuationMarkers.some((marker) => text.includes(marker))
 }
 
-export function collectSceneAuditIssues(script: ScriptSegmentDto[]): ScriptAuditReportDto['issues'] {
+export function collectSceneAuditIssues(
+  script: ScriptSegmentDto[]
+): ScriptAuditReportDto['issues'] {
   const issues: ScriptAuditReportDto['issues'] = []
 
   if (script.length === 0) {
@@ -123,7 +165,9 @@ export function collectSceneAuditIssues(script: ScriptSegmentDto[]): ScriptAudit
       })
     }
 
-    const dimensions = detectDramaProgressionDimensions(`${scene.action} ${scene.dialogue} ${scene.emotion}`)
+    const dimensions = detectDramaProgressionDimensions(
+      `${scene.action} ${scene.dialogue} ${scene.emotion}`
+    )
     const missingDimensions = Object.entries(dimensions)
       .filter(([, covered]) => !covered)
       .map(([key]) => key)

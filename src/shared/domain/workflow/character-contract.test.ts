@@ -291,10 +291,12 @@ test('isCharacterBundleStructurallyComplete fuzzy matches with substring contain
   // anchor is a substring of the generated name
   assert.equal(
     isCharacterBundleStructurallyComplete({
-      characters: [{
-        ...char,
-        name: '黎明·玄玉宫'
-      }],
+      characters: [
+        {
+          ...char,
+          name: '黎明·玄玉宫'
+        }
+      ],
       protagonist: '黎明'
     }),
     true

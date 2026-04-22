@@ -3,18 +3,34 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useWorkflowStore } from '../store/useWorkflowStore'
 import { useDynamicImportRecoverySuccessAck } from '../utils/dynamic-import-recovery'
 
-const ChatStage = lazy(async () => import('../../features/chat/ui/ChatStage').then((module) => ({ default: module.ChatStage })))
-const SevenQuestionsStage = lazy(
-  async () => import('../../features/seven-questions/ui/SevenQuestionsStage').then((module) => ({ default: module.SevenQuestionsStage }))
+const ChatStage = lazy(async () =>
+  import('../../features/chat/ui/ChatStage').then((module) => ({ default: module.ChatStage }))
 )
-const OutlineStage = lazy(async () => import('../../features/outline/ui/OutlineStage').then((module) => ({ default: module.OutlineStage })))
-const CharacterStage = lazy(async () => import('../../features/character/ui/CharacterStage').then((module) => ({ default: module.CharacterStage })))
-const DetailedOutlineStage = lazy(
-  async () => import('../../features/detailed-outline/ui/DetailedOutlineStage').then((module) => ({ default: module.DetailedOutlineStage }))
+const SevenQuestionsStage = lazy(async () =>
+  import('../../features/seven-questions/ui/SevenQuestionsStage').then((module) => ({
+    default: module.SevenQuestionsStage
+  }))
 )
-const ScriptStage = lazy(async () => import('../../features/script/ui/ScriptStage').then((module) => ({ default: module.ScriptStage })))
+const OutlineStage = lazy(async () =>
+  import('../../features/outline/ui/OutlineStage').then((module) => ({
+    default: module.OutlineStage
+  }))
+)
+const CharacterStage = lazy(async () =>
+  import('../../features/character/ui/CharacterStage').then((module) => ({
+    default: module.CharacterStage
+  }))
+)
+const DetailedOutlineStage = lazy(async () =>
+  import('../../features/detailed-outline/ui/DetailedOutlineStage').then((module) => ({
+    default: module.DetailedOutlineStage
+  }))
+)
+const ScriptStage = lazy(async () =>
+  import('../../features/script/ui/ScriptStage').then((module) => ({ default: module.ScriptStage }))
+)
 
-function StageViewportFallback() {
+function StageViewportFallback(): JSX.Element {
   return (
     <div className="h-full rounded-[24px] border border-white/8 bg-white/3 px-6 py-5">
       <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">正在切换页面</p>
@@ -23,9 +39,15 @@ function StageViewportFallback() {
   )
 }
 
-function DynamicImportRecoverySuccessAck(props: { ackKey: string; children: ReactNode }) {
-  useDynamicImportRecoverySuccessAck(props.ackKey)
-  return <>{props.children}</>
+function DynamicImportRecoverySuccessAck({
+  ackKey,
+  children
+}: {
+  ackKey: string
+  children: ReactNode
+}): JSX.Element {
+  useDynamicImportRecoverySuccessAck(ackKey)
+  return <>{children}</>
 }
 
 function renderActiveStage(currentStage: string): ReactNode {
@@ -47,7 +69,7 @@ function renderActiveStage(currentStage: string): ReactNode {
   }
 }
 
-export function StageViewport() {
+export function StageViewport(): JSX.Element {
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const activeStage = renderActiveStage(currentStage)
 

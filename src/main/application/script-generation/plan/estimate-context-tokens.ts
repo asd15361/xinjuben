@@ -3,7 +3,7 @@ import type {
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../../shared/contracts/workflow'
+} from '../../../../shared/contracts/workflow.ts'
 import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors.ts'
 
 export function estimateEpisodeContextTokens(input: {

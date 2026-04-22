@@ -26,7 +26,10 @@ test('summarizeSceneFragment clips long screenplay into a short recap', () => {
 test('buildStoryMomentum keeps activeConflictLine and pendingCost as recap-level text', () => {
   const scene = {
     sceneNo: 12,
-    screenplay: ['第12集', ...Array.from({ length: 10 }, () => '△黎明背小柔疾走，赶在侧殿验页前交齐账册。')].join('\n'),
+    screenplay: [
+      '第12集',
+      ...Array.from({ length: 10 }, () => '△黎明背小柔疾走，赶在侧殿验页前交齐账册。')
+    ].join('\n'),
     action: '△黎明背小柔疾走。'.repeat(20),
     dialogue: '黎明：得赶在师父验页前，交齐账册。'.repeat(10),
     emotion: '李诚阳：规矩能借，也能反噬。'.repeat(10)
@@ -52,13 +55,19 @@ test('buildStoryMomentum keeps activeConflictLine and pendingCost as recap-level
 
   assert.ok(momentum.activeConflictLine.length <= 120)
   assert.ok(momentum.pendingCost.length <= 80)
-  assert.doesNotMatch(momentum.activeConflictLine, /得赶在师父验页前，交齐账册。.*得赶在师父验页前，交齐账册。/)
+  assert.doesNotMatch(
+    momentum.activeConflictLine,
+    /得赶在师父验页前，交齐账册。.*得赶在师父验页前，交齐账册。/
+  )
 })
 
 test('buildKnowledgeBoundaries keeps publicFacts compact', () => {
   const scene = {
     sceneNo: 12,
-    screenplay: ['第12集', ...Array.from({ length: 10 }, () => '△黎明背起小柔进侧殿，对质残页真伪。')].join('\n'),
+    screenplay: [
+      '第12集',
+      ...Array.from({ length: 10 }, () => '△黎明背起小柔进侧殿，对质残页真伪。')
+    ].join('\n'),
     action: '△黎明背起小柔进侧殿。'.repeat(20),
     dialogue: '黎明：真底页在此。'.repeat(12),
     emotion: '小柔：像能守住东西的人。'.repeat(8)

@@ -290,22 +290,35 @@ export function parseFactionMatrixResponseWithEpisodeCount(
     const parsed = JSON.parse(cleaned)
     const thresholds = resolveFactionMatrixThresholds(totalEpisodes)
 
-    if (!parsed.title || !Array.isArray(parsed.factions) || parsed.factions.length < thresholds.minFactions) {
+    if (
+      !parsed.title ||
+      !Array.isArray(parsed.factions) ||
+      parsed.factions.length < thresholds.minFactions
+    ) {
       return null
     }
 
     for (const faction of parsed.factions) {
-      if (!Array.isArray(faction.branches) || faction.branches.length < thresholds.minBranchesPerFaction) {
+      if (
+        !Array.isArray(faction.branches) ||
+        faction.branches.length < thresholds.minBranchesPerFaction
+      ) {
         return null
       }
       for (const branch of faction.branches) {
-        if (!Array.isArray(branch.characters) || branch.characters.length < thresholds.minCharactersPerBranch) {
+        if (
+          !Array.isArray(branch.characters) ||
+          branch.characters.length < thresholds.minCharactersPerBranch
+        ) {
           return null
         }
       }
     }
 
-    if (!Array.isArray(parsed.crossRelations) || parsed.crossRelations.length < thresholds.minCrossRelations) {
+    if (
+      !Array.isArray(parsed.crossRelations) ||
+      parsed.crossRelations.length < thresholds.minCrossRelations
+    ) {
       return null
     }
 
@@ -334,13 +347,14 @@ export async function generateFactionMatrix(input: {
   const log =
     input.diagnosticLogger ??
     (async (message: string) => {
-      const { appendRuntimeDiagnosticLog } = await import(
-        '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-      )
+      const { appendRuntimeDiagnosticLog } =
+        await import('../../infrastructure/diagnostics/runtime-diagnostic-log.ts')
       await appendRuntimeDiagnosticLog('faction_matrix', message)
     })
 
-  await log(`start totalEpisodes=${input.totalEpisodes} promptChars=${prompt.length} timeoutMs=${timeoutMs}`)
+  await log(
+    `start totalEpisodes=${input.totalEpisodes} promptChars=${prompt.length} timeoutMs=${timeoutMs}`
+  )
 
   let currentPrompt = prompt
   let parseIssues: string[] = []

@@ -1,4 +1,4 @@
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import { resolvePersistedGenerationTruth } from '../../../shared/domain/workflow/persisted-generation-truth.ts'
 
 export function invalidateScriptRuntimeState(project: ProjectSnapshotDto): ProjectSnapshotDto {

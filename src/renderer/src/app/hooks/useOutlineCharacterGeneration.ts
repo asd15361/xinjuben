@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
-import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
+import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation.ts'
 import { ensureOutlineEpisodeShape } from '../../../../shared/domain/workflow/outline-episodes.ts'
 import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from '../../features/seven-questions/api.ts'
-import { apiGetProject } from '../../services/api-client'
-import { useAuthStore } from '../store/useAuthStore'
-import { useStageStore } from '../../store/useStageStore'
+import { apiGetProject } from '../../services/api-client.ts'
+import { useAuthStore } from '../store/useAuthStore.ts'
+import { useStageStore } from '../../store/useStageStore.ts'
 import { clearScriptPlanCache } from '../services/script-plan-service.ts'
-import { useWorkflowStore } from '../store/useWorkflowStore'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
 import {
   buildOutlineCharacterGenerationFailureNotice,
   buildOutlineCharacterGenerationSuccessNotice,

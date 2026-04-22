@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { CreateProjectInputDto, ProjectSummaryDto } from '../../../../shared/contracts/project'
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
+import type {
+  CreateProjectInputDto,
+  ProjectSummaryDto
+} from '../../../../shared/contracts/project.ts'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
 import type {
   OutlineSeedDto,
   SaveCharacterDraftsInputDto,
@@ -9,7 +12,7 @@ import type {
   SaveScriptDraftInputDto,
   SaveScriptRuntimeStateInputDto,
   SaveStoryIntentInputDto
-} from '../../../../shared/contracts/workspace'
+} from '../../../../shared/contracts/workspace.ts'
 import {
   apiCreateProject,
   apiGetProject,
@@ -20,7 +23,8 @@ import {
   apiSaveScriptDraft,
   apiSaveScriptRuntimeState,
   apiSaveStoryIntent
-} from '../../services/api-client'
+} from '../../services/api-client.ts'
+import { createOutlineSeed } from '../../services/create-outline-seed.ts'
 
 interface WorkspaceProjectsState {
   projects: ProjectSummaryDto[]
@@ -30,9 +34,13 @@ interface WorkspaceProjectsState {
   saveStoryIntent: (input: SaveStoryIntentInputDto) => Promise<ProjectSnapshotDto | null>
   saveOutlineDraft: (input: SaveOutlineDraftInputDto) => Promise<ProjectSnapshotDto | null>
   saveCharacterDrafts: (input: SaveCharacterDraftsInputDto) => Promise<ProjectSnapshotDto | null>
-  saveDetailedOutlineSegments: (input: SaveDetailedOutlineSegmentsInputDto) => Promise<ProjectSnapshotDto | null>
+  saveDetailedOutlineSegments: (
+    input: SaveDetailedOutlineSegmentsInputDto
+  ) => Promise<ProjectSnapshotDto | null>
   saveScriptDraft: (input: SaveScriptDraftInputDto) => Promise<ProjectSnapshotDto | null>
-  saveScriptRuntimeState: (input: SaveScriptRuntimeStateInputDto) => Promise<ProjectSnapshotDto | null>
+  saveScriptRuntimeState: (
+    input: SaveScriptRuntimeStateInputDto
+  ) => Promise<ProjectSnapshotDto | null>
   createOutlineSeed: (projectId: string) => Promise<OutlineSeedDto | null>
   reload: () => Promise<void>
 }
@@ -57,21 +65,27 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     setActiveProject(result.project)
   }
 
-  async function saveStoryIntent(input: SaveStoryIntentInputDto): Promise<ProjectSnapshotDto | null> {
+  async function saveStoryIntent(
+    input: SaveStoryIntentInputDto
+  ): Promise<ProjectSnapshotDto | null> {
     const result = await apiSaveStoryIntent(input)
     setActiveProject(result.project)
     await reload()
     return result.project
   }
 
-  async function saveOutlineDraft(input: SaveOutlineDraftInputDto): Promise<ProjectSnapshotDto | null> {
+  async function saveOutlineDraft(
+    input: SaveOutlineDraftInputDto
+  ): Promise<ProjectSnapshotDto | null> {
     const result = await apiSaveOutlineDraft(input)
     setActiveProject(result.project)
     await reload()
     return result.project
   }
 
-  async function saveCharacterDrafts(input: SaveCharacterDraftsInputDto): Promise<ProjectSnapshotDto | null> {
+  async function saveCharacterDrafts(
+    input: SaveCharacterDraftsInputDto
+  ): Promise<ProjectSnapshotDto | null> {
     const result = await apiSaveCharacterDrafts(input)
     setActiveProject(result.project)
     await reload()
@@ -87,26 +101,42 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     return result.project
   }
 
-  async function saveScriptDraft(input: SaveScriptDraftInputDto): Promise<ProjectSnapshotDto | null> {
+  async function saveScriptDraft(
+    input: SaveScriptDraftInputDto
+  ): Promise<ProjectSnapshotDto | null> {
     const result = await apiSaveScriptDraft(input)
     setActiveProject(result.project)
     await reload()
     return result.project
   }
 
-  async function saveScriptRuntimeState(input: SaveScriptRuntimeStateInputDto): Promise<ProjectSnapshotDto | null> {
+  async function saveScriptRuntimeState(
+    input: SaveScriptRuntimeStateInputDto
+  ): Promise<ProjectSnapshotDto | null> {
     const result = await apiSaveScriptRuntimeState(input)
     setActiveProject(result.project)
     await reload()
     return result.project
   }
 
-  async function createOutlineSeed(projectId: string): Promise<OutlineSeedDto | null> {
-    return window.api.workspace.createOutlineSeed({ projectId })
+  async function createOutlineSeedFromProject(projectId: string): Promise<OutlineSeedDto | null> {
+    const result = await apiGetProject(projectId)
+    if (!result.project) return null
+    return createOutlineSeed(result.project)
   }
 
   useEffect(() => {
-    void reload()
+    let cancelled = false
+    const load = async (): Promise<void> => {
+      const result = await apiListProjects()
+      if (!cancelled) {
+        setProjects(result.projects)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return {
@@ -120,7 +150,7 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     saveDetailedOutlineSegments,
     saveScriptDraft,
     saveScriptRuntimeState,
-    createOutlineSeed,
+    createOutlineSeed: createOutlineSeedFromProject,
     reload
   }
 }

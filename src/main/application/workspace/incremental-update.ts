@@ -9,7 +9,12 @@
  * 3. 重跑时把锁定节点作为"已确认事实"注入，保证新输出与旧事实对齐
  */
 
-import type { FactionMatrixDto, FactionDto, FactionBranchDto, CharacterPlaceholderDto } from '../../../shared/contracts/faction-matrix.ts'
+import type {
+  FactionMatrixDto,
+  FactionDto,
+  FactionBranchDto,
+  CharacterPlaceholderDto
+} from '../../../shared/contracts/faction-matrix.ts'
 import type { CharacterProfileV2Dto } from '../../../shared/contracts/character-profile-v2.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,10 +45,7 @@ export function patchFactionMatrix(
  * 合并两个势力列表，以 existing 为基础，用 patch 中非锁定的项覆盖。
  * 锁定项保留 existing 的版本。
  */
-function mergeFactionLists(
-  existing: FactionDto[],
-  patch: FactionDto[]
-): FactionDto[] {
+function mergeFactionLists(existing: FactionDto[], patch: FactionDto[]): FactionDto[] {
   const existingMap = new Map(existing.map((f) => [f.id, f]))
   const result: FactionDto[] = []
 
@@ -207,9 +209,7 @@ export function patchCharacterProfiles(
 export function lockFaction(matrix: FactionMatrixDto, factionId: string): FactionMatrixDto {
   return {
     ...matrix,
-    factions: matrix.factions.map((f) =>
-      f.id === factionId ? { ...f, isLocked: true } : f
-    )
+    factions: matrix.factions.map((f) => (f.id === factionId ? { ...f, isLocked: true } : f))
   }
 }
 
@@ -217,24 +217,24 @@ export function lockFaction(matrix: FactionMatrixDto, factionId: string): Factio
 export function unlockFaction(matrix: FactionMatrixDto, factionId: string): FactionMatrixDto {
   return {
     ...matrix,
-    factions: matrix.factions.map((f) =>
-      f.id === factionId ? { ...f, isLocked: false } : f
-    )
+    factions: matrix.factions.map((f) => (f.id === factionId ? { ...f, isLocked: false } : f))
   }
 }
 
 /** 锁定指定 ID 的人物 */
-export function lockCharacter(characters: CharacterProfileV2Dto[], characterId: string): CharacterProfileV2Dto[] {
-  return characters.map((c) =>
-    c.id === characterId ? { ...c, isLocked: true } : c
-  )
+export function lockCharacter(
+  characters: CharacterProfileV2Dto[],
+  characterId: string
+): CharacterProfileV2Dto[] {
+  return characters.map((c) => (c.id === characterId ? { ...c, isLocked: true } : c))
 }
 
 /** 解锁指定 ID 的人物 */
-export function unlockCharacter(characters: CharacterProfileV2Dto[], characterId: string): CharacterProfileV2Dto[] {
-  return characters.map((c) =>
-    c.id === characterId ? { ...c, isLocked: false } : c
-  )
+export function unlockCharacter(
+  characters: CharacterProfileV2Dto[],
+  characterId: string
+): CharacterProfileV2Dto[] {
+  return characters.map((c) => (c.id === characterId ? { ...c, isLocked: false } : c))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -253,13 +253,17 @@ export function renderLockedFactionsAsFact(matrix: FactionMatrixDto): string {
   lines.push('【以下内容已由用户确认锁定，绝对不可修改：】')
 
   for (const faction of lockedFactions) {
-    lines.push(`■ ${faction.name}（${faction.positioning}）- 诉求：${faction.coreDemand} - 价值观：${faction.coreValues}`)
+    lines.push(
+      `■ ${faction.name}（${faction.positioning}）- 诉求：${faction.coreDemand} - 价值观：${faction.coreValues}`
+    )
     const lockedBranches = faction.branches.filter((b) => b.isLocked)
     for (const branch of lockedBranches) {
       lines.push(`  ├─ ${branch.name}（${branch.positioning}）- 诉求：${branch.coreDemand}`)
       const lockedChars = branch.characters.filter((c) => c.isLocked)
       for (const char of lockedChars) {
-        lines.push(`  │  ├─ ${char.name}（${char.roleInFaction}）：${char.identity}｜动机：${char.coreMotivation}`)
+        lines.push(
+          `  │  ├─ ${char.name}（${char.roleInFaction}）：${char.identity}｜动机：${char.coreMotivation}`
+        )
       }
     }
   }

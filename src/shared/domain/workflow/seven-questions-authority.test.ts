@@ -25,7 +25,9 @@ import type {
 
 // ─── 测试数据 ────────────────────────────────────────────────────────────────
 
-function makeSevenQuestionsSection(overrides?: Partial<SevenQuestionsSectionDto>): SevenQuestionsSectionDto {
+function makeSevenQuestionsSection(
+  overrides?: Partial<SevenQuestionsSectionDto>
+): SevenQuestionsSectionDto {
   const q: SevenQuestionsDto = {
     goal: '主角找到宝藏',
     obstacle: '反派阻止',
@@ -169,7 +171,15 @@ describe('七问真相源：extractConfirmedSevenQuestions', () => {
           summary: '',
           episodes: [],
           sectionTitle: '第一篇章',
-          sevenQuestions: { goal: '目标1', obstacle: '阻碍1', effort: '努力1', result: '结果1', twist: '意外1', turnaround: '转折1', ending: '结局1' }
+          sevenQuestions: {
+            goal: '目标1',
+            obstacle: '阻碍1',
+            effort: '努力1',
+            result: '结果1',
+            twist: '意外1',
+            turnaround: '转折1',
+            ending: '结局1'
+          }
         },
         {
           blockNo: 2,
@@ -179,7 +189,15 @@ describe('七问真相源：extractConfirmedSevenQuestions', () => {
           summary: '',
           episodes: [],
           sectionTitle: '第二篇章',
-          sevenQuestions: { goal: '目标2', obstacle: '阻碍2', effort: '努力2', result: '结果2', twist: '意外2', turnaround: '转折2', ending: '结局2' }
+          sevenQuestions: {
+            goal: '目标2',
+            obstacle: '阻碍2',
+            effort: '努力2',
+            result: '结果2',
+            twist: '意外2',
+            turnaround: '转折2',
+            ending: '结局2'
+          }
         }
       ]
     }
@@ -255,11 +273,17 @@ describe('七问真相源：writeConfirmedSevenQuestionsToOutlineBlocks', () => 
 
     assert.notStrictEqual(readBack, null)
     assert.strictEqual(readBack!.sections[0].sevenQuestions.goal, section.sevenQuestions.goal)
-    assert.strictEqual(readBack!.sections[0].sevenQuestions.obstacle, section.sevenQuestions.obstacle)
+    assert.strictEqual(
+      readBack!.sections[0].sevenQuestions.obstacle,
+      section.sevenQuestions.obstacle
+    )
     assert.strictEqual(readBack!.sections[0].sevenQuestions.effort, section.sevenQuestions.effort)
     assert.strictEqual(readBack!.sections[0].sevenQuestions.result, section.sevenQuestions.result)
     assert.strictEqual(readBack!.sections[0].sevenQuestions.twist, section.sevenQuestions.twist)
-    assert.strictEqual(readBack!.sections[0].sevenQuestions.turnaround, section.sevenQuestions.turnaround)
+    assert.strictEqual(
+      readBack!.sections[0].sevenQuestions.turnaround,
+      section.sevenQuestions.turnaround
+    )
     assert.strictEqual(readBack!.sections[0].sevenQuestions.ending, section.sevenQuestions.ending)
   })
 })
@@ -279,7 +303,15 @@ describe('七问真相源：一致性边界', () => {
           summary: '',
           episodes: [],
           sectionTitle: '开篇',
-          sevenQuestions: { goal: '第一篇章目标', obstacle: '第一篇章阻碍', effort: '第一篇章努力', result: '第一篇章结果', twist: '第一篇章意外', turnaround: '第一篇章转折', ending: '第一篇章结局' }
+          sevenQuestions: {
+            goal: '第一篇章目标',
+            obstacle: '第一篇章阻碍',
+            effort: '第一篇章努力',
+            result: '第一篇章结果',
+            twist: '第一篇章意外',
+            turnaround: '第一篇章转折',
+            ending: '第一篇章结局'
+          }
         },
         {
           blockNo: 2,
@@ -289,7 +321,15 @@ describe('七问真相源：一致性边界', () => {
           summary: '',
           episodes: [],
           sectionTitle: '高潮',
-          sevenQuestions: { goal: '第二篇章目标', obstacle: '第二篇章阻碍', effort: '第二篇章努力', result: '第二篇章结果', twist: '第二篇章意外', turnaround: '第二篇章转折', ending: '第二篇章结局' }
+          sevenQuestions: {
+            goal: '第二篇章目标',
+            obstacle: '第二篇章阻碍',
+            effort: '第二篇章努力',
+            result: '第二篇章结果',
+            twist: '第二篇章意外',
+            turnaround: '第二篇章转折',
+            ending: '第二篇章结局'
+          }
         }
       ]
     }
@@ -307,7 +347,10 @@ describe('七问真相源：一致性边界', () => {
     assert.strictEqual(result!.sections[1].sectionTitle, '高潮')
 
     // 两者不混淆
-    assert.notStrictEqual(result!.sections[0].sevenQuestions.goal, result!.sections[1].sevenQuestions.goal)
+    assert.notStrictEqual(
+      result!.sections[0].sevenQuestions.goal,
+      result!.sections[1].sevenQuestions.goal
+    )
   })
 
   it('只保留七个七问字段，不多不少', () => {

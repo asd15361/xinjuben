@@ -1,4 +1,4 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import { buildShortDramaConstitutionFromStoryIntent } from '../../../shared/domain/short-drama/short-drama-constitution.ts'
 import { cleanPossibleName, normalizeAnchorName } from './summarize-chat-for-generation-shared.ts'
 
@@ -18,13 +18,8 @@ function toAnchorName(value: unknown): string {
   return normalizeAnchorName(toStringOrEmpty(value))
 }
 
-export function normalizeOutlineStoryIntent(
-  input: unknown,
-  _fallback?: StoryIntentPackageDto
-): StoryIntentPackageDto {
-  const obj = (
-    input && typeof input === 'object' ? (input as Record<string, unknown>) : {}
-  ) as Record<string, unknown>
+export function normalizeOutlineStoryIntent(input: unknown): StoryIntentPackageDto {
+  const obj = (input as Record<string, unknown>) || {}
   const nextOfficialKeyCharacters = toStringArray(obj.officialKeyCharacters)
     .map((item) => cleanPossibleName(item))
     .filter(Boolean)

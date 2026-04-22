@@ -7,7 +7,11 @@ import {
   outlineEpisodesToSummary
 } from '../../../../../shared/domain/workflow/outline-episodes'
 
-function syncTextareaHeight(event: Pick<ChangeEvent<HTMLTextAreaElement>, 'currentTarget'> | { currentTarget: HTMLTextAreaElement }): void {
+function syncTextareaHeight(
+  event:
+    | Pick<ChangeEvent<HTMLTextAreaElement>, 'currentTarget'>
+    | { currentTarget: HTMLTextAreaElement }
+): void {
   const target = event.currentTarget
   target.style.height = '0px'
   target.style.height = `${target.scrollHeight}px`
@@ -16,7 +20,7 @@ function syncTextareaHeight(event: Pick<ChangeEvent<HTMLTextAreaElement>, 'curre
 export function OutlineBasicsPanel(input: {
   outline: OutlineDraftDto
   onChange: (data: Partial<OutlineDraftDto>) => void
-}) {
+}): JSX.Element {
   const { outline, onChange } = input
   const normalizedOutline = ensureOutlineEpisodeShape(outline)
   const episodes = normalizedOutline.summaryEpisodes.map((episode, idx) => ({
@@ -31,7 +35,9 @@ export function OutlineBasicsPanel(input: {
       <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">这一页在做什么</p>
+            <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">
+              这一页在做什么
+            </p>
             <p className="text-sm font-black text-white/85">先把戏的骨架钉住，再进人物。</p>
             <p className="text-[11px] text-white/40 leading-relaxed">
               你现在先不用追求很细，只要把每一集的大事、冲突和结尾钩子说清楚，后面的人物和详纲才有东西可接。
@@ -84,14 +90,19 @@ export function OutlineBasicsPanel(input: {
       <div className="pt-8 border-t border-white/[0.05]">
         <div className="flex items-center gap-2 mb-6">
           <div className="w-1.5 h-4 bg-orange-500 rounded-full" />
-          <h3 className="text-sm font-black text-white/90 uppercase tracking-widest">分集剧情视窗</h3>
+          <h3 className="text-sm font-black text-white/90 uppercase tracking-widest">
+            分集剧情视窗
+          </h3>
         </div>
 
         <div className="grid grid-cols-1 gap-4">
           {episodes.length > 0 ? (
             episodes.map((episode) => {
               return (
-                <div key={episode.key} className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-5 hover:border-orange-500/30 transition-all">
+                <div
+                  key={episode.key}
+                  className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-5 hover:border-orange-500/30 transition-all"
+                >
                   <div className="flex gap-4">
                     <div className="shrink-0">
                       <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
@@ -103,9 +114,11 @@ export function OutlineBasicsPanel(input: {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <p className="text-[11px] font-black text-white/30 uppercase tracking-tighter">
-                        {`第 ${episode.episodeNo} 集`}
+                          {`第 ${episode.episodeNo} 集`}
                         </p>
-                        <span className="text-[10px] text-white/20">这一集发生什么，结尾挂什么</span>
+                        <span className="text-[10px] text-white/20">
+                          这一集发生什么，结尾挂什么
+                        </span>
                       </div>
                       <textarea
                         className="w-full overflow-hidden bg-transparent text-[13px] text-white/70 leading-relaxed outline-none focus:text-white/90 transition-colors resize-none"
@@ -120,7 +133,10 @@ export function OutlineBasicsPanel(input: {
                           const nextEpisodes = normalizeOutlineEpisodes(
                             episodes.map((current) => ({
                               episodeNo: current.episodeNo,
-                              summary: current.episodeNo === episode.episodeNo ? e.target.value : current.content
+                              summary:
+                                current.episodeNo === episode.episodeNo
+                                  ? e.target.value
+                                  : current.content
                             })),
                             episodes.length
                           )

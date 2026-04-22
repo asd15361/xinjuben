@@ -1,8 +1,8 @@
-import type { ModelRouteLane } from '../../../shared/contracts/ai'
+import type { ModelRouteLane } from '../../../shared/contracts/ai.ts'
 import type {
   RuntimeProviderConfig,
   ProviderFamilyConfig
-} from '../../infrastructure/runtime-env/provider-config'
+} from '../../infrastructure/runtime-env/provider-config.ts'
 
 export const AI_REQUEST_TIMEOUT_PREFIX = 'ai_request_timeout:'
 

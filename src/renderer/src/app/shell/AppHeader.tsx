@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/useAuthStore'
 import { AppIdentityBadge } from './AppIdentityBadge'
 import { LoginModal } from '../../components/LoginModal'
 
-export function AppHeader() {
+export function AppHeader(): JSX.Element {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const projectId = useWorkflowStore((state) => state.projectId)
@@ -40,7 +40,7 @@ export function AppHeader() {
       : 'border-emerald-500/20 bg-emerald-500/10'
   const noticeTextClass = generationNotice?.kind === 'error' ? 'text-rose-300' : 'text-emerald-300'
 
-  const backToHome = () => {
+  const backToHome = (): void => {
     // Hard reset: avoid "串项目" and multi-truth leaks.
     resetStage()
     resetWorkflow()
@@ -80,7 +80,9 @@ export function AppHeader() {
             onClick={clearGenerationNotice}
             className={`hidden lg:flex items-center gap-2 rounded-full border px-3 py-1.5 ${noticeToneClass}`}
           >
-            <span className={`text-[10px] font-black ${noticeTextClass}`}>{generationNotice.title}</span>
+            <span className={`text-[10px] font-black ${noticeTextClass}`}>
+              {generationNotice.title}
+            </span>
             <span className="text-[10px] text-white/45">点这里关闭提示</span>
           </button>
         )}
@@ -93,7 +95,10 @@ export function AppHeader() {
             回到项目首页
           </button>
         )}
-        <AppIdentityBadge appName={appInfo?.name || 'XINJUBEN'} onLoginClick={() => setShowLoginModal(true)} />
+        <AppIdentityBadge
+          appName={appInfo?.name || 'XINJUBEN'}
+          onLoginClick={() => setShowLoginModal(true)}
+        />
       </div>
 
       {/* 登录弹窗 */}

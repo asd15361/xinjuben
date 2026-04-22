@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron'
-import { WORKFLOW_STAGES } from '../../shared/contracts/workflow'
+import { WORKFLOW_STAGES } from '../../shared/contracts/workflow.ts'
 import {
   appendRuntimeDiagnosticLog,
   getRuntimeDiagnosticLogPath
-} from '../infrastructure/diagnostics/runtime-diagnostic-log'
+} from '../infrastructure/diagnostics/runtime-diagnostic-log.ts'
 
 export function registerSystemHandlers(getVersion: () => string): void {
   ipcMain.on('ping', () => {

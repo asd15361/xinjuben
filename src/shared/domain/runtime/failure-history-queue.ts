@@ -1,4 +1,4 @@
-import type { ScriptRuntimeFailureHistoryCode } from '../../contracts/script-generation'
+import type { ScriptRuntimeFailureHistoryCode } from '../../contracts/script-generation.ts'
 
 const MAX_FAILURE_HISTORY = 5
 

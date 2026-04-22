@@ -9,7 +9,7 @@ interface WorkspaceProjectListProps {
   onOpenProject: (projectId: string) => void
 }
 
-export function WorkspaceProjectList(props: WorkspaceProjectListProps) {
+export function WorkspaceProjectList(props: WorkspaceProjectListProps): JSX.Element {
   return (
     <>
       <div className="flex gap-3">
@@ -30,7 +30,9 @@ export function WorkspaceProjectList(props: WorkspaceProjectListProps) {
 
       <div className="space-y-2">
         <p className="text-[10px] uppercase tracking-widest text-white/25 font-bold">最近项目</p>
-        {props.projects.length === 0 && <p className="text-xs text-white/35">还没有项目，先新建一个项目再开始。</p>}
+        {props.projects.length === 0 && (
+          <p className="text-xs text-white/35">还没有项目，先新建一个项目再开始。</p>
+        )}
         {props.projects.map((project) => {
           const isActive = props.activeProject?.id === project.id
           return (
@@ -38,7 +40,9 @@ export function WorkspaceProjectList(props: WorkspaceProjectListProps) {
               key={project.id}
               onClick={() => props.onOpenProject(project.id)}
               className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
-                isActive ? 'border-orange-500/30 bg-orange-500/10' : 'border-white/8 bg-white/3 hover:bg-white/5'
+                isActive
+                  ? 'border-orange-500/30 bg-orange-500/10'
+                  : 'border-white/8 bg-white/3 hover:bg-white/5'
               }`}
             >
               <div className="flex items-center justify-between gap-3">
@@ -48,7 +52,9 @@ export function WorkspaceProjectList(props: WorkspaceProjectListProps) {
                     {project.workflowType} / {project.stage} / {project.genre || '待定义题材'}
                   </p>
                 </div>
-                <span className="text-[10px] text-white/25">{new Date(project.updatedAt).toLocaleString()}</span>
+                <span className="text-[10px] text-white/25">
+                  {new Date(project.updatedAt).toLocaleString()}
+                </span>
               </div>
             </button>
           )

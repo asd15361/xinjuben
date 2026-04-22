@@ -8,7 +8,7 @@ interface AutoGrowTextareaProps {
   className?: string
 }
 
-export function AutoGrowTextarea(props: AutoGrowTextareaProps) {
+export function AutoGrowTextarea(props: AutoGrowTextareaProps): JSX.Element {
   const { value, onChange, placeholder, disabled = false, className = '' } = props
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 

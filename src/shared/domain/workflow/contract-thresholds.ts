@@ -48,6 +48,7 @@ export const SCENE_COUNT_MINIMUM = 2
  */
 export const EPISODE_CHAR_COUNT = {
   min: (_sceneCount: number): number => {
+    void _sceneCount
     return 800
   },
   max: 1800

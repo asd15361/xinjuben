@@ -1,4 +1,4 @@
-import type { FormalFact } from '../../contracts/workflow'
+import type { FormalFact } from '../../contracts/workflow.ts'
 
 function normalizeLabel(value: string | undefined): string {
   return (value || '').trim().replace(/^draft_/, '')
@@ -19,10 +19,7 @@ export function getFormalFactSemanticLabel(
     return '对手压力'
   }
 
-  if (
-    label === '师父角色' ||
-    /师父|师傅|道长|交代|规矩|旧话|托付|钥匙/.test(combined)
-  ) {
+  if (label === '师父角色' || /师父|师傅|道长|交代|规矩|旧话|托付|钥匙/.test(combined)) {
     return '师父角色'
   }
 

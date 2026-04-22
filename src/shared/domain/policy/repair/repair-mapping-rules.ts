@@ -1,4 +1,4 @@
-import type { ScriptAuditIssueDto } from '../../../contracts/script-audit'
+import type { ScriptAuditIssueDto } from '../../../contracts/script-audit.ts'
 
 export interface RepairMappingRule {
   policyKey: string
@@ -13,7 +13,8 @@ export const REPAIR_MAPPING_RULES: Array<{
   rule: RepairMappingRule
 }> = [
   {
-    match: (issue) => issue.code === 'formal_fact_not_landed' || issue.code.startsWith('formal_fact_'),
+    match: (issue) =>
+      issue.code === 'formal_fact_not_landed' || issue.code.startsWith('formal_fact_'),
     rule: {
       policyKey: 'formal_fact_landing',
       source: '正式事实主线',
@@ -99,11 +100,13 @@ export const REPAIR_MAPPING_RULES: Array<{
       source: '人物特质绑定',
       focus: ['人物特质', '行为落地', '记忆回声'],
       evidenceHint: '检查角色优势、短板、执念有没有落成微动作、回忆触发或冲突动作。',
-      buildInstruction: () => '请把角色特质落进具体行为，可以是微动作、回忆回声，或直接驱动冲突选择。'
+      buildInstruction: () =>
+        '请把角色特质落进具体行为，可以是微动作、回忆回声，或直接驱动冲突选择。'
     }
   },
   {
-    match: (issue) => issue.code === 'memory_echo_missing' || issue.code === 'memory_echo_regressed',
+    match: (issue) =>
+      issue.code === 'memory_echo_missing' || issue.code === 'memory_echo_regressed',
     rule: {
       policyKey: 'memory_echo_restore',
       source: '跨批次连续性',
@@ -159,7 +162,8 @@ export const REPAIR_MAPPING_RULES: Array<{
       source: '戏剧推进链',
       focus: ['欲望', '阻力', '代价', '关系杠杆', '钩子'],
       evidenceHint: '检查这一场是不是只有信息，没有形成欲望、阻力、代价、关系和钩子的推进链。',
-      buildInstruction: () => '请补强这一场的戏剧推进链，至少让欲望、阻力、代价、关系杠杆、钩子中的关键维度真正成立。'
+      buildInstruction: () =>
+        '请补强这一场的戏剧推进链，至少让欲望、阻力、代价、关系杠杆、钩子中的关键维度真正成立。'
     }
   },
   {
@@ -169,7 +173,8 @@ export const REPAIR_MAPPING_RULES: Array<{
       source: '表达层F6',
       focus: ['对白像人话', '人物味道', '嘴感'],
       evidenceHint: '检查对白是不是一直在解释事情，而不是让人物在处境里说出来。',
-      buildInstruction: () => '请把这场对白从“直接说明事情”改成“人物在当下处境里说出来”，去掉解释味，补出人物自己的说话劲。'
+      buildInstruction: () =>
+        '请把这场对白从“直接说明事情”改成“人物在当下处境里说出来”，去掉解释味，补出人物自己的说话劲。'
     }
   },
   {
@@ -199,7 +204,8 @@ export const REPAIR_MAPPING_RULES: Array<{
       source: '表达层F6',
       focus: ['场景可演', '动作对白情绪一体', '处境压力'],
       evidenceHint: '检查动作、对白、情绪是不是还在分栏摆放，没有真正扣成一股劲。',
-      buildInstruction: () => '请把动作、对白、情绪重新扣成一体，让这场戏读完就知道人物怎么演、怎么受压、怎么回击。'
+      buildInstruction: () =>
+        '请把动作、对白、情绪重新扣成一体，让这场戏读完就知道人物怎么演、怎么受压、怎么回击。'
     }
   },
   {
@@ -209,7 +215,8 @@ export const REPAIR_MAPPING_RULES: Array<{
       source: '表达层F6',
       focus: ['续写承接', '后续压力', '场尾钩子'],
       evidenceHint: '检查这场结尾是不是已经把局面停死，没有给后续留下顺手承接点。',
-      buildInstruction: () => '请在场尾补出顺着就能接下去的动作、关系压力或未说完的危险，让后续不是硬挂钩。'
+      buildInstruction: () =>
+        '请在场尾补出顺着就能接下去的动作、关系压力或未说完的危险，让后续不是硬挂钩。'
     }
   }
 ]
@@ -219,5 +226,6 @@ export const DEFAULT_RULE: RepairMappingRule = {
   source: '通用修补策略',
   focus: ['正式事实', '用户锚点', '主线冲突'],
   evidenceHint: '先核对问题是否会破坏正式事实、用户锚点或主线冲突，再决定怎么修。',
-  buildInstruction: (issue) => `请修补问题：${issue.message}，同时保持正式事实、用户锚点和主线冲突一致。`
+  buildInstruction: (issue) =>
+    `请修补问题：${issue.message}，同时保持正式事实、用户锚点和主线冲突一致。`
 }

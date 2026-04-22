@@ -1,8 +1,6 @@
 import type { GenerationNotice } from '../../../app/store/useWorkflowStore.ts'
 
-export function getDetailedOutlineGenerationActionLabel(
-  hasDetailedOutlineBlocks: boolean
-): string {
+export function getDetailedOutlineGenerationActionLabel(hasDetailedOutlineBlocks: boolean): string {
   return hasDetailedOutlineBlocks ? '重新生成这一版详细大纲' : '生成这一版详细大纲'
 }
 

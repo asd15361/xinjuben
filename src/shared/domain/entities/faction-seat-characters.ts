@@ -324,7 +324,9 @@ export function buildFactionSeatBlueprints(faction: FactionEntityDto): FactionSe
   }
 }
 
-function buildRoleCounts(characters: CharacterEntityDto[]): Record<CharacterEntityDto['roleLayer'], number> {
+function buildRoleCounts(
+  characters: CharacterEntityDto[]
+): Record<CharacterEntityDto['roleLayer'], number> {
   const counts: Record<CharacterEntityDto['roleLayer'], number> = {
     core: 0,
     active: 0,
@@ -359,10 +361,9 @@ function linkNamedCharactersToMemberFactions(
 
   return characters.map((character) => ({
     ...character,
-    linkedFactionIds: mergeFactionIds(
-      character.linkedFactionIds,
-      [...(factionIdsByCharacterId.get(character.id) || [])]
-    )
+    linkedFactionIds: mergeFactionIds(character.linkedFactionIds, [
+      ...(factionIdsByCharacterId.get(character.id) || [])
+    ])
   }))
 }
 
@@ -414,7 +415,9 @@ function createSlotCharacter(input: {
   }
 }
 
-export function syncFactionSeatCharacters(entityStore: ProjectEntityStoreDto): ProjectEntityStoreDto {
+export function syncFactionSeatCharacters(
+  entityStore: ProjectEntityStoreDto
+): ProjectEntityStoreDto {
   const namedCharacters = linkNamedCharactersToMemberFactions(
     entityStore.characters.filter((character) => !isSlotCharacterEntity(character)),
     entityStore.factions

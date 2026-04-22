@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { copyFile, rename, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
-import type { ProjectSnapshotDto, ProjectSummaryDto } from '../../../shared/contracts/project'
+import type { ProjectSnapshotDto, ProjectSummaryDto } from '../../../shared/contracts/project.ts'
 import {
   ensureStoreFileAtPath,
   readStoreFromPath,
@@ -21,6 +21,10 @@ export async function withStoreLock<T>(fn: () => Promise<T>): Promise<T> {
   return next
 }
 
+export function createProjectId(): string {
+  return `project_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
 export function getStorePath(): string {
   const filePath = join(app.getPath('userData'), 'workspace', 'projects.json')
   if (
@@ -29,7 +33,7 @@ export function getStorePath(): string {
   ) {
     didLogStorePath = true
     // E2E visibility: helps diagnose storage isolation issues.
-    // eslint-disable-next-line no-console
+
     console.log(`e2e_store_path:${filePath}`)
   }
   return filePath
@@ -81,8 +85,4 @@ export async function writeStore(store: ProjectStoreShape): Promise<void> {
 export function toSummary(project: ProjectSnapshotDto): ProjectSummaryDto {
   const { storyIntent: _storyIntent, ...summary } = project
   return summary
-}
-
-export function createProjectId(): string {
-  return `project_${Date.now().toString(36)}`
 }

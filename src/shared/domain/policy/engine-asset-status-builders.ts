@@ -1,13 +1,23 @@
-import type { ScriptAuditReportDto, ScriptRepairPlanDto } from '../../contracts/script-audit'
-import type { ScriptGenerationExecutionPlanDto } from '../../contracts/script-generation'
-import type { ScriptStateLedgerDto } from '../../contracts/script-ledger'
-import type { ScriptSegmentDto } from '../../contracts/workflow'
-import { auditPolicySnapshot, buildAuditExecutionSnapshot } from './audit/audit-policy'
-import { buildPressureExecutionSnapshot, pressurePolicyMetadata } from './pressure/pressure-policy'
-import { buildProgressionExecutionSnapshot, progressionPolicyMetadata } from './progression/progression-policy'
-import { buildRepairExecutionSnapshot, repairPolicySnapshot } from './repair/repair-policy'
-import { buildRuntimeExecutionSnapshot, runtimePolicyMetadata, runtimePolicyName } from './runtime/runtime-policy'
-import type { EngineAssetStatus } from './engine-assets'
+import type { ScriptAuditReportDto, ScriptRepairPlanDto } from '../../contracts/script-audit.ts'
+import type { ScriptGenerationExecutionPlanDto } from '../../contracts/script-generation.ts'
+import type { ScriptStateLedgerDto } from '../../contracts/script-ledger.ts'
+import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import { auditPolicySnapshot, buildAuditExecutionSnapshot } from './audit/audit-policy.ts'
+import {
+  buildPressureExecutionSnapshot,
+  pressurePolicyMetadata
+} from './pressure/pressure-policy.ts'
+import {
+  buildProgressionExecutionSnapshot,
+  progressionPolicyMetadata
+} from './progression/progression-policy.ts'
+import { buildRepairExecutionSnapshot, repairPolicySnapshot } from './repair/repair-policy.ts'
+import {
+  buildRuntimeExecutionSnapshot,
+  runtimePolicyMetadata,
+  runtimePolicyName
+} from './runtime/runtime-policy.ts'
+import type { EngineAssetStatus } from './engine-assets.ts'
 
 export interface EngineAssetStatusInput {
   generationPlan: ScriptGenerationExecutionPlanDto | null | undefined
@@ -84,7 +94,9 @@ export function buildAuditPolicyStatus(input: EngineAssetStatusInput): EngineAss
         assetVersion: auditPolicySnapshot.metadata.version,
         lineage: auditPolicySnapshot.metadata.lineage,
         source: auditPolicySnapshot.metadata.source,
-        detail: input.auditReport.passed ? '当前脚本通过审核策略。' : `当前还有 ${input.auditReport.issues.length} 条审核问题待修补。`,
+        detail: input.auditReport.passed
+          ? '当前脚本通过审核策略。'
+          : `当前还有 ${input.auditReport.issues.length} 条审核问题待修补。`,
         snapshotSummary: auditSnapshot.summary
       }
     : {

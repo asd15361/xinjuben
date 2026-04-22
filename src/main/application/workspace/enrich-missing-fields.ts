@@ -532,7 +532,9 @@ export function enrichMissingFields(
 
   const enriched: CharacterProfileV2Dto = {
     id: profile.id || `char_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    name: profile.name || (roleHint === 'protagonist' ? '主角' : roleHint === 'antagonist' ? '对手' : '关键人物'),
+    name:
+      profile.name ||
+      (roleHint === 'protagonist' ? '主角' : roleHint === 'antagonist' ? '对手' : '关键人物'),
     depthLevel: profile.depthLevel || 'core',
     factionId: profile.factionId,
     branchId: profile.branchId,
@@ -597,24 +599,29 @@ function inferRoleHint(profile: Partial<CharacterProfileV2Dto>): RoleHint {
 /**
  * 根据已有信息猜测身份。
  */
-function guessIdentity(
-  profile: Partial<CharacterProfileV2Dto>,
-  roleHint: RoleHint
-): string {
+function guessIdentity(profile: Partial<CharacterProfileV2Dto>, roleHint: RoleHint): string {
   // 如果用户填了 roleInFaction，优先从势力信息推导
   if (profile.roleInFaction) {
     switch (profile.roleInFaction) {
-      case 'leader': return `${profile.name || '领袖'}｜势力掌舵人`
-      case 'enforcer': return `${profile.name || '干将'}｜核心打手`
-      case 'variable': return `${profile.name || '变数'}｜暗线/卧底`
-      case 'functional': return `${profile.name || '角色'}｜功能性角色`
+      case 'leader':
+        return `${profile.name || '领袖'}｜势力掌舵人`
+      case 'enforcer':
+        return `${profile.name || '干将'}｜核心打手`
+      case 'variable':
+        return `${profile.name || '变数'}｜暗线/卧底`
+      case 'functional':
+        return `${profile.name || '角色'}｜功能性角色`
     }
   }
 
   switch (roleHint) {
-    case 'protagonist': return '被命运逼到墙角却绝不低头的人'
-    case 'antagonist': return '用规则和权力掌控局面的上位者'
-    case 'leverageCharacter': return '被卷入漩涡中心的关键人物'
-    default: return `${profile.name || '角色'}｜待补充`
+    case 'protagonist':
+      return '被命运逼到墙角却绝不低头的人'
+    case 'antagonist':
+      return '用规则和权力掌控局面的上位者'
+    case 'leverageCharacter':
+      return '被卷入漩涡中心的关键人物'
+    default:
+      return `${profile.name || '角色'}｜待补充`
   }
 }

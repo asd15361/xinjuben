@@ -1,19 +1,22 @@
 import { ipcRenderer } from 'electron'
-import type { InputContractValidationDto } from '../../../shared/contracts/input-contract'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
 import type {
   CharacterStageContractDto,
   DetailedOutlineStageContractDto,
   OutlineStageContractDto,
   ScriptStageContractDto
-} from '../../../shared/contracts/stage-contract'
+} from '../../../shared/contracts/stage-contract.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 
+/**
+ * Stage Contract IPC API - 只保留纯计算、只读能力
+ *
+ * validateStageInputContract 已迁移到 HTTP server
+ */
 export const workflowStageContractApi = {
   buildOutlineStageContract(outline: OutlineDraftDto): Promise<OutlineStageContractDto> {
     return ipcRenderer.invoke('workflow:build-outline-stage-contract', outline)
@@ -38,15 +41,5 @@ export const workflowStageContractApi = {
     existingScript: ScriptSegmentDto[]
   }): Promise<ScriptStageContractDto> {
     return ipcRenderer.invoke('workflow:build-script-stage-contract', input)
-  },
-  validateStageInputContract(input: {
-    targetStage: 'outline' | 'character' | 'detailed_outline' | 'script'
-    storyIntent?: StoryIntentPackageDto | null
-    outline: OutlineDraftDto
-    characters: CharacterDraftDto[]
-    segments: DetailedOutlineSegmentDto[]
-    script: ScriptSegmentDto[]
-  }): Promise<InputContractValidationDto> {
-    return ipcRenderer.invoke('workflow:validate-stage-input-contract', input)
   }
 }

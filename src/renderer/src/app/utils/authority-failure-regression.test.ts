@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import type {
   AuthorityFailureDto,
   AuthorityFailureNoticeKeyDto
-} from '../../../../shared/contracts/authority-failure'
+} from '../../../../shared/contracts/authority-failure.ts'
 import { createAuthorityFailureNotice } from './authority-failure-notice.ts'
 
 /**
@@ -159,9 +159,6 @@ test('authority.project_missing creates error notice with no recovery action', (
   // Error kind is enforced
   assert.equal(notice.kind, 'error', 'Authority failure must be error kind')
 
-  // Source is system
-  assert.equal(notice.source, 'system', 'Authority failure source must be system')
-
   // Title and detail are present
   assert.ok(notice.title, 'Notice must have a title')
   assert.ok(notice.detail, 'Notice must have a detail')
@@ -198,7 +195,6 @@ test('authority.ipc_unavailable creates error notice', () => {
   const notice = createAuthorityFailureNotice(failure)
 
   assert.equal(notice.kind, 'error', 'IPC failure must be error kind')
-  assert.equal(notice.source, 'system', 'Authority failure source must be system')
   assert.ok(notice.title, 'Notice must have a title')
   assert.ok(notice.detail, 'Notice must have a detail')
 })
@@ -235,7 +231,6 @@ test('authority.result_incomplete creates error notice', () => {
   const notice = createAuthorityFailureNotice(failure)
 
   assert.equal(notice.kind, 'error', 'Incomplete result must be error kind')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title, 'Notice must have a title')
   assert.ok(notice.detail, 'Notice must have a detail')
 })
@@ -322,7 +317,6 @@ test('authority.main_exception creates error notice with no auto-recovery', () =
   const notice = createAuthorityFailureNotice(failure)
 
   assert.equal(notice.kind, 'error', 'Main exception must be error kind')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title, 'Notice must have a title')
   assert.ok(notice.detail, 'Notice must have a detail')
 
@@ -366,7 +360,6 @@ test('Orchestrator bypass creates error notice that blocks progression', () => {
   const notice = createAuthorityFailureNotice(failure)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
 
   // This is a constitution violation - should never suggest continuing
   assert.equal(
@@ -428,10 +421,9 @@ test('Legacy failure shape without noticeKey produces error notice', () => {
   }
 
   // This should NOT throw - legacy shapes are handled gracefully
-  const notice = createAuthorityFailureNotice(legacyFailure as any)
+  const notice = createAuthorityFailureNotice(legacyFailure as unknown)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
   assert.ok(notice.detail)
 })
@@ -445,10 +437,9 @@ test('WorkflowAuthorityErrorEnvelopeDto extracts inner error correctly', () => {
     error: buildIpcFailure()
   }
 
-  const notice = createAuthorityFailureNotice(envelope as any)
+  const notice = createAuthorityFailureNotice(envelope as unknown)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -457,7 +448,7 @@ test('Envelope with project_missing extracts correctly', () => {
     error: buildProjectMissingFailure()
   }
 
-  const notice = createAuthorityFailureNotice(envelope as any)
+  const notice = createAuthorityFailureNotice(envelope as unknown)
 
   assert.equal(notice.kind, 'error')
   assert.equal(

@@ -14,7 +14,7 @@ import type {
   OutlineDraftDto,
   DetailedOutlineSegmentDto,
   ScreenplaySceneBlockDto
-} from '../../../../../shared/contracts/workflow'
+} from '../../../../../shared/contracts/workflow.ts'
 type DetailedOutlineActKey = DetailedOutlineSegmentDto['act']
 
 export interface DetailedOutlineStageViewModel {

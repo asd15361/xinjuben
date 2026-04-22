@@ -1,8 +1,7 @@
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import { registerScriptGenerationPlanHandlers } from './script-generation-plan-handlers'
-import { registerScriptGenerationRuntimeHandlers } from './script-generation-runtime-handlers'
+import { registerScriptGenerationPlanHandlers } from './script-generation-plan-handlers.ts'
+import { registerScriptGenerationRuntimeHandlers } from './script-generation-runtime-handlers.ts'
 
-export function registerScriptGenerationHandlers(runtimeProviderConfig: RuntimeProviderConfig): void {
+export function registerScriptGenerationHandlers(): void {
   registerScriptGenerationPlanHandlers()
-  registerScriptGenerationRuntimeHandlers(runtimeProviderConfig)
+  registerScriptGenerationRuntimeHandlers()
 }

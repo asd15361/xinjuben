@@ -2,7 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import type { ProjectEntityStoreDto } from '../../contracts/entities.ts'
-import type { CharacterDraftDto, DetailedOutlineEpisodeBeatDto, OutlineDraftDto } from '../../contracts/workflow.ts'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineEpisodeBeatDto,
+  OutlineDraftDto
+} from '../../contracts/workflow.ts'
 import { deriveActiveCharacterPackage } from './active-character-package.ts'
 
 function makeOutline(): OutlineDraftDto {

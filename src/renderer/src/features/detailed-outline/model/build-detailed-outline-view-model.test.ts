@@ -1,23 +1,32 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import type {
+  OutlineDraftDto,
+  DetailedOutlineSegmentDto
+} from '../../../../../shared/contracts/workflow.ts'
 import { buildDetailedOutlineStageViewModel } from './build-detailed-outline-view-model.ts'
 
-function loadReal30EpisodeDetailedOutlineFixture() {
-  const fixtureDir = path.resolve(
-    process.cwd(),
-    'tools/e2e/out/userdata-xiuxian-full-real-30ep-mncz0qkz/workspace/projects/project_mncz0sno'
-  )
+const FIXTURE_DIR = path.resolve(
+  process.cwd(),
+  'tools/e2e/out/userdata-xiuxian-full-real-30ep-mncz0qkz/workspace/projects/project_mncz0sno'
+)
+const hasReal30EpisodeFixture = existsSync(FIXTURE_DIR)
+
+function loadReal30EpisodeDetailedOutlineFixture(): {
+  outline: { summaryEpisodes: Array<{ episodeNo: number; summary: string }> }
+  detailedOutlineSegments: unknown
+} {
   const outlineFixture = JSON.parse(
-    readFileSync(path.join(fixtureDir, 'outline.json'), 'utf8')
+    readFileSync(path.join(FIXTURE_DIR, 'outline.json'), 'utf8')
   ) as {
     outlineDraft: {
       summaryEpisodes: Array<{ episodeNo: number; summary: string }>
     }
   }
   const detailedOutlineFixture = JSON.parse(
-    readFileSync(path.join(fixtureDir, 'detailed-outline.json'), 'utf8')
+    readFileSync(path.join(FIXTURE_DIR, 'detailed-outline.json'), 'utf8')
   ) as {
     detailedOutlineSegments: Array<{
       act: string
@@ -48,8 +57,8 @@ describe('buildDetailedOutlineStageViewModel', () => {
         { episodeNo: 4, summary: 'Episode 4', sceneByScene: [] }
       ],
       planningUnitEpisodes: 10
-    } as any
-    const detailedOutlineBlocks: any[] = [
+    } as Partial<OutlineDraftDto>
+    const detailedOutlineBlocks: DetailedOutlineSegmentDto[] = [
       {
         act: 'opening',
         content: '开局主冲突',
@@ -89,8 +98,8 @@ describe('buildDetailedOutlineStageViewModel', () => {
         { episodeNo: 4, summary: 'Episode 4', sceneByScene: [] }
       ],
       planningUnitEpisodes: 10
-    } as any
-    const detailedOutlineBlocks: any[] = [
+    } as Partial<OutlineDraftDto>
+    const detailedOutlineBlocks: DetailedOutlineSegmentDto[] = [
       {
         act: 'opening',
         content: '开局阶段摘要',
@@ -124,41 +133,48 @@ describe('buildDetailedOutlineStageViewModel', () => {
     assert.strictEqual(result.episodeEditors[3].summary, '')
   })
 
-  it('builds a non-empty 30 episode view-model from real detailed outline data', () => {
-    const { outline, detailedOutlineBlocks } = loadReal30EpisodeDetailedOutlineFixture()
-    const sourceEpisodeNos = detailedOutlineBlocks.flatMap((segment) =>
-      segment.episodeBeats.map((beat) => beat.episodeNo)
-    )
+  it(
+    'builds a non-empty 30 episode view-model from real detailed outline data',
+    { skip: !hasReal30EpisodeFixture },
+    () => {
+      const { outline, detailedOutlineBlocks } = loadReal30EpisodeDetailedOutlineFixture()
+      const sourceEpisodeNos = detailedOutlineBlocks.flatMap((segment) =>
+        segment.episodeBeats.map((beat) => beat.episodeNo)
+      )
 
-    const result = buildDetailedOutlineStageViewModel(outline as any, detailedOutlineBlocks as any)
+      const result = buildDetailedOutlineStageViewModel(
+        outline as unknown as OutlineDraftDto,
+        detailedOutlineBlocks as unknown as DetailedOutlineSegmentDto[]
+      )
 
-    assert.strictEqual(result.totalEpisodes, 30)
-    assert.deepStrictEqual(
-      sourceEpisodeNos,
-      Array.from({ length: 30 }, (_, index) => index + 1)
-    )
-    assert.deepStrictEqual(
-      result.episodeEditors.map((item) => item.episodeNo),
-      Array.from({ length: 30 }, (_, index) => index + 1)
-    )
-    assert.deepStrictEqual(
-      [...new Set(result.episodeEditors.map((item) => item.actKey))],
-      ['opening', 'midpoint', 'climax', 'ending']
-    )
-    assert.deepStrictEqual(
-      result.episodeEditors
-        .filter((item, index, arr) => index === 0 || item.actKey !== arr[index - 1]?.actKey)
-        .map((item) => item.actKey),
-      ['opening', 'midpoint', 'climax', 'ending']
-    )
-    assert.deepStrictEqual(
-      result.episodeEditors
-        .filter((item, index, arr) => index === 0 || item.actKey !== arr[index - 1]?.actKey)
-        .map((item) => item.episodeNo),
-      [1, 8, 15, 23]
-    )
-    assert.ok(result.episodeEditors.slice(10).every((item) => item.summary.trim().length > 0))
-    assert.ok(result.episodeEditors.slice(10).every((item) => item.sceneByScene.length > 0))
-    assert.ok(result.episodeEditors[29].segmentContent.includes('蛇子封印持续松动'))
-  })
+      assert.strictEqual(result.totalEpisodes, 30)
+      assert.deepStrictEqual(
+        sourceEpisodeNos,
+        Array.from({ length: 30 }, (_, index) => index + 1)
+      )
+      assert.deepStrictEqual(
+        result.episodeEditors.map((item) => item.episodeNo),
+        Array.from({ length: 30 }, (_, index) => index + 1)
+      )
+      assert.deepStrictEqual(
+        [...new Set(result.episodeEditors.map((item) => item.actKey))],
+        ['opening', 'midpoint', 'climax', 'ending']
+      )
+      assert.deepStrictEqual(
+        result.episodeEditors
+          .filter((item, index, arr) => index === 0 || item.actKey !== arr[index - 1]?.actKey)
+          .map((item) => item.actKey),
+        ['opening', 'midpoint', 'climax', 'ending']
+      )
+      assert.deepStrictEqual(
+        result.episodeEditors
+          .filter((item, index, arr) => index === 0 || item.actKey !== arr[index - 1]?.actKey)
+          .map((item) => item.episodeNo),
+        [1, 8, 15, 23]
+      )
+      assert.ok(result.episodeEditors.slice(10).every((item) => item.summary.trim().length > 0))
+      assert.ok(result.episodeEditors.slice(10).every((item) => item.sceneByScene.length > 0))
+      assert.ok(result.episodeEditors[29].segmentContent.includes('蛇子封印持续松动'))
+    }
+  )
 })

@@ -1,22 +1,22 @@
 import { useCallback, useRef } from 'react'
-import { classifyRuntimeFailureHistory } from '../../../../../shared/domain/runtime/failure-history'
-import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
-import type { ScriptGenerationProgressBoardDto } from '../../../../../shared/contracts/script-generation'
-import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
-import { useStageStore } from '../../../store/useStageStore'
-import type { useScriptGenerationPlan } from '../../../app/hooks/useScriptGenerationPlan'
-import type { useScriptAudit } from '../../../app/hooks/useScriptAudit'
-import { resolveScriptEstimatedSeconds } from '../../../app/utils/stage-estimates'
+import { classifyRuntimeFailureHistory } from '../../../../../shared/domain/runtime/failure-history.ts'
+import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation.ts'
+import type { ScriptGenerationProgressBoardDto } from '../../../../../shared/contracts/script-generation.ts'
+import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
+import { useStageStore } from '../../../store/useStageStore.ts'
+import type { useScriptGenerationPlan } from '../../../app/hooks/useScriptGenerationPlan.ts'
+import type { useScriptAudit } from '../../../app/hooks/useScriptAudit.ts'
+import { resolveScriptEstimatedSeconds } from '../../../app/utils/stage-estimates.ts'
 import {
   resolveEffectiveScriptGenerationPlan,
   resolveRequestedScriptGenerationMeta
-} from './script-stage-actions'
+} from './script-stage-actions.ts'
 import {
   apiStartScriptGeneration,
   apiGetScriptGenerationStatus,
   apiGetProject,
   apiRewriteScriptEpisode
-} from '../../../services/api-client'
+} from '../../../services/api-client.ts'
 
 type ScriptGenerationPlanResult = ReturnType<typeof useScriptGenerationPlan>
 type ScriptAuditResult = ReturnType<typeof useScriptAudit>
@@ -115,7 +115,8 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
       const startResult = await apiStartScriptGeneration({
         projectId: requestProjectId,
         targetEpisodes: normalizedTargetEpisodes,
-        mode: requestedMode === 'rewrite' ? 'fresh_start' : (requestedMode as 'fresh_start' | 'resume')
+        mode:
+          requestedMode === 'rewrite' ? 'fresh_start' : (requestedMode as 'fresh_start' | 'resume')
       })
 
       if (!startResult.success) {
@@ -168,14 +169,18 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
               setScriptRuntimeFailureHistory([])
               setGenerationNotice({
                 kind: 'success',
-                title: requestedMode === 'rewrite' ? '这一轮剧本已经重写好了' : '这一轮剧本已经写出来了',
-                detail: requestedMode === 'rewrite'
-                  ? `这 ${normalizedTargetEpisodes} 集已经按目标集数重新收口。你现在可以直接在下面继续看、改，或者整轮再写一版。`
-                  : `本轮自动新增 ${completedCount} 集。你现在可以直接在下面继续看、改、接着写。`,
+                title:
+                  requestedMode === 'rewrite' ? '这一轮剧本已经重写好了' : '这一轮剧本已经写出来了',
+                detail:
+                  requestedMode === 'rewrite'
+                    ? `这 ${normalizedTargetEpisodes} 集已经按目标集数重新收口。你现在可以直接在下面继续看、改，或者整轮再写一版。`
+                    : `本轮自动新增 ${completedCount} 集。你现在可以直接在下面继续看、改、接着写。`,
                 primaryAction: { label: '继续看剧本', stage: 'script' }
               })
             } else {
-              setScriptRuntimeFailureHistory([classifyRuntimeFailureHistory({ reason: 'failed', errorMessage: '生成失败' })])
+              setScriptRuntimeFailureHistory([
+                classifyRuntimeFailureHistory({ reason: 'failed', errorMessage: '生成失败' })
+              ])
               setGenerationNotice({
                 kind: 'error',
                 title: '剧本这次没有生成成功',

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ProjectSummaryDto } from '../../../../../shared/contracts/project'
-import { openProjectSession } from '../../../app/services/stage-session-service'
-import { apiCreateProject, apiDeleteProject, apiListProjects } from '../../../services/api-client'
+import type { ProjectSummaryDto } from '../../../../../shared/contracts/project.ts'
+import { openProjectSession } from '../../../app/services/stage-session-service.ts'
+import {
+  apiCreateProject,
+  apiDeleteProject,
+  apiListProjects
+} from '../../../services/api-client.ts'
 
 export function formatProjectTime(iso: string): string {
   try {
@@ -11,7 +15,21 @@ export function formatProjectTime(iso: string): string {
   }
 }
 
-export function useHomePageActions() {
+export function useHomePageActions(): {
+  busy: boolean
+  canCreate: boolean
+  projectName: string
+  projects: ProjectSummaryDto[]
+  query: string
+  status: string
+  visibleProjects: ProjectSummaryDto[]
+  setProjectName: (value: string) => void
+  setQuery: (value: string) => void
+  createProject: () => Promise<void>
+  openProject: (projectId: string) => Promise<void>
+  reload: () => Promise<void>
+  removeProject: (projectId: string, name: string) => Promise<void>
+} {
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([])
   const [busy, setBusy] = useState(false)
   const [projectName, setProjectName] = useState('')

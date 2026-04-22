@@ -67,8 +67,14 @@ test('parseCharacterBundleText parses common Chinese keys from AI text payloads'
 
   assert.ok(result?.characters)
   assert.strictEqual(result?.characters?.[0]?.name, '苏婉')
-  assert.strictEqual((result?.characters?.[0] as any)?.roleLayer, '情感杠杆层')
-  assert.deepStrictEqual((result?.characters?.[0] as any)?.activeBlockNos, [1, 3])
+  assert.strictEqual(
+    (result?.characters?.[0] as unknown as { roleLayer?: string }).roleLayer,
+    '情感杠杆层'
+  )
+  assert.deepStrictEqual(
+    (result?.characters?.[0] as unknown as { activeBlockNos?: number[] }).activeBlockNos,
+    [1, 3]
+  )
 })
 
 test('parseCharacterBundleText does not fabricate roleLayer or activeBlockNos when keys are absent', () => {
@@ -123,8 +129,11 @@ test('parseCharacterBundleText normalizes bad roleLayer and activeBlockNos witho
   )
 
   assert.ok(result?.characters)
-  assert.strictEqual((result?.characters?.[0] as any)?.roleLayer, '')
-  assert.deepStrictEqual((result?.characters?.[0] as any)?.activeBlockNos, [])
+  assert.strictEqual((result?.characters?.[0] as unknown as { roleLayer?: string }).roleLayer, '')
+  assert.deepStrictEqual(
+    (result?.characters?.[0] as unknown as { activeBlockNos?: number[] }).activeBlockNos,
+    []
+  )
 })
 
 test('parseCharacterBundleText normalizes polluted descriptive names back to real anchors', () => {

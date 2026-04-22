@@ -149,7 +149,10 @@ function buildFactionSlotSeats(
   entityStore: ProjectEntityStoreDto
 ): CharacterStageFactionPlaceholderSeat[] {
   return entityStore.characters
-    .filter((character) => isSlotCharacterEntity(character) && character.linkedFactionIds.includes(faction.id))
+    .filter(
+      (character) =>
+        isSlotCharacterEntity(character) && character.linkedFactionIds.includes(faction.id)
+    )
     .sort(byRoleThenName)
     .map((character) => ({
       seatKey: character.slotKey || character.id,
@@ -234,7 +237,8 @@ function buildFactionRoster(
       ...faction.memberCharacterIds,
       ...entityStore.characters
         .filter(
-          (character) => !isSlotCharacterEntity(character) && character.linkedFactionIds.includes(faction.id)
+          (character) =>
+            !isSlotCharacterEntity(character) && character.linkedFactionIds.includes(faction.id)
         )
         .map((character) => character.id)
     ])
@@ -250,7 +254,8 @@ function buildFactionRoster(
         isFullProfile: fullProfileEntityIds.has(member.id)
       }))
     const slotSeats = buildFactionSlotSeats(faction, entityStore)
-    const placeholderSeats = slotSeats.length > 0 ? slotSeats : buildFactionPlaceholderSeats(faction, members)
+    const placeholderSeats =
+      slotSeats.length > 0 ? slotSeats : buildFactionPlaceholderSeats(faction, members)
 
     return {
       factionId: faction.id,

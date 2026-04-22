@@ -34,35 +34,328 @@ import { inferGenreArchetype } from '../../../shared/contracts/prompt-variables.
 
 /** 姓氏池：按题材风格分组 */
 const SURNAME_POOLS: Record<GenreArchetype, string[]> = {
-  xianxia: ['林', '萧', '楚', '苏', '陆', '沈', '白', '叶', '江', '顾', '谢', '裴', '墨', '云', '风'],
-  modern_revenge: ['顾', '沈', '陆', '霍', '傅', '贺', '秦', '韩', '萧', '厉', '江', '季', '周', '宋', '陈'],
-  period_palace: ['沈', '苏', '萧', '楚', '陆', '林', '柳', '白', '云', '花', '叶', '月', '柳', '宋', '江'],
-  urban_romance: ['苏', '林', '夏', '沈', '顾', '宋', '叶', '白', '许', '唐', '程', '安', '姜', '温', '方'],
+  xianxia: [
+    '林',
+    '萧',
+    '楚',
+    '苏',
+    '陆',
+    '沈',
+    '白',
+    '叶',
+    '江',
+    '顾',
+    '谢',
+    '裴',
+    '墨',
+    '云',
+    '风'
+  ],
+  modern_revenge: [
+    '顾',
+    '沈',
+    '陆',
+    '霍',
+    '傅',
+    '贺',
+    '秦',
+    '韩',
+    '萧',
+    '厉',
+    '江',
+    '季',
+    '周',
+    '宋',
+    '陈'
+  ],
+  period_palace: [
+    '沈',
+    '苏',
+    '萧',
+    '楚',
+    '陆',
+    '林',
+    '柳',
+    '白',
+    '云',
+    '花',
+    '叶',
+    '月',
+    '柳',
+    '宋',
+    '江'
+  ],
+  urban_romance: [
+    '苏',
+    '林',
+    '夏',
+    '沈',
+    '顾',
+    '宋',
+    '叶',
+    '白',
+    '许',
+    '唐',
+    '程',
+    '安',
+    '姜',
+    '温',
+    '方'
+  ],
   scifi: ['陆', '顾', '沈', '秦', '贺', '林', '周', '陈', '吴', '张', '李', '刘', '杨', '赵', '黄'],
-  fantasy: ['墨', '萧', '楚', '云', '风', '白', '叶', '江', '林', '沈', '顾', '陆', '燕', '荆', '项'],
-  default: ['林', '苏', '沈', '陆', '顾', '白', '江', '叶', '陈', '周', '宋', '唐', '许', '程', '安']
+  fantasy: [
+    '墨',
+    '萧',
+    '楚',
+    '云',
+    '风',
+    '白',
+    '叶',
+    '江',
+    '林',
+    '沈',
+    '顾',
+    '陆',
+    '燕',
+    '荆',
+    '项'
+  ],
+  default: [
+    '林',
+    '苏',
+    '沈',
+    '陆',
+    '顾',
+    '白',
+    '江',
+    '叶',
+    '陈',
+    '周',
+    '宋',
+    '唐',
+    '许',
+    '程',
+    '安'
+  ]
 }
 
 /** 男性名池：按风格 */
 const MALE_NAME_POOLS: Record<GenreArchetype, string[]> = {
-  xianxia: ['晨', '渊', '寒', '无尘', '长风', '明轩', '子墨', '逸风', '天行', '凌霄', '破军', '惊云', '玄冥', '星河'],
-  modern_revenge: ['霆深', '景行', '承泽', '修远', '司爵', '寒洲', '砚辞', '叙白', '沉舟', '牧野', '寒州', '时晏', '薄言', '砚清'],
-  period_palace: ['景珩', '承影', '修齐', '明珏', '长风', '子衿', '怀瑾', '握瑜', '清远', '景行', '云峥', '晏清', '修竹', '寒松'],
-  urban_romance: ['言深', '景川', '子墨', '逸尘', '星河', '晨风', '明朗', '时安', '清和', '砚白', '叙风', '沐辰', '瑾瑜', '知远'],
-  scifi: ['远', '航', '辰', '宇航', '泽宇', '天明', '思远', '博文', '浩然', '志远', '明哲', '俊杰', '伟宸', '煜城'],
-  fantasy: ['惊蛰', '破军', '长风', '凌霄', '逐风', '斩月', '焚天', '裂空', '星河', '苍澜', '玄冥', '惊云', '天纵', '无双'],
-  default: ['晨', '渊', '明', '远', '寒', '轩', '墨', '风', '云', '行', '辰', '安', '言', '清', '白']
+  xianxia: [
+    '晨',
+    '渊',
+    '寒',
+    '无尘',
+    '长风',
+    '明轩',
+    '子墨',
+    '逸风',
+    '天行',
+    '凌霄',
+    '破军',
+    '惊云',
+    '玄冥',
+    '星河'
+  ],
+  modern_revenge: [
+    '霆深',
+    '景行',
+    '承泽',
+    '修远',
+    '司爵',
+    '寒洲',
+    '砚辞',
+    '叙白',
+    '沉舟',
+    '牧野',
+    '寒州',
+    '时晏',
+    '薄言',
+    '砚清'
+  ],
+  period_palace: [
+    '景珩',
+    '承影',
+    '修齐',
+    '明珏',
+    '长风',
+    '子衿',
+    '怀瑾',
+    '握瑜',
+    '清远',
+    '景行',
+    '云峥',
+    '晏清',
+    '修竹',
+    '寒松'
+  ],
+  urban_romance: [
+    '言深',
+    '景川',
+    '子墨',
+    '逸尘',
+    '星河',
+    '晨风',
+    '明朗',
+    '时安',
+    '清和',
+    '砚白',
+    '叙风',
+    '沐辰',
+    '瑾瑜',
+    '知远'
+  ],
+  scifi: [
+    '远',
+    '航',
+    '辰',
+    '宇航',
+    '泽宇',
+    '天明',
+    '思远',
+    '博文',
+    '浩然',
+    '志远',
+    '明哲',
+    '俊杰',
+    '伟宸',
+    '煜城'
+  ],
+  fantasy: [
+    '惊蛰',
+    '破军',
+    '长风',
+    '凌霄',
+    '逐风',
+    '斩月',
+    '焚天',
+    '裂空',
+    '星河',
+    '苍澜',
+    '玄冥',
+    '惊云',
+    '天纵',
+    '无双'
+  ],
+  default: [
+    '晨',
+    '渊',
+    '明',
+    '远',
+    '寒',
+    '轩',
+    '墨',
+    '风',
+    '云',
+    '行',
+    '辰',
+    '安',
+    '言',
+    '清',
+    '白'
+  ]
 }
 
 /** 女性名池：按风格 */
 const FEMALE_NAME_POOLS: Record<GenreArchetype, string[]> = {
-  xianxia: ['雪', '月', '灵', '清歌', '若雪', '琉璃', '晚晴', '初雪', '霜华', '落雪', '沐雪', '素衣', '紫萱', '轻歌'],
-  modern_revenge: ['清歌', '晚晴', '念初', '南乔', '初雪', '知意', '语柔', '安然', '清欢', '若初', '苏清', '时念', '知微', '南星'],
-  period_palace: ['婉清', '如霜', '芷若', '清漪', '素心', '晚晴', '若兰', '清歌', '念慈', '如萱', '月婵', '灵犀', '清漪', '凝霜'],
-  urban_romance: ['初夏', '清歌', '晚晚', '苏苏', '浅浅', '知意', '安若', '南乔', '清欢', '语嫣', '夏沫', '星阑', '初晴', '念安'],
+  xianxia: [
+    '雪',
+    '月',
+    '灵',
+    '清歌',
+    '若雪',
+    '琉璃',
+    '晚晴',
+    '初雪',
+    '霜华',
+    '落雪',
+    '沐雪',
+    '素衣',
+    '紫萱',
+    '轻歌'
+  ],
+  modern_revenge: [
+    '清歌',
+    '晚晴',
+    '念初',
+    '南乔',
+    '初雪',
+    '知意',
+    '语柔',
+    '安然',
+    '清欢',
+    '若初',
+    '苏清',
+    '时念',
+    '知微',
+    '南星'
+  ],
+  period_palace: [
+    '婉清',
+    '如霜',
+    '芷若',
+    '清漪',
+    '素心',
+    '晚晴',
+    '若兰',
+    '清歌',
+    '念慈',
+    '如萱',
+    '月婵',
+    '灵犀',
+    '清漪',
+    '凝霜'
+  ],
+  urban_romance: [
+    '初夏',
+    '清歌',
+    '晚晚',
+    '苏苏',
+    '浅浅',
+    '知意',
+    '安若',
+    '南乔',
+    '清欢',
+    '语嫣',
+    '夏沫',
+    '星阑',
+    '初晴',
+    '念安'
+  ],
   scifi: ['星', '月', '灵', '雨', '清', '思', '梦', '瑶', '晶', '雪', '慧', '敏', '静', '丽', '琳'],
-  fantasy: ['灵', '雪', '月', '琉璃', '清歌', '落雪', '紫萱', '霜华', '轻歌', '暮雪', '紫陌', '青鸾', '瑶光', '星阑'],
-  default: ['雪', '月', '清', '灵', '若', '晚', '初', '知', '念', '安', '语', '晴', '欢', '意', '柔']
+  fantasy: [
+    '灵',
+    '雪',
+    '月',
+    '琉璃',
+    '清歌',
+    '落雪',
+    '紫萱',
+    '霜华',
+    '轻歌',
+    '暮雪',
+    '紫陌',
+    '青鸾',
+    '瑶光',
+    '星阑'
+  ],
+  default: [
+    '雪',
+    '月',
+    '清',
+    '灵',
+    '若',
+    '晚',
+    '初',
+    '知',
+    '念',
+    '安',
+    '语',
+    '晴',
+    '欢',
+    '意',
+    '柔'
+  ]
 }
 
 /**
@@ -87,7 +380,12 @@ function generateNameForRole(
   seed: string
 ): string {
   const surnames = SURNAME_POOLS[archetype]
-  const pool = role === 'female' ? FEMALE_NAME_POOLS[archetype] : role === 'male' ? MALE_NAME_POOLS[archetype] : [...MALE_NAME_POOLS[archetype], ...FEMALE_NAME_POOLS[archetype]]
+  const pool =
+    role === 'female'
+      ? FEMALE_NAME_POOLS[archetype]
+      : role === 'male'
+        ? MALE_NAME_POOLS[archetype]
+        : [...MALE_NAME_POOLS[archetype], ...FEMALE_NAME_POOLS[archetype]]
 
   const surname = pickFromPool(surnames, seed + '_surname')
   const givenName = pickFromPool(pool, seed + '_given_' + roleLabel)
@@ -127,7 +425,10 @@ function extractEntityCandidates(storyIntent: StoryIntentPackageDto): Array<{
   label: string
   category: 'protagonist' | 'antagonist' | 'keyCharacter'
 }> {
-  const candidates: Array<{ label: string; category: 'protagonist' | 'antagonist' | 'keyCharacter' }> = []
+  const candidates: Array<{
+    label: string
+    category: 'protagonist' | 'antagonist' | 'keyCharacter'
+  }> = []
 
   const brief = storyIntent.generationBriefText || ''
 
@@ -141,10 +442,10 @@ function extractEntityCandidates(storyIntent: StoryIntentPackageDto): Array<{
 
   // 扫描 antagonist 字段
   if (storyIntent.antagonist) {
-      const a = storyIntent.antagonist.trim()
-      if (a && !isProperName(a)) {
-        candidates.push({ label: a, category: 'antagonist' })
-      }
+    const a = storyIntent.antagonist.trim()
+    if (a && !isProperName(a)) {
+      candidates.push({ label: a, category: 'antagonist' })
+    }
   }
 
   // 扫描 officialKeyCharacters
@@ -190,11 +491,13 @@ function isProperName(text: string): boolean {
   if (t.length > 4 || t.length < 1) return false
 
   // 功能词黑名单——包含这些词的几乎都不是人名
-  const roleWords = /主角|女主|男主|配角|对手|反派|霸总|总裁|婆婆|恶毒|千金|假千金|真千金|继母|养女|继女|少爷|管家|助理|闺蜜|情敌|未婚妻|未婚夫|前妻|前夫|小三|炮灰|路人|丫鬟|侍女|侍卫|执事|长老|师父|道长|少年|少女|少年人|中年人|老头|老太|看门|守门|守钥|乞丐|农夫|村姑|渔夫|猎人|商人|书生|武将|皇帝|皇后|太子|公主|王爷|王妃|太后|太监|宰相|将军|丞相|县令|捕快|镖头|掌柜|店小|小二/
+  const roleWords =
+    /主角|女主|男主|配角|对手|反派|霸总|总裁|婆婆|恶毒|千金|假千金|真千金|继母|养女|继女|少爷|管家|助理|闺蜜|情敌|未婚妻|未婚夫|前妻|前夫|小三|炮灰|路人|丫鬟|侍女|侍卫|执事|长老|师父|道长|少年|少女|少年人|中年人|老头|老太|看门|守门|守钥|乞丐|农夫|村姑|渔夫|猎人|商人|书生|武将|皇帝|皇后|太子|公主|王爷|王妃|太后|太监|宰相|将军|丞相|县令|捕快|镖头|掌柜|店小|小二/
   if (roleWords.test(t)) return false
 
   // 包含抽象描述性词语
-  const abstractWords = /表面|无武功|无|有|被|的|很|最|应该|必须|想要|为了|因为|所以|但是|虽然|如果|可能|已经|正在|将要/
+  const abstractWords =
+    /表面|无武功|无|有|被|的|很|最|应该|必须|想要|为了|因为|所以|但是|虽然|如果|可能|已经|正在|将要/
   if (abstractWords.test(t)) return false
 
   // 剩下的 1-4 个中文字符，很可能是人名
@@ -242,11 +545,20 @@ export function resolveEntityNames(storyIntent: StoryIntentPackageDto): EntityNa
   const resolved: EntityNameResolutionResult['resolved'] = []
 
   // 生成种子——基于项目标题+题材，确保同一项目多次调用结果一致
-  const seed = `${storyIntent.titleHint || 'project'}_${storyIntent.genre || 'drama'}_${storyIntent.sellingPremise || ''}`.slice(0, 60)
+  const seed =
+    `${storyIntent.titleHint || 'project'}_${storyIntent.genre || 'drama'}_${storyIntent.sellingPremise || ''}`.slice(
+      0,
+      60
+    )
 
   for (const candidate of candidates) {
     const gender = inferGender(candidate.label, storyIntent.generationBriefText || '')
-    const generatedName = generateNameForRole(archetype, gender, candidate.label, seed + '_' + candidate.label)
+    const generatedName = generateNameForRole(
+      archetype,
+      gender,
+      candidate.label,
+      seed + '_' + candidate.label
+    )
 
     resolved.push({
       originalLabel: candidate.label,
@@ -307,7 +619,9 @@ export function resolveEntityNames(storyIntent: StoryIntentPackageDto): EntityNa
  * 便捷函数：在流水线上调用 resolveEntityNames 并返回更新后的 StoryIntent。
  * 如果不需起名，直接返回原值。
  */
-export function resolveEntityNamesOrPassThrough(storyIntent: StoryIntentPackageDto): StoryIntentPackageDto {
+export function resolveEntityNamesOrPassThrough(
+  storyIntent: StoryIntentPackageDto
+): StoryIntentPackageDto {
   const result = resolveEntityNames(storyIntent)
   return result.updatedIntent
 }

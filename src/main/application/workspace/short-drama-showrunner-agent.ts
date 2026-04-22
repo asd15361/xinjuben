@@ -20,9 +20,8 @@ function normalizeJsonEnvelope(rawText: string): string {
 
 async function appendShortDramaShowrunnerDiagnostic(message: string): Promise<void> {
   try {
-    const { appendRuntimeDiagnosticLog } = await import(
-      '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-    )
+    const { appendRuntimeDiagnosticLog } =
+      await import('../../infrastructure/diagnostics/runtime-diagnostic-log.ts')
     await appendRuntimeDiagnosticLog('short_drama_showrunner', message)
   } catch {
     // 诊断日志只能旁路记录，不能反过来打断 confirm_story_intent。

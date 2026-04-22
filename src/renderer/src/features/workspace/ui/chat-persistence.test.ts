@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 
 import { CHAT_PENDING_MESSAGE_TEXT } from './chat/ChatTypes.ts'
 
-function stripPendingMessages(messages: Array<{ text: string }>) {
+function stripPendingMessages(messages: Array<{ text: string }>): Array<{ text: string }> {
   return messages.filter((message) => message.text !== CHAT_PENDING_MESSAGE_TEXT)
 }
 

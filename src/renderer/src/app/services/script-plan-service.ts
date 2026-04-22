@@ -2,7 +2,7 @@ import type {
   BuildScriptGenerationPlanInputDto,
   ScriptGenerationExecutionPlanDto,
   ScriptRuntimeFailureHistoryCode
-} from '../../../../shared/contracts/script-generation'
+} from '../../../../shared/contracts/script-generation.ts'
 import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake.ts'
 import type {
   CharacterDraftDto,

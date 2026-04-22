@@ -377,9 +377,42 @@ test('confirmed seven questions path only calls character profile generator', as
             positioning: '掌钱',
             coreDemand: '保账',
             characters: [
-              { id: 'c13', name: '掌柜', roleInFaction: 'leader', branchId: 'b5', depthLevel: 'mid', identity: '掌柜', coreMotivation: '保账', plotFunction: '给筹码', isSleeper: false, sleeperForFactionId: undefined },
-              { id: 'c14', name: '伙计', roleInFaction: 'enforcer', branchId: 'b5', depthLevel: 'extra', identity: '伙计', coreMotivation: '保命', plotFunction: '跑腿', isSleeper: false, sleeperForFactionId: undefined },
-              { id: 'c15', name: '门童', roleInFaction: 'variable', branchId: 'b5', depthLevel: 'extra', identity: '门童', coreMotivation: '见风使舵', plotFunction: '漏消息', isSleeper: false, sleeperForFactionId: undefined }
+              {
+                id: 'c13',
+                name: '掌柜',
+                roleInFaction: 'leader',
+                branchId: 'b5',
+                depthLevel: 'mid',
+                identity: '掌柜',
+                coreMotivation: '保账',
+                plotFunction: '给筹码',
+                isSleeper: false,
+                sleeperForFactionId: undefined
+              },
+              {
+                id: 'c14',
+                name: '伙计',
+                roleInFaction: 'enforcer',
+                branchId: 'b5',
+                depthLevel: 'extra',
+                identity: '伙计',
+                coreMotivation: '保命',
+                plotFunction: '跑腿',
+                isSleeper: false,
+                sleeperForFactionId: undefined
+              },
+              {
+                id: 'c15',
+                name: '门童',
+                roleInFaction: 'variable',
+                branchId: 'b5',
+                depthLevel: 'extra',
+                identity: '门童',
+                coreMotivation: '见风使舵',
+                plotFunction: '漏消息',
+                isSleeper: false,
+                sleeperForFactionId: undefined
+              }
             ]
           },
           {
@@ -389,9 +422,42 @@ test('confirmed seven questions path only calls character profile generator', as
             positioning: '收风',
             coreDemand: '两头下注',
             characters: [
-              { id: 'c16', name: '坊主', roleInFaction: 'leader', branchId: 'b6', depthLevel: 'mid', identity: '坊主', coreMotivation: '压注', plotFunction: '观风向', isSleeper: false, sleeperForFactionId: undefined },
-              { id: 'c17', name: '打手', roleInFaction: 'enforcer', branchId: 'b6', depthLevel: 'extra', identity: '打手', coreMotivation: '听命', plotFunction: '施压', isSleeper: false, sleeperForFactionId: undefined },
-              { id: 'c18', name: '眼线', roleInFaction: 'variable', branchId: 'b6', depthLevel: 'extra', identity: '眼线', coreMotivation: '卖消息', plotFunction: '通风报信', isSleeper: false, sleeperForFactionId: undefined }
+              {
+                id: 'c16',
+                name: '坊主',
+                roleInFaction: 'leader',
+                branchId: 'b6',
+                depthLevel: 'mid',
+                identity: '坊主',
+                coreMotivation: '压注',
+                plotFunction: '观风向',
+                isSleeper: false,
+                sleeperForFactionId: undefined
+              },
+              {
+                id: 'c17',
+                name: '打手',
+                roleInFaction: 'enforcer',
+                branchId: 'b6',
+                depthLevel: 'extra',
+                identity: '打手',
+                coreMotivation: '听命',
+                plotFunction: '施压',
+                isSleeper: false,
+                sleeperForFactionId: undefined
+              },
+              {
+                id: 'c18',
+                name: '眼线',
+                roleInFaction: 'variable',
+                branchId: 'b6',
+                depthLevel: 'extra',
+                identity: '眼线',
+                coreMotivation: '卖消息',
+                plotFunction: '通风报信',
+                isSleeper: false,
+                sleeperForFactionId: undefined
+              }
             ]
           }
         ]

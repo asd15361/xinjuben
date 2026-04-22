@@ -42,7 +42,10 @@ describe('resolveEntityNames', () => {
 
     // protagonist 应该被替换为具体名字
     assert.ok(result.updatedIntent.protagonist, 'Protagonist should have a name')
-    assert.ok(!/少年|守钥/.test(result.updatedIntent.protagonist!), 'Protagonist should no longer be a fuzzy label')
+    assert.ok(
+      !/少年|守钥/.test(result.updatedIntent.protagonist!),
+      'Protagonist should no longer be a fuzzy label'
+    )
 
     // antagonist 应该被替换
     assert.ok(result.updatedIntent.antagonist, 'Antagonist should have a name')
@@ -70,7 +73,10 @@ describe('resolveEntityNames', () => {
     const result = resolveEntityNames(intent)
 
     for (const char of result.updatedIntent.officialKeyCharacters!) {
-      assert.ok(!/女主|霸总|恶毒婆婆/.test(char), `${char} should be a proper name, not a fuzzy label`)
+      assert.ok(
+        !/女主|霸总|恶毒婆婆/.test(char),
+        `${char} should be a proper name, not a fuzzy label`
+      )
     }
   })
 
@@ -82,13 +88,27 @@ describe('resolveEntityNames', () => {
     })
     const result = resolveEntityNames(intent)
 
-    assert.ok(!/少年守钥人/.test(result.updatedIntent.generationBriefText!), 'BriefText should replace fuzzy labels')
-    assert.ok(!/反派/.test(result.updatedIntent.generationBriefText!), 'BriefText should replace 反派')
+    assert.ok(
+      !/少年守钥人/.test(result.updatedIntent.generationBriefText!),
+      'BriefText should replace fuzzy labels'
+    )
+    assert.ok(
+      !/反派/.test(result.updatedIntent.generationBriefText!),
+      'BriefText should replace 反派'
+    )
   })
 
   it('uses genre-appropriate names', () => {
-    const xianxiaIntent = makeStoryIntent({ genre: '修仙', protagonist: '男主', antagonist: '反派' })
-    const modernIntent = makeStoryIntent({ genre: '现代霸总', protagonist: '男主', antagonist: '反派' })
+    const xianxiaIntent = makeStoryIntent({
+      genre: '修仙',
+      protagonist: '男主',
+      antagonist: '反派'
+    })
+    const modernIntent = makeStoryIntent({
+      genre: '现代霸总',
+      protagonist: '男主',
+      antagonist: '反派'
+    })
 
     const xianxiaResult = resolveEntityNames(xianxiaIntent)
     const modernResult = resolveEntityNames(modernIntent)
@@ -119,7 +139,15 @@ describe('resolveEntityNames', () => {
     const result1 = resolveEntityNames(intent)
     const result2 = resolveEntityNames(intent)
 
-    assert.equal(result1.updatedIntent.protagonist, result2.updatedIntent.protagonist, 'Same input should produce same name')
-    assert.equal(result1.updatedIntent.antagonist, result2.updatedIntent.antagonist, 'Same input should produce same name')
+    assert.equal(
+      result1.updatedIntent.protagonist,
+      result2.updatedIntent.protagonist,
+      'Same input should produce same name'
+    )
+    assert.equal(
+      result1.updatedIntent.antagonist,
+      result2.updatedIntent.antagonist,
+      'Same input should produce same name'
+    )
   })
 })

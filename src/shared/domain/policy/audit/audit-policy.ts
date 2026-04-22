@@ -1,6 +1,6 @@
-import type { ScriptSegmentDto } from '../../../contracts/workflow'
-import type { ScriptAuditReportDto } from '../../../contracts/script-audit'
-import type { PolicyMetadata } from '../policy-metadata'
+import type { ScriptSegmentDto } from '../../../contracts/workflow.ts'
+import type { ScriptAuditReportDto } from '../../../contracts/script-audit.ts'
+import type { PolicyMetadata } from '../policy-metadata.ts'
 
 function hasText(value: string | undefined): boolean {
   return Boolean(value && value.trim())
@@ -26,7 +26,8 @@ export const auditPolicySnapshot: AuditPolicySnapshot = {
   metadata: {
     name: 'script_audit_policy_v1',
     version: 'v1.3',
-    lineage: 'stage5-audit-closure -> stage6-story-contract-audit -> stage7-execution-snapshot -> stage7-policy-lineage',
+    lineage:
+      'stage5-audit-closure -> stage6-story-contract-audit -> stage7-execution-snapshot -> stage7-policy-lineage',
     source: '旧项目审计经验 + 正式事实/用户锚点主链'
   },
   scorePenaltyBySeverity: {
@@ -38,7 +39,9 @@ export const auditPolicySnapshot: AuditPolicySnapshot = {
   summary: '先校验场景基本完整性，再校验正式事实与用户锚点是否真正落地。'
 }
 
-export function collectSceneCompletenessIssues(script: ScriptSegmentDto[]): ScriptAuditReportDto['issues'] {
+export function collectSceneCompletenessIssues(
+  script: ScriptSegmentDto[]
+): ScriptAuditReportDto['issues'] {
   const issues: ScriptAuditReportDto['issues'] = []
 
   script.forEach((scene) => {
@@ -71,7 +74,10 @@ export function collectSceneCompletenessIssues(script: ScriptSegmentDto[]): Scri
 }
 
 export function scoreAuditIssues(issues: ScriptAuditReportDto['issues']): number {
-  const totalPenalty = issues.reduce((sum, issue) => sum + auditPolicySnapshot.scorePenaltyBySeverity[issue.severity], 0)
+  const totalPenalty = issues.reduce(
+    (sum, issue) => sum + auditPolicySnapshot.scorePenaltyBySeverity[issue.severity],
+    0
+  )
   return Math.max(0, 100 - totalPenalty)
 }
 

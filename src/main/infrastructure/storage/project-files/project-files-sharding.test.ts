@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
 import { migrateLegacyStoreIfNeeded } from './migrate-legacy-store.ts'
 import { readProjectsIndex } from './read-index.ts'
 import { readProjectShards } from './read-project-shards.ts'

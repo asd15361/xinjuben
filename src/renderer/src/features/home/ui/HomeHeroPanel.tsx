@@ -7,7 +7,7 @@ interface HomeHeroPanelProps {
   onCreate: () => void
 }
 
-export function HomeHeroPanel(props: HomeHeroPanelProps) {
+export function HomeHeroPanel(props: HomeHeroPanelProps): JSX.Element {
   const { status, busy, projectName, canCreate, onProjectNameChange, onCreate } = props
 
   return (

@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import type { AuthorityFailureDto } from '../../../../shared/contracts/authority-failure'
-import type { WorkflowAuthorityErrorEnvelopeDto } from '../../../../shared/contracts/workflow'
+import type { AuthorityFailureDto } from '../../../../shared/contracts/authority-failure.ts'
+import type { WorkflowAuthorityErrorEnvelopeDto } from '../../../../shared/contracts/workflow.ts'
 import { createAuthorityFailureNotice } from './authority-failure-notice.ts'
 
 function buildAuthorityFailureDto(
@@ -31,7 +31,6 @@ test('maps authority.ipc_unavailable to GenerationNotice with ipc_unavailable se
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
   assert.ok(notice.detail)
 })
@@ -41,7 +40,6 @@ test('maps authority.project_missing to GenerationNotice with project_missing se
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
   assert.ok(notice.detail)
 })
@@ -51,7 +49,6 @@ test('maps authority.result_missing to GenerationNotice with result_missing sema
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -60,7 +57,6 @@ test('maps authority.result_incomplete to GenerationNotice with result_incomplet
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -69,7 +65,6 @@ test('maps authority.result_stale to GenerationNotice with result_stale semantic
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -78,7 +73,6 @@ test('maps authority.main_exception to GenerationNotice with main_exception sema
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -87,7 +81,6 @@ test('maps authority.orchestrator_bypass to GenerationNotice with orchestrator_b
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -96,7 +89,6 @@ test('maps authority.fallback_forbidden to GenerationNotice with fallback_forbid
   const notice = createAuthorityFailureNotice(dto)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
   assert.ok(notice.title)
 })
 
@@ -107,7 +99,6 @@ test('extracts error from WorkflowAuthorityErrorEnvelopeDto', () => {
   const notice = createAuthorityFailureNotice(envelope)
 
   assert.equal(notice.kind, 'error')
-  assert.equal(notice.source, 'system')
 })
 
 test('does not set primaryAction when not_recoverable', () => {

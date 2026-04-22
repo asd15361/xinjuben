@@ -1,4 +1,4 @@
-import type { IntakeAnswer, StoryIntentPackageDto } from '../../../../shared/contracts/intake'
+import type { IntakeAnswer, StoryIntentPackageDto } from '../../../../shared/contracts/intake.ts'
 
 export function buildStoryIntentFromIntake(input: {
   answers: IntakeAnswer[]
@@ -18,12 +18,16 @@ export function buildStoryIntentFromIntake(input: {
     antagonist: getAnswer('antagonist'),
     coreConflict: getAnswer('conflict'),
     endingDirection: getAnswer('ending'),
-    officialKeyCharacters: [getAnswer('protagonist'), getAnswer('antagonist')].filter(Boolean) as string[],
+    officialKeyCharacters: [getAnswer('protagonist'), getAnswer('antagonist')].filter(
+      Boolean
+    ) as string[],
     lockedCharacterNames: input.lockedCharacterNames ?? [],
     themeAnchors: [getAnswer('theme')].filter(Boolean) as string[],
     worldAnchors: [getAnswer('world')].filter(Boolean) as string[],
     relationAnchors: [getAnswer('relationship')].filter(Boolean) as string[],
-    dramaticMovement: [getAnswer('twist'), getAnswer('cost'), getAnswer('hook')].filter(Boolean) as string[],
+    dramaticMovement: [getAnswer('twist'), getAnswer('cost'), getAnswer('hook')].filter(
+      Boolean
+    ) as string[],
     manualRequirementNotes: input.manualRequirementNotes,
     freeChatFinalSummary: input.freeChatFinalSummary
   }

@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron'
-import type { ProjectGenerationStatusDto } from '../../../shared/contracts/generation'
-import { getProject, saveGenerationStatus } from '../../infrastructure/storage/project-store'
-import { isPersistedGenerationStatusStale } from '../../../shared/domain/workflow/generation-state'
+import type { ProjectGenerationStatusDto } from '../../../shared/contracts/generation.ts'
+import { getProject, saveGenerationStatus } from '../../infrastructure/storage/project-store.ts'
+import { isPersistedGenerationStatusStale } from '../../../shared/domain/workflow/generation-state.ts'
 
 const GENERATION_STATUS_CHANNEL = 'workspace:generation-status-updated'
 

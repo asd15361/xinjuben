@@ -10,7 +10,7 @@ export function ChatComposer(props: {
   onSend: (text: string) => void
   onConfirm: () => void
   onGenerate: () => void
-}) {
+}): JSX.Element {
   const [draft, setDraft] = useState('')
 
   const sendDisabled = props.disabled || props.busy || !draft.trim()
@@ -33,9 +33,7 @@ export function ChatComposer(props: {
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           <p className="text-[11px] text-white/50 tracking-wider">
-            {props.canGenerate
-              ? '信息已经锁住，下一步先确认七问'
-              : '先把题材、主角、冲突说出来'}
+            {props.canGenerate ? '信息已经锁住，下一步先确认七问' : '先把题材、主角、冲突说出来'}
           </p>
         </div>
         <div className="flex items-center gap-2">

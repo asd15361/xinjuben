@@ -49,7 +49,9 @@ function clearDynamicImportReloadAttempt(storage: Pick<Storage, 'removeItem'>): 
   storage.removeItem(DYNAMIC_IMPORT_RELOAD_FLAG)
 }
 
-export function acknowledgeDynamicImportRecoverySuccess(storage: DynamicImportRecoveryAckStorage): boolean {
+export function acknowledgeDynamicImportRecoverySuccess(
+  storage: DynamicImportRecoveryAckStorage
+): boolean {
   if (canRecoverDynamicImportFailure(storage)) {
     return false
   }
@@ -118,7 +120,7 @@ export function installDynamicImportRecoveryLifecycle(input: {
   storage: DynamicImportRecoveryWriteStorage
   reload: () => void
 }): () => void {
-  const handleWindowError = (event: Event) => {
+  const handleWindowError = (event: Event): void => {
     const errorEvent = event as ErrorEvent
     const error = errorEvent.error ?? errorEvent.message
 
@@ -129,7 +131,7 @@ export function installDynamicImportRecoveryLifecycle(input: {
     })
   }
 
-  const handleUnhandledRejection = (event: Event) => {
+  const handleUnhandledRejection = (event: Event): void => {
     const rejectionEvent = event as PromiseRejectionEvent
     const reason = rejectionEvent.reason
 

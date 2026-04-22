@@ -2,9 +2,9 @@ import type {
   CreateProjectInputDto,
   ProjectSnapshotDto,
   ProjectSummaryDto
-} from '../../../shared/contracts/project'
+} from '../../../shared/contracts/project.ts'
 import { createFormalBlockedState } from '../../../shared/contracts/visible-release-state.ts'
-import type { OutlineDraftDto } from '../../../shared/contracts/workflow'
+import type { OutlineDraftDto } from '../../../shared/contracts/workflow.ts'
 import { resolvePersistedGenerationTruth } from '../../../shared/domain/workflow/persisted-generation-truth.ts'
 import { deriveProjectCharacterBlocks } from '../../../shared/domain/workflow/planning-blocks.ts'
 import { guardianEnforceCharacterSave } from '../../../shared/domain/workflow/stage-guardians.ts'
@@ -17,17 +17,17 @@ import type {
   SaveScriptDraftInputDto,
   SaveScriptRuntimeStateInputDto,
   SaveStoryIntentInputDto
-} from '../../../shared/contracts/workspace'
+} from '../../../shared/contracts/workspace.ts'
 import {
   createProjectId,
   readStore,
   toSummary,
   withStoreLock,
   writeStore
-} from './project-store-core'
+} from './project-store-core.ts'
 import { mirrorProjectDeletion, mirrorProjectSnapshot } from './project-store-shard-sync.ts'
 import { mergeOutlineDraftAuthorityForSave } from './merge-outline-draft-authority.ts'
-import { updateProject } from './project-store-updater'
+import { updateProject } from './project-store-updater.ts'
 import { resolveDetailedOutlinePersistence } from './resolve-detailed-outline-persistence.ts'
 
 function createEmptyOutlineDraft(): OutlineDraftDto {
@@ -219,7 +219,11 @@ export async function saveCharacterDrafts(
       outlineDraft: existing.outlineDraft,
       characterDrafts: input.characterDrafts
     })
-    guardianEnforceCharacterSave(outlineDraft, input.characterDrafts, activeCharacterBlocks)
+    guardianEnforceCharacterSave({
+      outline: outlineDraft,
+      characters: input.characterDrafts,
+      activeCharacterBlocks
+    })
 
     return {
       ...existing,
@@ -302,7 +306,11 @@ export async function saveOutlineAndCharacters(input: {
       outlineDraft: input.outlineDraft,
       characterDrafts: input.characterDrafts
     })
-    guardianEnforceCharacterSave(outlineDraft, input.characterDrafts, activeCharacterBlocks)
+    guardianEnforceCharacterSave({
+      outline: outlineDraft,
+      characters: input.characterDrafts,
+      activeCharacterBlocks
+    })
 
     const generationTruth = resolvePersistedGenerationTruth({
       generationStatus: existing.generationStatus,

@@ -8,7 +8,12 @@
  */
 
 /** 压迫手段 5 大类别 */
-export type TacticCategory = 'hard_steal' | 'rules' | 'relationship' | 'information' | 'spatiotemporal'
+export type TacticCategory =
+  | 'hard_steal'
+  | 'rules'
+  | 'relationship'
+  | 'information'
+  | 'spatiotemporal'
 
 /** 类别对应的中文显示名称 */
 export const TACTIC_CATEGORY_LABELS: Record<TacticCategory, string> = {
@@ -36,7 +41,9 @@ export const TACTIC_CATEGORY_DESCRIPTIONS: Record<TacticCategory, string> = {
  * 将 EpisodeControlCardDto 中的 pressureType 映射到 5 大类别。
  * 如果 pressureType 不在映射表中，返回 undefined。
  */
-export function mapPressureTypeToCategory(pressureType: string | undefined): TacticCategory | undefined {
+export function mapPressureTypeToCategory(
+  pressureType: string | undefined
+): TacticCategory | undefined {
   if (!pressureType) return undefined
   const type = pressureType.trim()
 
@@ -70,7 +77,10 @@ export function mapPressureTypeToCategory(pressureType: string | undefined): Tac
 /**
  * 校验打法是否重复，并提供建议。
  */
-export function validateTacticRotation(currentCategory: TacticCategory | undefined, history: TacticCategory[]): {
+export function validateTacticRotation(
+  currentCategory: TacticCategory | undefined,
+  history: TacticCategory[]
+): {
   isDuplicate: boolean
   lastCategory?: TacticCategory
   suggestion?: TacticCategory
@@ -84,10 +94,17 @@ export function validateTacticRotation(currentCategory: TacticCategory | undefin
 
   if (isDuplicate) {
     // 找出尚未在历史中出现的类别，或优先选一个不同于上两次的类别
-    const allCategories: TacticCategory[] = ['hard_steal', 'rules', 'relationship', 'information', 'spatiotemporal']
+    const allCategories: TacticCategory[] = [
+      'hard_steal',
+      'rules',
+      'relationship',
+      'information',
+      'spatiotemporal'
+    ]
     const lastTwo = history.slice(-2)
-    const available = allCategories.filter(cat => !lastTwo.includes(cat))
-    const suggestion = available.length > 0 ? available[0] : allCategories.find(cat => cat !== currentCategory)
+    const available = allCategories.filter((cat) => !lastTwo.includes(cat))
+    const suggestion =
+      available.length > 0 ? available[0] : allCategories.find((cat) => cat !== currentCategory)
 
     return {
       isDuplicate,

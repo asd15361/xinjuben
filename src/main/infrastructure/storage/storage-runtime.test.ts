@@ -25,9 +25,12 @@ test('resolveStorageRuntime keeps normal app launch on the formal userData path 
 
 test('resolveStorageRuntime ignores E2E_USER_DATA_DIR without explicit e2e mode', () => {
   assert.deepStrictEqual(
-    resolveStorageRuntime({
-      E2E_USER_DATA_DIR: 'D:/tmp/test-userdata'
-    }, appDataPath),
+    resolveStorageRuntime(
+      {
+        E2E_USER_DATA_DIR: 'D:/tmp/test-userdata'
+      },
+      appDataPath
+    ),
     {
       mode: 'app',
       userDataPath: formalUserDataPath,
@@ -38,10 +41,13 @@ test('resolveStorageRuntime ignores E2E_USER_DATA_DIR without explicit e2e mode'
 
 test('resolveStorageRuntime allows isolated userData only in explicit e2e mode', () => {
   assert.deepStrictEqual(
-    resolveStorageRuntime({
-      XINJUBEN_APP_MODE: 'e2e',
-      E2E_USER_DATA_DIR: 'D:/tmp/test-userdata'
-    }, appDataPath),
+    resolveStorageRuntime(
+      {
+        XINJUBEN_APP_MODE: 'e2e',
+        E2E_USER_DATA_DIR: 'D:/tmp/test-userdata'
+      },
+      appDataPath
+    ),
     {
       mode: 'e2e',
       userDataPath: 'D:/tmp/test-userdata',

@@ -1,7 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import type { CharacterDraftDto, OutlineDraftDto } from '../../../../../shared/contracts/workflow'
+import type {
+  CharacterDraftDto,
+  OutlineDraftDto
+} from '../../../../../shared/contracts/workflow.ts'
 import { resolveDetailedOutlineEntryBlock } from './detailed-outline-entry-guard.ts'
 
 function createOutline(): OutlineDraftDto {

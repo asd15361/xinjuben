@@ -17,7 +17,7 @@
  * Import and call at the START of IPC handlers that write to truth domains:
  *
  * ```typescript
- * import { enforceTruthDomainWrite, assertMainProducer } from './truth-enforcement'
+ * import { enforceTruthDomainWrite, assertMainProducer } from './truth-enforcement.ts'
  *
  * ipcMain.handle('workflow:start-script-generation', async (event, input) => {
  *   // Enforce MAIN is writing generationStatus (truth it owns)
@@ -33,15 +33,15 @@
  * 3. Any handler that writes to shared truth domains
  */
 
-import { AuthorityFailureError, AuthorityFailureType } from './authority-constitution'
+import { AuthorityFailureError, AuthorityFailureType } from './authority-constitution.ts'
 import {
   TruthDomain,
   TruthOwnerMatrix,
   getProducer,
   mayWrite,
   type TruthDomainType
-} from './truth-owner-matrix'
-import { TruthOwner, type TruthOwnerType } from './truth-authority'
+} from './truth-owner-matrix.ts'
+import { TruthOwner, type TruthOwnerType } from './truth-authority.ts'
 
 // =============================================================================
 // ENFORCEMENT CONTEXT LABELS

@@ -73,10 +73,15 @@ function cleanList(values: string[]): string[] {
   return values.map((value) => cleanLine(value)).filter(Boolean)
 }
 
-export function normalizeGenerationBriefPackage(input: Partial<GenerationBriefPackage>): GenerationBriefPackage {
+export function normalizeGenerationBriefPackage(
+  input: Partial<GenerationBriefPackage>
+): GenerationBriefPackage {
   return {
     projectTitle: cleanLine(input.projectTitle || '') || '未命名项目',
-    episodeCount: Number.isFinite(input.episodeCount) && (input.episodeCount || 0) > 0 ? Number(input.episodeCount) : 10,
+    episodeCount:
+      Number.isFinite(input.episodeCount) && (input.episodeCount || 0) > 0
+        ? Number(input.episodeCount)
+        : 10,
     genreAndStyle: cleanLine(input.genreAndStyle || '') || '待补',
     sellingPremise: cleanLine(input.sellingPremise || '') || '待补',
     coreDislocation: cleanLine(input.coreDislocation || '') || '待补',
@@ -143,7 +148,9 @@ export function renderGenerationBriefTemplate(input: Partial<GenerationBriefPack
 
   lines.push('【人物分层】')
   if (brief.characterLayers.length > 0) {
-    lines.push(...brief.characterLayers.map((item) => `- ${item.name}｜${item.layer}｜${item.duty}`))
+    lines.push(
+      ...brief.characterLayers.map((item) => `- ${item.name}｜${item.layer}｜${item.duty}`)
+    )
   } else {
     lines.push('- 待补')
   }

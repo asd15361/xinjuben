@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStageStore } from '../../store/useStageStore'
+import { useStageStore } from '../../store/useStageStore.ts'
 
 interface StageContractSummaryState {
   outlineChecksum: string | null
@@ -41,11 +41,13 @@ export function useStageContractSummary(): StageContractSummaryState {
       }
 
       if (characters.length > 0 && segments.length > 0) {
-        const detailedOutlineContract = await window.api.workflow.buildDetailedOutlineStageContract({
-          outline,
-          characters,
-          segments
-        })
+        const detailedOutlineContract = await window.api.workflow.buildDetailedOutlineStageContract(
+          {
+            outline,
+            characters,
+            segments
+          }
+        )
         next.detailedOutlineChecksum = detailedOutlineContract.fingerprint.checksum
       }
 

@@ -1,5 +1,5 @@
-import type { AuditScriptInputDto } from '../../../../shared/contracts/script-audit'
-import { hasTraitBindingSignal as hasUnifiedTraitBindingSignal } from '../../../../shared/domain/script-generation/signal-policy'
+import type { AuditScriptInputDto } from '../../../../shared/contracts/script-audit.ts'
+import { hasTraitBindingSignal as hasUnifiedTraitBindingSignal } from '../../../../shared/domain/script-generation/signal-policy.ts'
 
 export function buildMergedScript(script: AuditScriptInputDto['script']): string {
   return script.map((scene) => `${scene.action} ${scene.dialogue} ${scene.emotion}`).join('\n')

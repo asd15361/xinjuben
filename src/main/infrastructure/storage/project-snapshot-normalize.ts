@@ -1,6 +1,6 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { ShortDramaConstitutionDto } from '../../../shared/contracts/intake'
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
+import type { ShortDramaConstitutionDto } from '../../../shared/contracts/intake.ts'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineBlockDto,
@@ -11,8 +11,8 @@ import type {
   OutlineEpisodeDto,
   ScreenplaySceneBlockDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import type { EpisodeControlCardDto } from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
+import type { EpisodeControlCardDto } from '../../../shared/contracts/workflow.ts'
 import { buildEntityStoreFromDecomposition } from '../../../shared/domain/entities/build-entity-store-from-decomposition.ts'
 import { draftsToMasterEntities } from '../../../shared/domain/entities/character-draft-mapper.ts'
 import { normalizeEntityStore } from '../../../shared/domain/entities/entity-normalizers.ts'
@@ -29,7 +29,9 @@ function asString(value: unknown): string {
 }
 
 function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
 }
 
 function asPositiveInteger(value: unknown, fallback: number): number {
@@ -44,13 +46,13 @@ function normalizeRoleLayer(value: unknown): CharacterDraftDto['roleLayer'] | un
 
 function normalizeIntegerArray(value: unknown): number[] | undefined {
   if (!Array.isArray(value)) return undefined
-  const normalized = value
-    .map((item) => asPositiveInteger(item, 0))
-    .filter((item) => item > 0)
+  const normalized = value.map((item) => asPositiveInteger(item, 0)).filter((item) => item > 0)
   return normalized.length > 0 ? [...new Set(normalized)] : undefined
 }
 
-function normalizeStoryIntent(storyIntent: StoryIntentPackageDto | null): StoryIntentPackageDto | null {
+function normalizeStoryIntent(
+  storyIntent: StoryIntentPackageDto | null
+): StoryIntentPackageDto | null {
   if (!storyIntent) return null
 
   return {
@@ -129,23 +131,22 @@ function normalizeEpisodeBeat(
     episodeNo: asPositiveInteger(beat.episodeNo, fallbackEpisodeNo),
     summary: asString(beat.summary),
     sceneByScene: Array.isArray(beat.sceneByScene)
-      ? beat.sceneByScene.map((scene, index) =>
-          normalizeScreenplayScene(scene, index + 1)
-        )
+      ? beat.sceneByScene.map((scene, index) => normalizeScreenplayScene(scene, index + 1))
       : undefined,
     episodeControlCard: normalizeEpisodeControlCardShape(beat.episodeControlCard)
   }
 }
 
-function normalizeOutlineEpisode(episode: OutlineEpisodeDto, fallbackEpisodeNo: number): OutlineEpisodeDto {
+function normalizeOutlineEpisode(
+  episode: OutlineEpisodeDto,
+  fallbackEpisodeNo: number
+): OutlineEpisodeDto {
   return {
     ...episode,
     episodeNo: asPositiveInteger(episode.episodeNo, fallbackEpisodeNo),
     summary: asString(episode.summary),
     sceneByScene: Array.isArray(episode.sceneByScene)
-      ? episode.sceneByScene.map((scene, index) =>
-          normalizeScreenplayScene(scene, index + 1)
-        )
+      ? episode.sceneByScene.map((scene, index) => normalizeScreenplayScene(scene, index + 1))
       : undefined
   }
 }
@@ -166,9 +167,7 @@ function normalizeOutlineDraft(outline: OutlineDraftDto | null): OutlineDraftDto
         ? Math.floor(outline.planningUnitEpisodes)
         : undefined,
     summaryEpisodes: Array.isArray(outline.summaryEpisodes)
-      ? outline.summaryEpisodes.map((episode, index) =>
-          normalizeOutlineEpisode(episode, index + 1)
-        )
+      ? outline.summaryEpisodes.map((episode, index) => normalizeOutlineEpisode(episode, index + 1))
       : [],
     outlineBlocks: Array.isArray(outline.outlineBlocks)
       ? outline.outlineBlocks.map((block, index) => ({
@@ -227,10 +226,7 @@ function normalizeDetailedOutlineBlocks(value: unknown): DetailedOutlineBlockDto
           ...draft,
           blockNo: asPositiveInteger(draft.blockNo, index + 1),
           startEpisode: asPositiveInteger(draft.startEpisode, 1),
-          endEpisode: asPositiveInteger(
-            draft.endEpisode,
-            asPositiveInteger(draft.startEpisode, 1)
-          ),
+          endEpisode: asPositiveInteger(draft.endEpisode, asPositiveInteger(draft.startEpisode, 1)),
           summary: draft.summary ? asString(draft.summary) : undefined,
           episodeBeats: Array.isArray(draft.episodeBeats)
             ? draft.episodeBeats.map((beat, beatIndex) => normalizeEpisodeBeat(beat, beatIndex + 1))
@@ -290,7 +286,9 @@ function mergeCharacterDraftsIntoEntityStore(input: {
     entityStore: input.entityStore,
     createIfNotFound: true
   })
-  const charactersById = new Map(input.entityStore.characters.map((character) => [character.id, character]))
+  const charactersById = new Map(
+    input.entityStore.characters.map((character) => [character.id, character])
+  )
 
   for (const character of mergedCharacters) {
     charactersById.set(character.id, character)
@@ -371,7 +369,9 @@ export function normalizeProjectSnapshot(project: ProjectSnapshotDto): ProjectSn
     scriptProgressBoard: project.scriptProgressBoard ?? null,
     scriptFailureResolution: project.scriptFailureResolution ?? null,
     scriptRuntimeFailureHistory: Array.isArray(project.scriptRuntimeFailureHistory)
-      ? project.scriptRuntimeFailureHistory.filter((item): item is string => typeof item === 'string')
+      ? project.scriptRuntimeFailureHistory.filter(
+          (item): item is string => typeof item === 'string'
+        )
       : [],
     visibleResult: project.visibleResult ?? generationTruth.visibleResult,
     formalRelease: project.formalRelease ?? generationTruth.formalRelease

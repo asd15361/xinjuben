@@ -1,4 +1,8 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPreflightDto, ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
+import type {
+  ScriptLedgerIssueDto,
+  ScriptLedgerPreflightDto,
+  ScriptStateLedgerDto
+} from '../../../../shared/contracts/script-ledger.ts'
 
 export function buildLedgerPreflight(input: {
   confirmedFormalFacts: string[]
@@ -52,7 +56,9 @@ export function buildLedgerPreflight(input: {
     })
   }
 
-  const weakPressureCharacters = input.characters.filter((character) => character.relationshipPressure.length === 0).slice(0, 2)
+  const weakPressureCharacters = input.characters
+    .filter((character) => character.relationshipPressure.length === 0)
+    .slice(0, 2)
   if (weakPressureCharacters.length > 0) {
     issues.push({
       severity: 'low',
@@ -63,7 +69,9 @@ export function buildLedgerPreflight(input: {
 
   const unboundTraitRows = input.characters
     .flatMap((character) =>
-      character.traitBindings.filter((binding) => !binding.isBound).map((binding) => `${character.name}:${binding.trait}`)
+      character.traitBindings
+        .filter((binding) => !binding.isBound)
+        .map((binding) => `${character.name}:${binding.trait}`)
     )
     .slice(0, 3)
   if (unboundTraitRows.length > 0) {

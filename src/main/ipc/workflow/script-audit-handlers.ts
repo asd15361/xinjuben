@@ -1,28 +1,22 @@
 import { ipcMain } from 'electron'
-import { auditGeneratedScript } from '../../application/script-generation/audit/audit-generated-script'
-import { buildScriptRepairPlan } from '../../application/script-generation/audit/build-script-repair-plan'
-import { executeScriptRepair } from '../../application/script-generation/repair/execute-script-repair'
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
-import type {
-  AuditScriptInputDto,
-  ExecuteScriptRepairInputDto,
-  ExecuteScriptRepairResultDto,
-  ScriptAuditReportDto,
-  ScriptRepairPlanDto
-} from '../../../shared/contracts/script-audit'
+import { auditGeneratedScript } from '../../application/script-generation/audit/audit-generated-script.ts'
+import { buildScriptRepairPlan } from '../../application/script-generation/audit/build-script-repair-plan.ts'
+import type { AuditScriptInputDto, ScriptAuditReportDto, ScriptRepairPlanDto } from '../../../shared/contracts/script-audit.ts'
 
-export function registerScriptAuditHandlers(runtimeProviderConfig: RuntimeProviderConfig): void {
-  ipcMain.handle('workflow:audit-script', (_event, input: AuditScriptInputDto): ScriptAuditReportDto =>
-    auditGeneratedScript(input)
-  )
-
-  ipcMain.handle('workflow:build-script-repair-plan', (_event, input: AuditScriptInputDto): ScriptRepairPlanDto =>
-    buildScriptRepairPlan(input)
+/**
+ * Script Audit IPC handlers
+ *
+ * 只保留纯计算、只读的审计能力。
+ * executeScriptRepair 已迁移到 HTTP server。
+ */
+export function registerScriptAuditHandlers(): void {
+  ipcMain.handle(
+    'workflow:audit-script',
+    (_event, input: AuditScriptInputDto): ScriptAuditReportDto => auditGeneratedScript(input)
   )
 
   ipcMain.handle(
-    'workflow:execute-script-repair',
-    async (_event, input: ExecuteScriptRepairInputDto): Promise<ExecuteScriptRepairResultDto> =>
-      executeScriptRepair(input, runtimeProviderConfig)
+    'workflow:build-script-repair-plan',
+    (_event, input: AuditScriptInputDto): ScriptRepairPlanDto => buildScriptRepairPlan(input)
   )
 }

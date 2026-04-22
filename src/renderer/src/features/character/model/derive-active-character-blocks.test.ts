@@ -83,7 +83,7 @@ test('deriveAvailableBlocks: stability - same input returns same output', () => 
 // ---------------------------------------------------------------------------
 
 test('deriveActiveCharacterBlocks: empty characters returns empty array', () => {
-  const characters: any[] = []
+  const characters: Array<{ id: string; name: string; activeBlockNos: number[] }> = []
   const result = deriveActiveCharacterBlocks(characters)
   assert.deepStrictEqual(result, [])
 })
@@ -126,7 +126,7 @@ test('buildActiveCharacterBlocksSnapshot: combines available and active correctl
 
 test('buildActiveCharacterBlocksSnapshot: empty outline and characters', () => {
   const outline = { summaryEpisodes: [], planningUnitEpisodes: 10 }
-  const characters: any[] = []
+  const characters: Array<{ id: string; name: string; activeBlockNos: number[] }> = []
   const snapshot = buildActiveCharacterBlocksSnapshot(outline, characters)
 
   assert.deepStrictEqual(snapshot.availableBlocks, [])

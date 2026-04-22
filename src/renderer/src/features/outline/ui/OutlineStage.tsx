@@ -12,23 +12,17 @@ import { OutlineBasicsPanel } from './OutlineBasicsPanel'
 import { OutlineEntityStorePanel } from './OutlineEntityStorePanel.tsx'
 import { FormalFactDeclarationPanel } from './FormalFactDeclarationPanel'
 
-export function OutlineStage() {
+export function OutlineStage(): JSX.Element {
   const outline = useStageStore((state) => state.outline)
   const setOutline = useStageStore((state) => state.setOutline)
   const projectId = useWorkflowStore((state) => state.projectId)
   const exportStage = useProjectStageExport()
-  const {
-    actionLabel,
-    generationStatus,
-    generationBusy,
-    handleGenerateOutlineAndCharacters
-  } = useOutlineCharacterGeneration('outline')
+  const { actionLabel, generationStatus, generationBusy, handleGenerateOutlineAndCharacters } =
+    useOutlineCharacterGeneration('outline')
   const entityStore = useWorkflowStore((state) => state.projectEntityStore)
   const episodeCount = ensureOutlineEpisodeShape(outline).summaryEpisodes.filter((episode) =>
     episode.summary.trim()
   ).length
-
-
 
   async function handleGoToCharacterStage(): Promise<void> {
     if (!projectId) return

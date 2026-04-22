@@ -38,7 +38,13 @@ test('summary guard accepts complete single summary payload', () => {
     themeAnchors: ['守约与救人'],
     worldAnchors: ['妖兽异动，宗门震荡。'],
     relationAnchors: ['黎明喜欢小柔'],
-    dramaticMovement: ['守住小柔和钥匙', '李科持续施压', '代价持续升级', '李科拿小柔做筹码', '每集从钥匙与小柔继续挂钩'],
+    dramaticMovement: [
+      '守住小柔和钥匙',
+      '李科持续施压',
+      '代价持续升级',
+      '李科拿小柔做筹码',
+      '每集从钥匙与小柔继续挂钩'
+    ],
     relationSummary: ['黎明喜欢小柔'],
     softUnderstanding: ['这是一个权谋剧'],
     pendingConfirmations: ['结局方向']
@@ -61,7 +67,13 @@ test('summary guard accepts single payload and renders generation brief locally'
     keyCharacters: ['黎明', '李科', '小柔'],
     chainSynopsis: '黎明一路藏锋，直到被逼正面出手。',
     relationAnchors: ['黎明喜欢小柔'],
-    dramaticMovement: ['守住小柔和钥匙', '李科持续施压', '代价持续升级', '李科拿小柔做筹码', '每集从钥匙与小柔继续挂钩']
+    dramaticMovement: [
+      '守住小柔和钥匙',
+      '李科持续施压',
+      '代价持续升级',
+      '李科拿小柔做筹码',
+      '每集从钥匙与小柔继续挂钩'
+    ]
   }
 
   assert.equal(isSummaryPayloadComplete(payload), true)

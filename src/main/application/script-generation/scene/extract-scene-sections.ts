@@ -50,22 +50,39 @@ function looksLikeDialogue(block: string): boolean {
 }
 
 function looksLikeEmotion(block: string): boolean {
-  return /(情绪|情感|心头|心里|胸口|愤怒|恐惧|失望|惊惧|钝痛|压抑|崩塌|发酸|发紧|一颤|心头一紧)/.test(block)
+  return /(情绪|情感|心头|心里|胸口|愤怒|恐惧|失望|惊惧|钝痛|压抑|崩塌|发酸|发紧|一颤|心头一紧)/.test(
+    block
+  )
 }
 
 function extractByBlockFallback(text: string): ExtractedSceneSections | null {
   const blocks = normalizeBlocks(text)
-    .map((block) => block.split('\n').filter((line) => !/^(Action|动作|舞台动作|场景动作|Dialogue|对白|台词|Emotion|情绪|情感|情绪推进)\b/i.test(stripMarkerLine(line))).join('\n').trim())
+    .map((block) =>
+      block
+        .split('\n')
+        .filter(
+          (line) =>
+            !/^(Action|动作|舞台动作|场景动作|Dialogue|对白|台词|Emotion|情绪|情感|情绪推进)\b/i.test(
+              stripMarkerLine(line)
+            )
+        )
+        .join('\n')
+        .trim()
+    )
     .filter(Boolean)
 
   if (blocks.length < 3) return null
 
   const dialogueIndex = blocks.findIndex((block) => looksLikeDialogue(block))
-  const emotionIndex = blocks.findIndex((block, index) => index !== dialogueIndex && looksLikeEmotion(block))
+  const emotionIndex = blocks.findIndex(
+    (block, index) => index !== dialogueIndex && looksLikeEmotion(block)
+  )
 
   if (dialogueIndex === -1 || emotionIndex === -1) return null
 
-  const actionIndex = blocks.findIndex((_, index) => index !== dialogueIndex && index !== emotionIndex)
+  const actionIndex = blocks.findIndex(
+    (_, index) => index !== dialogueIndex && index !== emotionIndex
+  )
   if (actionIndex === -1) return null
 
   const action = blocks[actionIndex]
@@ -100,10 +117,14 @@ export function extractSceneSections(text: string): ExtractedSceneSections | nul
   const markers = collectSectionMarkers(normalizedText)
 
   for (const actionMarker of markers.filter((item) => item.key === 'action')) {
-    const dialogueMarker = markers.find((item) => item.key === 'dialogue' && item.index > actionMarker.index)
+    const dialogueMarker = markers.find(
+      (item) => item.key === 'dialogue' && item.index > actionMarker.index
+    )
     if (!dialogueMarker) continue
 
-    const emotionMarker = markers.find((item) => item.key === 'emotion' && item.index > dialogueMarker.index)
+    const emotionMarker = markers.find(
+      (item) => item.key === 'emotion' && item.index > dialogueMarker.index
+    )
     if (!emotionMarker) continue
 
     const action = normalizedText.slice(actionMarker.contentStart, dialogueMarker.index).trim()

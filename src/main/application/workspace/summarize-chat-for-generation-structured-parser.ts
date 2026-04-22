@@ -123,7 +123,9 @@ export function parseCharacterCards(sectionText: string): GenerationBriefCharact
     .filter((item) => item.name && item.summary)
 }
 
-export function collectStructuredSections(sectionMap: Map<string, string>): StructuredBriefSections {
+export function collectStructuredSections(
+  sectionMap: Map<string, string>
+): StructuredBriefSections {
   const protagonist = cleanPossibleName(toText(sectionMap.get('主角')))
   const antagonist = cleanPossibleName(toText(sectionMap.get('对手')))
   const characterCards = parseCharacterCards(sectionMap.get('角色卡') || '')
@@ -133,14 +135,19 @@ export function collectStructuredSections(sectionMap: Map<string, string>): Stru
   const explicitKeyCharacters = splitNameList(sectionMap.get('关键角色') || '')
     .map((name) => cleanPossibleName(name) || name.trim())
     .filter(Boolean)
-  const knownNames = uniqueList([protagonist, antagonist, ...explicitKeyCharacters, ...characterCards.map((item) => item.name)], 8)
+  const knownNames = uniqueList(
+    [protagonist, antagonist, ...explicitKeyCharacters, ...characterCards.map((item) => item.name)],
+    8
+  )
   const relationNames = uniqueList(
     relationSummary.flatMap((line) => knownNames.filter((name) => name && line.includes(name))),
     8
   )
   const cardNames = characterCards.map((item) => item.name)
   const keyCharacters = uniqueList(
-    [protagonist, antagonist, ...explicitKeyCharacters, ...cardNames, ...relationNames].filter(Boolean),
+    [protagonist, antagonist, ...explicitKeyCharacters, ...cardNames, ...relationNames].filter(
+      Boolean
+    ),
     6
   )
 

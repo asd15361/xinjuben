@@ -1,5 +1,5 @@
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
-import type { CharacterDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
+import type { CharacterDraftDto, ScriptSegmentDto } from '../../../../shared/contracts/workflow.ts'
 import { findTraitBindingEvidence } from '../../../../shared/domain/script-generation/signal-policy.ts'
 
 const LOCATION_PATTERN =
@@ -33,8 +33,9 @@ function pickStatusEvidence(text: string): string {
     text
       .split(/[。！？!?；\n]/)
       .map((line) => line.trim())
-      .find((line) => /吐血|咳血|黑血|中毒|押入地牢|押回|候审|地牢|被抓|被绑|软禁|封住经脉|革去.*职务/.test(line)) ||
-    '最近场景未提炼出更明确的状态证据'
+      .find((line) =>
+        /吐血|咳血|黑血|中毒|押入地牢|押回|候审|地牢|被抓|被绑|软禁|封住经脉|革去.*职务/.test(line)
+      ) || '最近场景未提炼出更明确的状态证据'
   )
 }
 
@@ -105,7 +106,10 @@ function normalizeTraitLandingType(trait: string): TraitLandingType {
   return 'other'
 }
 
-function buildTraitBindings(character: CharacterDraftDto, scenes: ScriptSegmentDto[]) {
+function buildTraitBindings(
+  character: CharacterDraftDto,
+  scenes: ScriptSegmentDto[]
+): ScriptStateLedgerDto['characters'][number]['traitBindings'] {
   const traits = [character.advantage, character.weakness, character.goal, character.arc]
     .map((item) => String(item || '').trim())
     .filter(Boolean)
@@ -168,11 +172,15 @@ export function buildCharacterStates(input: {
         scene.dialogue.includes(character.name) ||
         scene.emotion.includes(character.name)
     )
-    const injuryEpisodeStreak = countTailWhile(appearanceHistory, (scene) =>
-      inferInjuryStatus(`${scene.action}\n${scene.dialogue}\n${scene.emotion}`) === '重伤'
+    const injuryEpisodeStreak = countTailWhile(
+      appearanceHistory,
+      (scene) =>
+        inferInjuryStatus(`${scene.action}\n${scene.dialogue}\n${scene.emotion}`) === '重伤'
     )
-    const custodyEpisodeStreak = countTailWhile(appearanceHistory, (scene) =>
-      inferCustodyStatus(`${scene.action}\n${scene.dialogue}\n${scene.emotion}`) !== 'free'
+    const custodyEpisodeStreak = countTailWhile(
+      appearanceHistory,
+      (scene) =>
+        inferCustodyStatus(`${scene.action}\n${scene.dialogue}\n${scene.emotion}`) !== 'free'
     )
     const latestCustodyStatus = inferCustodyStatus(latestText)
 

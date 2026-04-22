@@ -1,5 +1,5 @@
-import { validateFormalFactDefinition } from '../../../shared/domain/formal-fact/definition-engine'
-import { validateDramaProgression } from '../../../shared/domain/drama-progression/progression-engine'
+import { validateFormalFactDefinition } from '../../../shared/domain/formal-fact/definition-engine.ts'
+import { validateDramaProgression } from '../../../shared/domain/drama-progression/progression-engine.ts'
 
 export const FactEngine = {
   validateCoreFact: validateFormalFactDefinition,

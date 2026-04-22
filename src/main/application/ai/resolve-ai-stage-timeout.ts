@@ -1,4 +1,4 @@
-import type { AiGenerateRequestDto } from '../../../shared/contracts/ai'
+import type { AiGenerateRequestDto } from '../../../shared/contracts/ai.ts'
 
 function readTimeoutOverride(key: string, fallback: number): number {
   const raw = process.env[key]

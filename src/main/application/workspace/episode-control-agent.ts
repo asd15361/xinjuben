@@ -24,9 +24,8 @@ function normalizeJsonEnvelope(rawText: string): string {
 
 async function appendEpisodeControlDiagnostic(message: string): Promise<void> {
   try {
-    const { appendRuntimeDiagnosticLog } = await import(
-      '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-    )
+    const { appendRuntimeDiagnosticLog } =
+      await import('../../infrastructure/diagnostics/runtime-diagnostic-log.ts')
     await appendRuntimeDiagnosticLog('episode_control', message)
   } catch {
     // 诊断日志只能旁路记录，不能反过来打断详细大纲生成。
@@ -49,7 +48,9 @@ function formatSegmentEpisodeBeats(segment: DetailedOutlineSegmentDto): string {
         )
         .join('\n')
 
-      return [`- 第${beat.episodeNo}集：${beat.summary || '待补'}`, sceneLines].filter(Boolean).join('\n')
+      return [`- 第${beat.episodeNo}集：${beat.summary || '待补'}`, sceneLines]
+        .filter(Boolean)
+        .join('\n')
     })
     .join('\n')
 }
@@ -81,14 +82,15 @@ export function buildEpisodeControlAgentPrompt(input: {
   /** 计谋黑名单：前序集已使用的施压手段，本批禁止重复 */
   usedTactics?: string[]
 }): string {
-  const usedTacticsBlock = input.usedTactics && input.usedTactics.length > 0
-    ? [
-        '',
-        '【计谋黑名单 · 本批禁止重复】',
-        `以下施压手段已在之前集使用过，本批次绝对禁止重复，必须切换施压维度：${input.usedTactics.join('、')}`,
-        '可切换维度：硬夺类→规则类→关系类→信息类→时空类。必须从黑名单外的维度中选择。'
-      ].join('\n')
-    : ''
+  const usedTacticsBlock =
+    input.usedTactics && input.usedTactics.length > 0
+      ? [
+          '',
+          '【计谋黑名单 · 本批禁止重复】',
+          `以下施压手段已在之前集使用过，本批次绝对禁止重复，必须切换施压维度：${input.usedTactics.join('、')}`,
+          '可切换维度：硬夺类→规则类→关系类→信息类→时空类。必须从黑名单外的维度中选择。'
+        ].join('\n')
+      : ''
 
   return [
     '【单集控制Agent · 集级调度指令】',

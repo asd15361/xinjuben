@@ -11,30 +11,32 @@
  * character profiles -> rough outline" flow. Keep it only as historical implementation evidence
  * until the surrounding boundary cleanup is complete.
  */
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { OutlineDraftDto, CharacterDraftDto, OutlineBlockDto } from '../../../shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
+import type {
+  OutlineDraftDto,
+  CharacterDraftDto,
+  OutlineBlockDto
+} from '../../../shared/contracts/workflow.ts'
 import {
   normalizeOutlineEpisodes,
   outlineEpisodesToSummary,
   parseSummaryToOutlineEpisodes
-} from '../../../shared/domain/workflow/outline-episodes'
+} from '../../../shared/domain/workflow/outline-episodes.ts'
 import {
   DEFAULT_EPISODE_COUNT,
   extractEpisodeCountFromGenerationBrief
-} from '../../../shared/domain/workflow/episode-count'
+} from '../../../shared/domain/workflow/episode-count.ts'
 import { normalizeCharacterDrafts } from '../../../shared/domain/workflow/character-draft-normalization.ts'
 import {
   isCharacterBundleStructurallyComplete,
   resolveCharacterContractAnchors
 } from '../../../shared/domain/workflow/character-contract.ts'
-import {
-  generateOutlineBundle
-} from './generate-outline-and-characters-support'
-import { normalizeOutlineStoryIntent } from './outline-story-intent'
+import { generateOutlineBundle } from './generate-outline-and-characters-support.ts'
+import { normalizeOutlineStoryIntent } from './outline-story-intent.ts'
 import { validateStructuredOutline } from './rough-outline-validation.ts'
-import { toDraftFacts } from './outline-facts'
+import { toDraftFacts } from './outline-facts.ts'
 import { orchestrateParallelAgentsWithContext } from './orchestrate-parallel-agents.ts'
 import type { SevenQuestionsResult } from './generate-seven-questions-prompt.ts'
 import type { CharacterProfileResult } from './generate-character-profile-prompt.ts'
@@ -108,7 +110,9 @@ export async function generateOutlineAndCharactersFromChat(input: {
       'rough_outline',
       `rough_outline_final_validation_failed code=${outlineValidation.code || 'unknown'} actualEpisodeCount=${outlineValidation.actualEpisodeCount} missing=[${outlineValidation.missingEpisodeNos.join(',')}] duplicate=[${outlineValidation.duplicateEpisodeNos.join(',')}] empty=[${outlineValidation.emptyEpisodeNos.join(',')}]`
     )
-    throw new Error(`rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`)
+    throw new Error(
+      `rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`
+    )
   }
   const validatedOutline = outlinePayload
   const storyIntent = normalizeOutlineStoryIntent(baseStoryIntent)

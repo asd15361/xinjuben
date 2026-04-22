@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import type { InputContractValidationDto } from '../../../../shared/contracts/input-contract'
-import type { WorkflowStage } from '../../../../shared/contracts/workflow'
-import { useWorkflowStore } from '../store/useWorkflowStore'
-import { useStageStore } from '../../store/useStageStore'
+import type { InputContractValidationDto } from '../../../../shared/contracts/input-contract.ts'
+import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
+import { useStageStore } from '../../store/useStageStore.ts'
+import { apiValidateStageContract } from '../../services/api-client.ts'
 
 export function useStageReadiness(
   targetStage: Exclude<WorkflowStage, 'chat' | 'seven_questions'>
 ): InputContractValidationDto | null {
+  const projectId = useWorkflowStore((s) => s.projectId)
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)
@@ -18,13 +20,14 @@ export function useStageReadiness(
     let active = true
 
     async function validate(): Promise<void> {
-      const result = await window.api.workflow.validateStageInputContract({
-        targetStage,
-        storyIntent,
-        outline,
-        characters,
-        segments,
-        script
+      if (!projectId) {
+        setState(null)
+        return
+      }
+
+      const result = await apiValidateStageContract({
+        projectId,
+        targetStage
       })
 
       if (active) {
@@ -37,7 +40,7 @@ export function useStageReadiness(
     return () => {
       active = false
     }
-  }, [characters, outline, script, segments, storyIntent, targetStage])
+  }, [characters, outline, projectId, script, segments, storyIntent, targetStage])
 
   return state
 }

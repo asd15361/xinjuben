@@ -1,4 +1,4 @@
-import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai'
+import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai.ts'
 import { createAbortSignal, normalizeAbortError, type LaneRuntime } from './ai-lane-runtime.ts'
 
 export function resolveRequestTimeoutMs(

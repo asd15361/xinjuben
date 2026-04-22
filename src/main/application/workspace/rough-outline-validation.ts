@@ -43,7 +43,9 @@ export function validateOutlineEpisodeBatch(input: {
     (_, index) => input.startEpisode + index
   )
   const actualEpisodeCount = normalized.length
-  const emptyEpisodeNos = normalized.filter((episode) => !episode.summary).map((episode) => episode.episodeNo)
+  const emptyEpisodeNos = normalized
+    .filter((episode) => !episode.summary)
+    .map((episode) => episode.episodeNo)
   const episodeNoCounts = new Map<number, number>()
   for (const episode of normalized) {
     episodeNoCounts.set(episode.episodeNo, (episodeNoCounts.get(episode.episodeNo) || 0) + 1)
@@ -53,7 +55,9 @@ export function validateOutlineEpisodeBatch(input: {
     .map(([episodeNo]) => episodeNo)
     .sort((a, b) => a - b)
   const actualEpisodeNos = new Set(normalized.map((episode) => episode.episodeNo))
-  const missingEpisodeNos = expectedEpisodeNos.filter((episodeNo) => !actualEpisodeNos.has(episodeNo))
+  const missingEpisodeNos = expectedEpisodeNos.filter(
+    (episodeNo) => !actualEpisodeNos.has(episodeNo)
+  )
   const overflowEpisodeNos = normalized
     .map((episode) => episode.episodeNo)
     .filter((episodeNo) => episodeNo < input.startEpisode || episodeNo > input.endEpisode)
@@ -80,7 +84,11 @@ export function validateOutlineEpisodeBatch(input: {
     }
   }
 
-  if (missingEpisodeNos.length > 0 || duplicateEpisodeNos.length > 0 || overflowEpisodeNos.length > 0) {
+  if (
+    missingEpisodeNos.length > 0 ||
+    duplicateEpisodeNos.length > 0 ||
+    overflowEpisodeNos.length > 0
+  ) {
     return {
       ok: false,
       code: 'episode_numbers_invalid',
@@ -139,22 +147,64 @@ export function validateStructuredOutline(input: {
   }
 
   if (!normalizeText(outline.title)) {
-    return { ok: false, code: 'missing_title', actualEpisodeCount: 0, missingEpisodeNos: [], duplicateEpisodeNos: [], emptyEpisodeNos: [] }
+    return {
+      ok: false,
+      code: 'missing_title',
+      actualEpisodeCount: 0,
+      missingEpisodeNos: [],
+      duplicateEpisodeNos: [],
+      emptyEpisodeNos: []
+    }
   }
   if (!normalizeText(outline.genre)) {
-    return { ok: false, code: 'missing_genre', actualEpisodeCount: 0, missingEpisodeNos: [], duplicateEpisodeNos: [], emptyEpisodeNos: [] }
+    return {
+      ok: false,
+      code: 'missing_genre',
+      actualEpisodeCount: 0,
+      missingEpisodeNos: [],
+      duplicateEpisodeNos: [],
+      emptyEpisodeNos: []
+    }
   }
   if (!normalizeText(outline.theme)) {
-    return { ok: false, code: 'missing_theme', actualEpisodeCount: 0, missingEpisodeNos: [], duplicateEpisodeNos: [], emptyEpisodeNos: [] }
+    return {
+      ok: false,
+      code: 'missing_theme',
+      actualEpisodeCount: 0,
+      missingEpisodeNos: [],
+      duplicateEpisodeNos: [],
+      emptyEpisodeNos: []
+    }
   }
   if (!normalizeText(outline.protagonist)) {
-    return { ok: false, code: 'missing_protagonist', actualEpisodeCount: 0, missingEpisodeNos: [], duplicateEpisodeNos: [], emptyEpisodeNos: [] }
+    return {
+      ok: false,
+      code: 'missing_protagonist',
+      actualEpisodeCount: 0,
+      missingEpisodeNos: [],
+      duplicateEpisodeNos: [],
+      emptyEpisodeNos: []
+    }
   }
   if (!normalizeText(outline.mainConflict)) {
-    return { ok: false, code: 'missing_main_conflict', actualEpisodeCount: 0, missingEpisodeNos: [], duplicateEpisodeNos: [], emptyEpisodeNos: [] }
+    return {
+      ok: false,
+      code: 'missing_main_conflict',
+      actualEpisodeCount: 0,
+      missingEpisodeNos: [],
+      duplicateEpisodeNos: [],
+      emptyEpisodeNos: []
+    }
   }
   if (!normalizeText(outline.summary)) {
-    return { ok: false, code: 'missing_summary', actualEpisodeCount: 0, missingEpisodeNos: [], duplicateEpisodeNos: [], emptyEpisodeNos: [] }
+    return {
+      ok: false,
+      code: 'missing_summary',
+      actualEpisodeCount: 0,
+      missingEpisodeNos: [],
+      duplicateEpisodeNos: [],
+      emptyEpisodeNos: []
+    }
   }
 
   return validateOutlineEpisodeBatch({

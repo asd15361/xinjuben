@@ -53,7 +53,11 @@ export function buildCharacterProfileAgentPrompt(input: CharacterProfileAgentInp
 
   const requiredCharacterAnchors = Array.from(
     new Set(
-      [storyIntent.protagonist, storyIntent.antagonist, ...(storyIntent.officialKeyCharacters || [])]
+      [
+        storyIntent.protagonist,
+        storyIntent.antagonist,
+        ...(storyIntent.officialKeyCharacters || [])
+      ]
         .map((item) => String(item || '').trim())
         .filter(Boolean)
     )
@@ -63,7 +67,9 @@ export function buildCharacterProfileAgentPrompt(input: CharacterProfileAgentInp
 
   lines.push('你是短剧编剧助手。')
   lines.push('这一工序只负责"人物小传"，它不是人物百科，而是"人物图谱/关系背景/RAG底料"。')
-  lines.push('目标：让后续剧本创作一眼就知道，每个人想要什么、守什么、怕什么、怎么施压、被逼到什么点会动。')
+  lines.push(
+    '目标：让后续剧本创作一眼就知道，每个人想要什么、守什么、怕什么、怎么施压、被逼到什么点会动。'
+  )
   lines.push('人物要写得出戏，但不要替剧本提前决定最终解法、终局大战或结局答案。')
   lines.push('优化方向：人物分层，关系清晰，背景可检索。不要冗余背景描述。')
   lines.push('')
@@ -74,9 +80,15 @@ export function buildCharacterProfileAgentPrompt(input: CharacterProfileAgentInp
   lines.push('- 不是硬性合同：后续剧本创作可以参考，但不强制满足每一条')
   lines.push('')
   lines.push('请优先使用真源里已经明确的人物，不要随意发明新的核心角色、改名或重写关系。')
-  lines.push('如果真源已经给了某个人的前史、关系、代价、来源，你要做的是压缩成交付下游可执行的抓手，不是重新发明一版人物。')
-  lines.push(`这次必须覆盖真源里锁住的人物锚点，尤其是：${requiredCharacterAnchors.join('、') || '待补'}`)
-  lines.push('如果真源给的是角色标签而不是真实名字，就直接把这个标签原样写进 name，禁止自作主张改成新名字。')
+  lines.push(
+    '如果真源已经给了某个人的前史、关系、代价、来源，你要做的是压缩成交付下游可执行的抓手，不是重新发明一版人物。'
+  )
+  lines.push(
+    `这次必须覆盖真源里锁住的人物锚点，尤其是：${requiredCharacterAnchors.join('、') || '待补'}`
+  )
+  lines.push(
+    '如果真源给的是角色标签而不是真实名字，就直接把这个标签原样写进 name，禁止自作主张改成新名字。'
+  )
   lines.push('')
 
   // 从真源提取信息
@@ -133,7 +145,9 @@ export function buildCharacterProfileAgentPrompt(input: CharacterProfileAgentInp
   // 七问约束（如果有）
   if (sevenQuestions && sevenQuestions.sections.length > 0) {
     lines.push('【篇章叙事约束（七问）】')
-    lines.push(`篇章划分：${sevenQuestions.needsSections ? `${sevenQuestions.sectionCount}个篇章` : '不分篇章，全剧一个篇章'}`)
+    lines.push(
+      `篇章划分：${sevenQuestions.needsSections ? `${sevenQuestions.sectionCount}个篇章` : '不分篇章，全剧一个篇章'}`
+    )
     lines.push('')
     for (const section of sevenQuestions.sections) {
       lines.push(`【${section.sectionTitle}】`)
@@ -160,16 +174,28 @@ export function buildCharacterProfileAgentPrompt(input: CharacterProfileAgentInp
   lines.push('- arc：这一季人物弧线（位置和施压方式怎么变）')
   lines.push('')
   lines.push('【写法要求】')
-  lines.push('- biography 只写"当前人物为什么会这样行动"，不是堆背景；可写 1-2 句，其余字段都只写 1 句')
-  lines.push('- goal、fear、protectTarget 优先写具体人、物、伤口、位置、账册、封印或名分；不要只写抽象大词')
+  lines.push(
+    '- biography 只写"当前人物为什么会这样行动"，不是堆背景；可写 1-2 句，其余字段都只写 1 句'
+  )
+  lines.push(
+    '- goal、fear、protectTarget 优先写具体人、物、伤口、位置、账册、封印或名分；不要只写抽象大词'
+  )
   lines.push('- publicMask 和 hiddenPressure 要形成反差')
   lines.push('- conflictTrigger 要直接写成"被逼到什么点会做什么动作"，不要只写抽象态度')
   lines.push('- advantage 和 weakness 只写会在戏里直接生效的抓手，不要写空优势')
   lines.push('- arc 只写这一季人物位置和施压方式怎么变，不要提前写成终局大战')
-  lines.push('- 情感杠杆角色的 advantage、goal、arc 必须写成她主动能做的事：传信、藏证据、换条件、试探、自救、反咬')
-  lines.push('- 情感杠杆角色的 biography、publicMask 不能只停在人质模板；至少同时写出她表面怎么演、暗里怎么动')
-  lines.push('- 所有角色的 publicMask 都必须先写成"表面怎么演、怎么藏、怎么拖"的可拍动作，不准只写态度结论')
-  lines.push('- 如果 publicMask 里没有装弱、赔笑、低头、装不懂、装听话、递水、藏证、拖时间、套话这类动作词，默认还没写成')
+  lines.push(
+    '- 情感杠杆角色的 advantage、goal、arc 必须写成她主动能做的事：传信、藏证据、换条件、试探、自救、反咬'
+  )
+  lines.push(
+    '- 情感杠杆角色的 biography、publicMask 不能只停在人质模板；至少同时写出她表面怎么演、暗里怎么动'
+  )
+  lines.push(
+    '- 所有角色的 publicMask 都必须先写成"表面怎么演、怎么藏、怎么拖"的可拍动作，不准只写态度结论'
+  )
+  lines.push(
+    '- 如果 publicMask 里没有装弱、赔笑、低头、装不懂、装听话、递水、藏证、拖时间、套话这类动作词，默认还没写成'
+  )
   lines.push('')
   lines.push('【禁止事项】')
   lines.push('- 不要把"象征什么""说明什么""哪套大道被领悟"写进人物字段')
@@ -191,7 +217,9 @@ export function buildCharacterProfileAgentPrompt(input: CharacterProfileAgentInp
   lines.push('  "characters": [')
   lines.push('    {')
   lines.push('      "name": string,')
-  lines.push('      "roleLayer": "core"|"active"|"functional",  // core=主角层, active=主动推进层, functional=功能层')
+  lines.push(
+    '      "roleLayer": "core"|"active"|"functional",  // core=主角层, active=主动推进层, functional=功能层'
+  )
   lines.push('      "biography": string,')
   lines.push('      "publicMask": string,')
   lines.push('      "hiddenPressure": string,')
@@ -228,20 +256,22 @@ export function parseCharacterProfileResponse(
     if (!Array.isArray(parsed.characters)) return null
 
     // 规范化角色数据
-    const characters: CharacterDraftDto[] = parsed.characters.map((char: Record<string, unknown>) => ({
-      name: String(char.name || '未命名'),
-      biography: String(char.biography || ''),
-      publicMask: String(char.publicMask || ''),
-      hiddenPressure: String(char.hiddenPressure || ''),
-      fear: String(char.fear || ''),
-      protectTarget: String(char.protectTarget || ''),
-      conflictTrigger: String(char.conflictTrigger || ''),
-      advantage: String(char.advantage || ''),
-      weakness: String(char.weakness || ''),
-      goal: String(char.goal || ''),
-      arc: String(char.arc || ''),
-      roleLayer: (char.roleLayer as 'core' | 'active' | 'functional') || 'active'
-    }))
+    const characters: CharacterDraftDto[] = parsed.characters.map(
+      (char: Record<string, unknown>) => ({
+        name: String(char.name || '未命名'),
+        biography: String(char.biography || ''),
+        publicMask: String(char.publicMask || ''),
+        hiddenPressure: String(char.hiddenPressure || ''),
+        fear: String(char.fear || ''),
+        protectTarget: String(char.protectTarget || ''),
+        conflictTrigger: String(char.conflictTrigger || ''),
+        advantage: String(char.advantage || ''),
+        weakness: String(char.weakness || ''),
+        goal: String(char.goal || ''),
+        arc: String(char.arc || ''),
+        roleLayer: (char.roleLayer as 'core' | 'active' | 'functional') || 'active'
+      })
+    )
 
     return { characters }
   } catch {

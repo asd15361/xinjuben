@@ -1,15 +1,15 @@
 import type {
   ScriptGenerationEpisodePlanDto,
   ScriptGenerationMode
-} from '../../../../shared/contracts/script-generation'
+} from '../../../../shared/contracts/script-generation.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../../shared/contracts/workflow'
-import type { ModelRouteLane } from '../../../../shared/contracts/ai'
-import type { InputContractValidationDto } from '../../../../shared/contracts/input-contract'
+} from '../../../../shared/contracts/workflow.ts'
+import type { ModelRouteLane } from '../../../../shared/contracts/ai.ts'
+import type { InputContractValidationDto } from '../../../../shared/contracts/input-contract.ts'
 import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors.ts'
 import { estimateEpisodeContextTokens } from './estimate-context-tokens.ts'
 

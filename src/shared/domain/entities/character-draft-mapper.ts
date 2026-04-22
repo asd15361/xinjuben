@@ -99,6 +99,7 @@ export function fromMasterEntity(
   entity: CharacterEntityDto,
   _options?: FromMasterEntityOptions
 ): CharacterDraftDto {
+  void _options
   return {
     masterEntityId: entity.id,
     name: entity.name,
@@ -164,6 +165,7 @@ function updateMasterEntityFromDraft(
   draft: CharacterDraftDto,
   _projectId: string
 ): CharacterEntityDto {
+  void _projectId
   const now = new Date().toISOString()
 
   return {

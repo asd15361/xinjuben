@@ -65,7 +65,8 @@ export function buildDetailedOutlineFailureNotice(
   if (/^workspace_generation_aborted:replaced$/i.test(normalized)) {
     return createStageGateNotice({
       title: '上一轮详细大纲请求已被新请求替换',
-      detail: '同一项目的详细大纲任务又发起了一次，系统已自动取消旧请求，当前以后发起的那一轮为准。',
+      detail:
+        '同一项目的详细大纲任务又发起了一次，系统已自动取消旧请求，当前以后发起的那一轮为准。',
       primaryAction: {
         label: '留在详细大纲页',
         stage: 'detailed_outline'

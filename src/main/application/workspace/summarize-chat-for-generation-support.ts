@@ -1,4 +1,4 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import {
   extractLatestAuthoritativeEpisodeCountFromText,
   extractLatestEpisodeCountFromText
@@ -86,9 +86,8 @@ function normalizeSummaryDraft(
   const structuredHeader = extractStructuredProjectHeader(chatTranscript)
   const structuredBrief = parseStructuredGenerationBrief(chatTranscript)
   const latestEpisodeCount = extractLatestEpisodeCountFromText(normalizedTranscript)
-  const latestAuthoritativeEpisodeCount = extractLatestAuthoritativeEpisodeCountFromText(
-    normalizedTranscript
-  )
+  const latestAuthoritativeEpisodeCount =
+    extractLatestAuthoritativeEpisodeCountFromText(normalizedTranscript)
   const payloadCharacterCards = uniqueCharacterCards(extractRoleSummary(record.characterCards), 8)
   const structuredCharacterCards = uniqueCharacterCards(
     extractRoleSummary(structuredBrief?.characterCards),
@@ -96,7 +95,10 @@ function normalizeSummaryDraft(
   )
   const characterCards =
     payloadCharacterCards.length > 0 ? payloadCharacterCards : structuredCharacterCards
-  const characterCardNames = uniqueList(characterCards.map((item) => item.name), 8)
+  const characterCardNames = uniqueList(
+    characterCards.map((item) => item.name),
+    8
+  )
   const keyCharacters = normalizeNameList(
     [
       ...toTextArray(record.keyCharacters),
@@ -109,7 +111,8 @@ function normalizeSummaryDraft(
     ],
     8
   )
-  const roleCardAuthorityCharacters = characterCardNames.length > 0 ? characterCardNames : keyCharacters
+  const roleCardAuthorityCharacters =
+    characterCardNames.length > 0 ? characterCardNames : keyCharacters
   const relationAnchors = uniqueList(
     [
       ...toTextArray(record.relationAnchors),
@@ -147,19 +150,14 @@ function normalizeSummaryDraft(
       baseStoryIntent.titleHint ||
       '',
     episodeCount:
-      latestAuthoritativeEpisodeCount ||
-      Number(record.episodeCount) ||
-      latestEpisodeCount ||
-      0,
+      latestAuthoritativeEpisodeCount || Number(record.episodeCount) || latestEpisodeCount || 0,
     genreAndStyle:
       toText(record.genreAndStyle) || toText(record.genre) || baseStoryIntent.genre || '',
     tone: toText(record.tone) || baseStoryIntent.tone || '',
     audience: toText(record.audience) || baseStoryIntent.audience || '',
     sellingPremise: toText(record.sellingPremise) || baseStoryIntent.sellingPremise || '',
-    coreDislocation:
-      toText(record.coreDislocation) || baseStoryIntent.coreDislocation || '',
-    emotionalPayoff:
-      toText(record.emotionalPayoff) || baseStoryIntent.emotionalPayoff || '',
+    coreDislocation: toText(record.coreDislocation) || baseStoryIntent.coreDislocation || '',
+    emotionalPayoff: toText(record.emotionalPayoff) || baseStoryIntent.emotionalPayoff || '',
     worldAndBackground:
       toText(record.worldAndBackground) ||
       toTextArray(record.worldAnchors)[0] ||
@@ -170,8 +168,7 @@ function normalizeSummaryDraft(
     coreConflict: toText(record.coreConflict) || baseStoryIntent.coreConflict || '',
     endingDirection: toText(record.endingDirection) || baseStoryIntent.endingDirection || '',
     keyCharacters: roleCardAuthorityCharacters,
-    chainSynopsis:
-      toText(record.chainSynopsis) || baseStoryIntent.freeChatFinalSummary || '',
+    chainSynopsis: toText(record.chainSynopsis) || baseStoryIntent.freeChatFinalSummary || '',
     characterCards,
     characterLayers: uniqueCharacterLayers(extractCharacterLayers(record.characterLayers), 8),
     themeAnchors: uniqueList(
@@ -188,10 +185,7 @@ function normalizeSummaryDraft(
     ),
     relationAnchors,
     dramaticMovement,
-    relationSummary: uniqueList(
-      [...toTextArray(record.relationSummary), ...relationAnchors],
-      8
-    ),
+    relationSummary: uniqueList([...toTextArray(record.relationSummary), ...relationAnchors], 8),
     softUnderstanding: uniqueList(toTextArray(record.softUnderstanding), 8),
     pendingConfirmations
   }
@@ -210,11 +204,9 @@ export function parseStructuredGenerationBrief(
   const sections = collectStructuredSections(sectionMap)
   const structuredHeader = extractStructuredProjectHeader(rawTranscript)
   const latestEpisodeCount = extractLatestEpisodeCountFromText(normalizedUserTranscript)
-  const latestAuthoritativeEpisodeCount = extractLatestAuthoritativeEpisodeCountFromText(
-    normalizedUserTranscript
-  )
-  const resolvedEpisodeCount =
-    latestAuthoritativeEpisodeCount || latestEpisodeCount || 10
+  const latestAuthoritativeEpisodeCount =
+    extractLatestAuthoritativeEpisodeCountFromText(normalizedUserTranscript)
+  const resolvedEpisodeCount = latestAuthoritativeEpisodeCount || latestEpisodeCount || 10
   const dramaticChain = inferChainFromStructuredSections(sections)
   const themeAnchors = uniqueList(
     [
@@ -239,8 +231,7 @@ export function parseStructuredGenerationBrief(
   )
 
   return {
-    projectTitle:
-      structuredHeader?.projectTitle || toText(sectionMap.get('项目')),
+    projectTitle: structuredHeader?.projectTitle || toText(sectionMap.get('项目')),
     episodeCount: resolvedEpisodeCount,
     genreAndStyle: toText(sectionMap.get('题材与风格')),
     sellingPremise: pickSellingPremise(sections),

@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, PauseCircle, PlayCircle } from 'lucide-react'
 import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useRuntimeConsoleStore } from '../../../app/store/useRuntimeConsoleStore'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
+import { apiStopScriptGeneration } from '../../../services/api-client'
 
 function formatElapsed(startedAt: number): string {
   const elapsedMs = Math.max(0, Date.now() - startedAt)
@@ -89,9 +90,7 @@ export function RuntimeConsoleStage(): ReactElement {
             {activeTask.status === 'running' && (
               <button
                 onClick={() => {
-                  if (window.api.workflow.stopScriptGeneration) {
-                    void window.api.workflow.stopScriptGeneration({ projectId })
-                  }
+                  void apiStopScriptGeneration(projectId)
                 }}
                 className="rounded-xl border border-white/10 px-4 py-2.5 text-xs font-black text-white/80 hover:text-white hover:bg-white/5 transition-colors"
               >

@@ -1,6 +1,6 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow'
-import type { CharacterProfileV2Dto } from '../../contracts/character-profile-v2'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow.ts'
+import type { CharacterProfileV2Dto } from '../../contracts/character-profile-v2.ts'
 
 function hasText(value: string | undefined): boolean {
   return Boolean(value && value.trim())
@@ -28,7 +28,8 @@ function isFuzzyNameMatch(characterName: string, anchorName: string): boolean {
   // 完全匹配
   if (normalizedChar === normalizedAnchor) return true
   // 子串包含匹配
-  if (normalizedChar.includes(normalizedAnchor) || normalizedAnchor.includes(normalizedChar)) return true
+  if (normalizedChar.includes(normalizedAnchor) || normalizedAnchor.includes(normalizedChar))
+    return true
   // 原始名称子串匹配（兼容未清洗的情况）
   if (characterName.includes(anchorName) || anchorName.includes(characterName)) return true
 
@@ -85,7 +86,9 @@ function collectMissingV2Fields(character: CharacterContractCandidate): string[]
   return missing
 }
 
-export function getCharacterContractIssues(character: CharacterDraftDto): CharacterContractIssueDto | null {
+export function getCharacterContractIssues(
+  character: CharacterDraftDto
+): CharacterContractIssueDto | null {
   const candidate = character as CharacterContractCandidate
   const missingLegacyFields = collectMissingLegacyFields(candidate)
   const missingV2Fields = collectMissingV2Fields(candidate)
@@ -107,7 +110,8 @@ export function resolveCharacterContractAnchors(input: {
   storyIntent?: StoryIntentPackageDto | null
   outline?: Pick<OutlineDraftDto, 'protagonist'> | null
 }): { protagonist?: string; antagonist?: string } {
-  const protagonist = input.storyIntent?.protagonist?.trim() || input.outline?.protagonist?.trim() || ''
+  const protagonist =
+    input.storyIntent?.protagonist?.trim() || input.outline?.protagonist?.trim() || ''
   const antagonist = input.storyIntent?.antagonist?.trim() || ''
 
   return {
@@ -185,4 +189,3 @@ export function isCharacterStageReady(input: {
     antagonist: anchors.antagonist
   })
 }
-

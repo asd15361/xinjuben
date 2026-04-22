@@ -29,11 +29,11 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, ...errorState }
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('Uncaught error:', error, errorInfo)
   }
 
-  public render() {
+  public render(): JSX.Element {
     if (this.state.hasError) {
       return (
         <div className="flex w-full h-screen items-center justify-center bg-black text-orange-500">
@@ -66,6 +66,6 @@ export class ErrorBoundary extends Component<Props, State> {
       )
     }
 
-    return this.props.children
+    return this.props.children as JSX.Element
   }
 }

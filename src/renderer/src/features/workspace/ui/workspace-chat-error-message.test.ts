@@ -24,14 +24,20 @@ test('normalizeWorkspaceChatErrorMessage strips remote invoke timeout error name
 
 test('buildWorkspaceChatFailureMessage explains incomplete payload plainly', () => {
   assert.equal(
-    buildWorkspaceChatFailureMessage('确认信息失败', 'summary_generation_failed:summary_payload_incomplete'),
+    buildWorkspaceChatFailureMessage(
+      '确认信息失败',
+      'summary_generation_failed:summary_payload_incomplete'
+    ),
     '确认信息失败：AI 已返回内容，但关键信息没收齐，系统没法确认这版信息'
   )
 })
 
 test('buildWorkspaceChatFailureMessage explains parse failure plainly', () => {
   assert.equal(
-    buildWorkspaceChatFailureMessage('确认信息失败', 'summary_generation_failed:summary_payload_parse_failed'),
+    buildWorkspaceChatFailureMessage(
+      '确认信息失败',
+      'summary_generation_failed:summary_payload_parse_failed'
+    ),
     '确认信息失败：AI 已返回内容，但结构不合法，系统没法确认这版信息'
   )
 })
@@ -69,7 +75,10 @@ test('buildWorkspaceChatFailureMessage explains short outline batch plainly', ()
 
 test('buildWorkspaceChatFailureMessage explains empty episode summary plainly', () => {
   assert.equal(
-    buildWorkspaceChatFailureMessage('生成失败', 'rough_outline_incomplete:episode_summary_missing'),
+    buildWorkspaceChatFailureMessage(
+      '生成失败',
+      'rough_outline_incomplete:episode_summary_missing'
+    ),
     '生成失败：AI 已返回粗纲，但有分集没写实，系统没法确认这版粗纲'
   )
 })
@@ -97,14 +106,20 @@ test('buildWorkspaceChatFailureMessage explains failed seven questions confirmat
 
 test('buildWorkspaceChatFailureMessage explains character profile v2 runtime failure plainly', () => {
   assert.equal(
-    buildWorkspaceChatFailureMessage('生成失败', 'character_profile_v2_generation_failed:玄玉宫:provider terminated'),
+    buildWorkspaceChatFailureMessage(
+      '生成失败',
+      'character_profile_v2_generation_failed:玄玉宫:provider terminated'
+    ),
     '生成失败：人物小传生成失败，请重试'
   )
 })
 
 test('buildWorkspaceChatFailureMessage explains character profile v2 parse failure plainly', () => {
   assert.equal(
-    buildWorkspaceChatFailureMessage('生成失败', 'character_profile_v2_parse_failed:黑沼盟:json_parse_failed'),
+    buildWorkspaceChatFailureMessage(
+      '生成失败',
+      'character_profile_v2_parse_failed:黑沼盟:json_parse_failed'
+    ),
     '生成失败：AI 已返回人物小传，但结构不合法，系统没法继续生成粗纲'
   )
 })
@@ -113,7 +128,7 @@ test('buildWorkspaceChatFailureMessage explains authority failure for character 
   assert.equal(
     buildWorkspaceChatFailureMessage(
       '生成失败',
-      "Error invoking remote method 'workspace:generate-outline-and-characters-from-confirmed-seven-questions': AuthorityFailureError: [AUTHORITY_FAILURE_INCOMPLETE_RESULT] Authority failure for \"characterDrafts\": [guardian:character-persistence] Character save would create invalid upstream state. Upstream outline incomplete. Issues: character_contract_incomplete."
+      'Error invoking remote method \'workspace:generate-outline-and-characters-from-confirmed-seven-questions\': AuthorityFailureError: [AUTHORITY_FAILURE_INCOMPLETE_RESULT] Authority failure for "characterDrafts": [guardian:character-persistence] Character save would create invalid upstream state. Upstream outline incomplete. Issues: character_contract_incomplete.'
     ),
     '生成失败：人物结果生成出来了，但保存时被旧人物合同拦住了；请先检查主角、对手和当前人物小传是否完整'
   )

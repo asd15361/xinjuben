@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import {
   createFormalReleasedState,
   createVisibleSuccessState

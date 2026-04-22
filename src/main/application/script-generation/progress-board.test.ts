@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 import { createInitialProgressBoard, resolveResumeFromBoard } from './progress-board.ts'
 import type { ScriptGenerationExecutionPlanDto } from '../../../shared/contracts/script-generation.ts'
 
-function createPlan(input?: Partial<ScriptGenerationExecutionPlanDto>): ScriptGenerationExecutionPlanDto {
+function createPlan(
+  input?: Partial<ScriptGenerationExecutionPlanDto>
+): ScriptGenerationExecutionPlanDto {
   return {
     mode: 'fresh_start',
     ready: true,
@@ -15,8 +17,8 @@ function createPlan(input?: Partial<ScriptGenerationExecutionPlanDto>): ScriptGe
       missingActs: [],
       confirmedFormalFacts: [],
       missingFormalFactLandings: [],
-      storyContract: {} as any,
-      userAnchorLedger: {} as any,
+      storyContract: {} as unknown,
+      userAnchorLedger: {} as unknown,
       missingAnchorNames: [],
       heroineAnchorCovered: true
     },
@@ -72,7 +74,8 @@ test('createInitialProgressBoard marks historical prefix as skipped for resume r
         episodeNo: index + 1,
         status: index === 0 ? ('pending' as const) : ('ready' as const),
         lane: 'deepseek' as const,
-        reason: index === 0 ? '该集视为前缀已存在，续跑从后续集数开始。' : '续跑模式从未覆盖集数继续。',
+        reason:
+          index === 0 ? '该集视为前缀已存在，续跑从后续集数开始。' : '续跑模式从未覆盖集数继续。',
         runtimeHints: {
           episode: index + 1,
           totalEpisodes: 10,

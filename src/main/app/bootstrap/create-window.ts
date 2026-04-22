@@ -2,11 +2,11 @@ import { BrowserWindow, screen, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../../../resources/icon.png?asset'
-import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log'
+import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
 import {
   runtimeConsoleError,
   runtimeConsoleLog
-} from '../../infrastructure/diagnostics/runtime-console'
+} from '../../infrastructure/diagnostics/runtime-console.ts'
 
 export function createWindow(): BrowserWindow {
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())

@@ -1,9 +1,9 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
   OutlineEpisodeDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 import { renderShortDramaConstitutionPromptBlock } from '../../../shared/domain/short-drama/short-drama-constitution.ts'
 import { renderAnchorBlock, stripNoisyThemeClauses } from './generation-stage-prompt-anchors.ts'
 import { getConfirmedFormalFacts } from '../../../shared/domain/formal-fact/selectors.ts'
@@ -343,7 +343,7 @@ export function buildDetailedOutlineActPrompt(input: {
     '每一集的拉扯不能只剩一句动作摘要；至少要写出"我方动作→对方回应→局面变化"这三步，否则下游剧本一定会写瘦。',
     '【sceneByScene 密度硬规则】每一场 sceneByScene 必须同时包含：(1) 具体动作：谁用什么手段/拿什么物/在哪个地点做什么；(2) 压强细节：对方怎么被堵住、被逼、被威胁或被失手；(3) 结果句：谁输、谁赢、谁被揭穿、谁失去筹码或谁被堵门。不准只有态度变化或情绪判断，必须有实物动作和即时后果。如果某集的 sceneByScene 看完不知道"谁具体做了什么事导致什么结果"，这集骨架就偏薄，必须补实。',
     '【骨架偏薄识别】如果 sceneByScene 看完只知道"更危险了/被盯上了/局势更紧了/人物态度变了"，这就是骨架偏薄的信号。修复方法：把每一场的 setup 改成"谁做了什么具体动作"，把 tension 改成"对方当场怎么被堵住/失去/认输或被迫回应"，把 hookEnd 改成"谁出了什么事/哪扇门被关上/哪件物被抢走"。',
-    '【骨架偏薄识别】如果 sceneByScene 每场都只有态度变化而没有实物动作，这就是骨架偏薄的信号。修复方法：每场 setup 必须写一个具体动作（"谁走进某地/谁拿什么东西/谁对谁做了什么"），每场 tension 必须写对方当场怎么被逼到（"谁被堵门/谁被夺走什么/谁被迫放弃什么"），hookEnd 必须写谁出了什么事。',,
+    '【骨架偏薄识别】如果 sceneByScene 每场都只有态度变化而没有实物动作，这就是骨架偏薄的信号。修复方法：每场 setup 必须写一个具体动作（"谁走进某地/谁拿什么东西/谁对谁做了什么"），每场 tension 必须写对方当场怎么被逼到（"谁被堵门/谁被夺走什么/谁被迫放弃什么"），hookEnd 必须写谁出了什么事。',
     '每一集至少要有 2 次独立变位：不能整集只围绕一次冲突展开；至少要有两次不同的争夺对象、两次不同的对手回应、两次不同的局面变化。如果一集只写了一次抢物、一次追人、一次对峙，说明这集骨架太薄，必须再加一次变位。',
     '每 3 集至少安排 1 次"主角或情感杠杆角色先让对手吃实亏"的主动回合：调包、反证、抢先递证、借规矩压回去、诈供、夺物至少一种成立。',
     '越到中后段，越要换打法：换战场、换压力来源、换筹码或换关系位次至少一种，不能只是把火力越拧越大。',

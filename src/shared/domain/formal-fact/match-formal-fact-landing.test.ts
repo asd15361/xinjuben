@@ -7,7 +7,8 @@ test('matchFormalFactLanding recognizes landed draft pressure fact in detailed o
   const fact = {
     id: 'fact-1',
     label: 'draft_李科施压线',
-    description: '李科是主角当前最直接的外部压力来源之一，正在把冲突推向主角在多重压力下完成反转成长。',
+    description:
+      '李科是主角当前最直接的外部压力来源之一，正在把冲突推向主角在多重压力下完成反转成长。',
     linkedToPlot: true,
     linkedToTheme: false,
     authorityType: 'ai_suggested' as const,

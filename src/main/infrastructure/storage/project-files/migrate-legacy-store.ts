@@ -1,7 +1,7 @@
 import { copyFile, mkdir, readdir } from 'fs/promises'
 import { join } from 'path'
 
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
 import { normalizeProjectSnapshot } from '../project-snapshot-normalize.ts'
 import { readTextFileWithRetry } from '../project-store-fs.ts'
 import { readProjectsIndex } from './read-index.ts'

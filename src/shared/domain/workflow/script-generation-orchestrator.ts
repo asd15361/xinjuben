@@ -78,24 +78,24 @@ import type {
   ScriptRuntimeFailureHistoryCode,
   StartScriptGenerationInputDto,
   StartScriptGenerationResultDto
-} from '../../../shared/contracts/script-generation'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+} from '../../../shared/contracts/script-generation.ts'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineBlockDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
-import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
+} from '../../../shared/contracts/workflow.ts'
+import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger.ts'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
 import type {
   FormalReleaseState,
   VisibleResultState
-} from '../../../shared/contracts/visible-release-state'
-import { appendRuntimeFailureHistory } from '../runtime/failure-history-queue'
-import { classifyRuntimeFailureHistory } from '../runtime/failure-history'
-import { deriveProjectCharacterBlocks } from './planning-blocks'
-import { resolvePersistedGenerationTruth } from './persisted-generation-truth'
+} from '../../../shared/contracts/visible-release-state.ts'
+import { appendRuntimeFailureHistory } from '../runtime/failure-history-queue.ts'
+import { classifyRuntimeFailureHistory } from '../runtime/failure-history.ts'
+import { deriveProjectCharacterBlocks } from './planning-blocks.ts'
+import { resolvePersistedGenerationTruth } from './persisted-generation-truth.ts'
 
 /**
  * Command mode for script generation
@@ -238,7 +238,11 @@ export interface CreateInitialBoard {
 export interface RunScriptGenerationBatch {
   (input: {
     generationInput: StartScriptGenerationInputDto
-    runtimeConfig: { deepseek: { apiKey: string }, lanes: { deepseek: boolean }, runtimeFetchTimeoutMs: number }
+    runtimeConfig: {
+      deepseek: { apiKey: string }
+      lanes: { deepseek: boolean }
+      runtimeFetchTimeoutMs: number
+    }
     board: ScriptGenerationProgressBoardDto
     outline: OutlineDraftDto
     characters: CharacterDraftDto[]
@@ -266,7 +270,11 @@ export interface RunScriptGenerationBatch {
 export interface RepairGeneratedScenes {
   (input: {
     generationInput: StartScriptGenerationInputDto
-    runtimeConfig: { deepseek: { apiKey: string }, lanes: { deepseek: boolean }, runtimeFetchTimeoutMs: number }
+    runtimeConfig: {
+      deepseek: { apiKey: string }
+      lanes: { deepseek: boolean }
+      runtimeFetchTimeoutMs: number
+    }
     outline: OutlineDraftDto
     generatedScenes: ScriptSegmentDto[]
   }): Promise<{
@@ -310,7 +318,11 @@ export interface ScriptOrchestratorOptions {
   runScriptGenerationBatch: RunScriptGenerationBatch
   repairGeneratedScenes: RepairGeneratedScenes
   atomicSaveGenerationState: AtomicSaveGenerationState
-  runtimeConfig: { deepseek: { apiKey: string }, lanes: { deepseek: boolean }, runtimeFetchTimeoutMs: number }
+  runtimeConfig: {
+    deepseek: { apiKey: string }
+    lanes: { deepseek: boolean }
+    runtimeFetchTimeoutMs: number
+  }
   onProgress?: ProgressCallback
 }
 
@@ -660,8 +672,8 @@ export class ScriptOrchestrator {
     // Create a combined signal that aborts if either signal aborts
     const controller = new AbortController()
 
-    const onInternalAbort = () => controller.abort()
-    const onExternalAbort = () => controller.abort()
+    const onInternalAbort = (): void => controller.abort()
+    const onExternalAbort = (): void => controller.abort()
 
     internal.addEventListener('abort', onInternalAbort)
     external.addEventListener('abort', onExternalAbort)
@@ -776,7 +788,7 @@ export class ScriptOrchestrator {
       const errorMessage =
         persistError instanceof Error ? persistError.message : String(persistError)
       // Log the persistence failure for debugging
-      // eslint-disable-next-line no-console
+
       console.error(`[Orchestrator] Persistence failed: ${errorMessage}`)
       return { persistenceFailed: true, persistenceError: errorMessage }
     }

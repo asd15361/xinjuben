@@ -1,9 +1,16 @@
 import { useEffect, useRef } from 'react'
-import { useWorkflowStore } from '../store/useWorkflowStore'
-import { useStageStore } from '../../store/useStageStore'
-import { isCharacterStageReady } from '../../../../shared/domain/workflow/character-contract'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
+import { useStageStore } from '../../store/useStageStore.ts'
+import { isCharacterStageReady } from '../../../../shared/domain/workflow/character-contract.ts'
+import {
+  apiSaveChatMessages,
+  apiSaveOutlineDraft,
+  apiSaveCharacterDrafts,
+  apiSaveDetailedOutlineSegments,
+  apiSaveScriptDraft
+} from '../../services/api-client.ts'
 
-export function useProjectStagePersistence() {
+export function useProjectStagePersistence(): void {
   const projectId = useWorkflowStore((s) => s.projectId)
   const chatMessages = useWorkflowStore((s) => s.chatMessages)
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
@@ -43,7 +50,7 @@ export function useProjectStagePersistence() {
 
     const timer = window.setTimeout(() => {
       lastChatMessagesRef.current = payload
-      void window.api.workspace.saveChatMessages({ projectId, chatMessages })
+      void apiSaveChatMessages({ projectId, chatMessages })
     }, 400)
 
     return () => window.clearTimeout(timer)
@@ -56,7 +63,7 @@ export function useProjectStagePersistence() {
 
     const timer = window.setTimeout(() => {
       lastOutlineRef.current = payload
-      void window.api.workspace.saveOutlineDraft({ projectId, outlineDraft: outline })
+      void apiSaveOutlineDraft({ projectId, outlineDraft: outline })
     }, 400)
 
     return () => window.clearTimeout(timer)
@@ -77,11 +84,11 @@ export function useProjectStagePersistence() {
 
     const timer = window.setTimeout(() => {
       lastCharactersRef.current = payload
-      void window.api.workspace
-        .saveCharacterDrafts({ projectId, characterDrafts: characters })
-        .catch((error) => {
-          console.warn('[stage-persistence] saveCharacterDrafts rejected', error)
-        })
+      void apiSaveCharacterDrafts({ projectId, characterDrafts: characters }).catch(
+        (error: unknown) => {
+          console.warn('[stage-persistence] apiSaveCharacterDrafts rejected', error)
+        }
+      )
     }, 400)
 
     return () => window.clearTimeout(timer)
@@ -94,10 +101,7 @@ export function useProjectStagePersistence() {
 
     const timer = window.setTimeout(() => {
       lastSegmentsRef.current = payload
-      void window.api.workspace.saveDetailedOutlineSegments({
-        projectId,
-        detailedOutlineSegments: segments
-      })
+      void apiSaveDetailedOutlineSegments({ projectId, detailedOutlineSegments: segments })
     }, 400)
 
     return () => window.clearTimeout(timer)
@@ -110,7 +114,7 @@ export function useProjectStagePersistence() {
 
     const timer = window.setTimeout(() => {
       lastScriptRef.current = payload
-      void window.api.workspace.saveScriptDraft({ projectId, scriptDraft: script })
+      void apiSaveScriptDraft({ projectId, scriptDraft: script })
     }, 400)
 
     return () => window.clearTimeout(timer)

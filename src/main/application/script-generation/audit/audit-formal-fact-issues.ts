@@ -1,7 +1,7 @@
-import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit'
-import type { OutlineDraftDto } from '../../../../shared/contracts/workflow'
-import { matchFormalFactLanding } from '../../../../shared/domain/formal-fact/match-formal-fact-landing'
-import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors'
+import type { ScriptAuditReportDto } from '../../../../shared/contracts/script-audit.ts'
+import type { OutlineDraftDto } from '../../../../shared/contracts/workflow.ts'
+import { matchFormalFactLanding } from '../../../../shared/domain/formal-fact/match-formal-fact-landing.ts'
+import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors.ts'
 
 export function collectFormalFactAuditIssues(
   outline: OutlineDraftDto | undefined,
@@ -11,9 +11,7 @@ export function collectFormalFactAuditIssues(
   if (!outline) return issues
 
   const confirmedFacts = getConfirmedFormalFacts(outline)
-  const missingFacts = confirmedFacts.filter(
-    (fact) => !matchFormalFactLanding(fact, mergedScript)
-  )
+  const missingFacts = confirmedFacts.filter((fact) => !matchFormalFactLanding(fact, mergedScript))
 
   if (confirmedFacts.length > 0 && missingFacts.length === confirmedFacts.length) {
     issues.push({

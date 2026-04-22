@@ -1,9 +1,9 @@
-import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../../shared/contracts/workflow'
+} from '../../../../shared/contracts/workflow.ts'
 import { getConfirmedFormalFacts } from '../../../../shared/domain/formal-fact/selectors.ts'
 import { summarizeSceneFragment } from './ledger-scene-summary.ts'
 

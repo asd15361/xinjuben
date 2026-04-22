@@ -1,33 +1,29 @@
 import { ipcMain } from 'electron'
-import { createOutlineSeed } from '../application/workspace/create-outline-seed'
-import { validateStageInputContract } from '../application/input-contract/validate-stage-input'
+import { createOutlineSeed } from '../application/workspace/create-outline-seed.ts'
 import {
   generateDetailedOutlineFromContext,
   isDetailedOutlineModelResultComplete
-} from '../application/workspace/generate-detailed-outline'
-import { generateSevenQuestionsDraft } from '../application/workspace/generate-seven-questions-draft'
-import { buildOutlineDraftWithConfirmedSevenQuestions } from '../application/workspace/save-confirmed-seven-questions'
-import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from '../application/workspace/generate-outline-and-characters-from-confirmed-seven-questions'
-import { summarizeChatForGeneration } from '../application/workspace/summarize-chat-for-generation'
+} from '../application/workspace/generate-detailed-outline.ts'
+import { buildOutlineDraftWithConfirmedSevenQuestions } from '../application/workspace/save-confirmed-seven-questions.ts'
+import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from '../application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.ts'
+import { summarizeChatForGeneration } from '../application/workspace/summarize-chat-for-generation.ts'
 import { confirmStoryIntentFromChat } from '../application/workspace/confirm-story-intent-from-chat.ts'
-import { deriveOutlineEpisodeCount } from '../../shared/domain/workflow/episode-count'
+import { deriveOutlineEpisodeCount } from '../../shared/domain/workflow/episode-count.ts'
 import {
   runWorkspaceGenerationTask,
   throwIfWorkspaceGenerationAborted
-} from '../application/workspace/workspace-generation-run-registry'
-import {
-  isConfirmedStoryIntentForTranscript
-} from '../../shared/domain/workflow/confirmed-story-intent'
-import type { OutlineDraftDto, SevenQuestionsResultDto } from '../../shared/contracts/workflow'
-import { loadRuntimeProviderConfig } from '../infrastructure/runtime-env/provider-config'
-import { appendRuntimeDiagnosticLog } from '../infrastructure/diagnostics/runtime-diagnostic-log'
+} from '../application/workspace/workspace-generation-run-registry.ts'
+import { isConfirmedStoryIntentForTranscript } from '../../shared/domain/workflow/confirmed-story-intent.ts'
+import type { SevenQuestionsResultDto } from '../../shared/contracts/workflow.ts'
+import { loadRuntimeProviderConfig } from '../infrastructure/runtime-env/provider-config.ts'
+import { appendRuntimeDiagnosticLog } from '../infrastructure/diagnostics/runtime-diagnostic-log.ts'
 import {
   getProject,
   saveStoryIntent,
   saveDetailedOutlineSegments,
   saveOutlineAndCharacters,
   saveOutlineDraftWithSevenQuestions
-} from '../infrastructure/storage/project-store'
+} from '../infrastructure/storage/project-store.ts'
 import {
   ConfirmStoryIntentFromChatInputDto,
   GenerateDetailedOutlineInputDto,
@@ -36,12 +32,14 @@ import {
   SaveConfirmedSevenQuestionsInputDto,
   SaveConfirmedSevenQuestionsResultDto,
   GenerateOutlineAndCharactersFromConfirmedSevenQuestionsInputDto
-} from '../../shared/contracts/workspace'
+} from '../../shared/contracts/workspace.ts'
 import {
   setProjectGenerationStatus,
   clearProjectGenerationStatus
-} from '../application/runtime/project-generation-status-hub'
-import type { ProjectGenerationStatusDto } from '../../shared/contracts/generation'
+} from '../application/runtime/project-generation-status-hub.ts'
+import type { ProjectGenerationStatusDto } from '../../shared/contracts/generation.ts'
+import type { OutlineDraftDto } from '../../shared/contracts/workflow.ts'
+import { validateStageInputContract } from '../../shared/domain/workflow/validate-stage-input-contract.ts'
 
 function createEmptyOutlineDraft(): OutlineDraftDto {
   return {
@@ -263,7 +261,9 @@ export function registerWorkspaceGenerationHandlers(): void {
 
             // FAIL-CLOSED: Validate episode coverage before save
             const totalEpisodes = deriveOutlineEpisodeCount(outlineDraft)
-            if (!isDetailedOutlineModelResultComplete(detailedOutlineResult.segments, totalEpisodes)) {
+            if (
+              !isDetailedOutlineModelResultComplete(detailedOutlineResult.segments, totalEpisodes)
+            ) {
               const actualBeats = detailedOutlineResult.segments.reduce(
                 (sum, seg) => sum + (seg.episodeBeats?.length ?? 0),
                 0
@@ -272,7 +272,9 @@ export function registerWorkspaceGenerationHandlers(): void {
                 'workspace',
                 `generateDetailedOutline episode_count_short projectId=${input.projectId} expected=${totalEpisodes} actual=${actualBeats} diagnostic=${detailedOutlineResult.diagnostic}`
               )
-              throw new Error(`detailed_outline_episode_count_short:expected=${totalEpisodes},actual=${actualBeats}`)
+              throw new Error(
+                `detailed_outline_episode_count_short:expected=${totalEpisodes},actual=${actualBeats}`
+              )
             }
 
             const nextProject = await saveDetailedOutlineSegments({
@@ -320,50 +322,14 @@ export function registerWorkspaceGenerationHandlers(): void {
   )
 
   // ─── 七问工作流 handlers ───────────────────────────────────────────────
+  // Note: workspace:generate-seven-questions-draft has been migrated to HTTP server.
+  // This IPC handler placeholder is kept for backward compatibility only.
+  // Renderer should use apiGenerateSevenQuestions() instead.
 
   ipcMain.handle(
     'workspace:generate-seven-questions-draft',
-    async (event, input: GenerateSevenQuestionsDraftInputDto) => {
-      return runWorkspaceGenerationTask({
-        sender: event.sender,
-        projectId: input.projectId,
-        task: 'seven_questions',
-        run: async (signal) => {
-          const status: ProjectGenerationStatusDto = {
-            task: 'seven_questions',
-            stage: 'chat',
-            title: '正在生成七问初稿',
-            detail: '我在根据已确认的创作意图，起草篇章级叙事骨架。',
-            startedAt: Date.now(),
-            estimatedSeconds: 60,
-            scope: 'project'
-          }
-          setProjectGenerationStatus(input.projectId, status)
-          try {
-            const project = await waitForProject(input.projectId, signal)
-            if (!project?.storyIntent) {
-              return {
-                project: null,
-                sevenQuestions: null
-              }
-            }
-
-            const runtimeConfig = loadRuntimeProviderConfig()
-            const result = await generateSevenQuestionsDraft({
-              storyIntent: project.storyIntent,
-              runtimeConfig,
-              signal
-            })
-
-            return {
-              project,
-              sevenQuestions: result.sevenQuestions
-            }
-          } finally {
-            clearProjectGenerationStatus(input.projectId)
-          }
-        }
-      })
+    async (_event, _input: GenerateSevenQuestionsDraftInputDto) => {
+      throw new Error('ipc_deprecated:generate-seven-questions-draft:use_http_api')
     }
   )
 

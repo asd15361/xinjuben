@@ -14,7 +14,7 @@
  *
  * All decision-making functions must prefer `screenplay` first.
  */
-import type { ScriptSegmentDto } from '../../contracts/workflow'
+import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
 
 function compact(text: string): string {
   return text.replace(/\s+/g, '').trim()

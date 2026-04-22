@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import type {
   AtomicSaveGenerationStateInputDto,
   SaveScriptRuntimeStateInputDto
-} from '../../../shared/contracts/workspace'
+} from '../../../shared/contracts/workspace.ts'
 import { resolvePersistedGenerationTruth } from '../../../shared/domain/workflow/persisted-generation-truth.ts'
 
 test('SaveScriptRuntimeStateInputDto does not require renderer-supplied persisted truth', () => {

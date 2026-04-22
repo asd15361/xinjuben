@@ -18,7 +18,11 @@ type LifecycleEventName = 'error' | 'load' | 'unhandledrejection'
 type LifecycleListener = (event?: unknown) => void
 type LifecycleReadyState = 'complete' | 'interactive' | 'loading'
 
-function createStorage() {
+function createStorage(): {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
+  removeItem(key: string): void
+} {
   const values = new Map<string, string>()
   return {
     getItem(key: string) {
@@ -33,7 +37,11 @@ function createStorage() {
   }
 }
 
-function createLifecycleWindow(readyState: LifecycleReadyState = 'loading') {
+function createLifecycleWindow(readyState: LifecycleReadyState = 'loading'): {
+  document: { readyState: LifecycleReadyState }
+  addEventListener: (eventName: LifecycleEventName, listener: LifecycleListener) => void
+  dispatchEvent: (eventName: LifecycleEventName, event?: unknown) => void
+} {
   const listeners = new Map<LifecycleEventName, Set<LifecycleListener>>()
 
   const windowLike = {
@@ -110,7 +118,7 @@ test('deriveDynamicImportErrorState marks import mismatch only for chunk drift f
 test('attemptDynamicImportRecovery returns reloaded, suppressed, and ignored in the expected cases', () => {
   const storage = createStorage()
   let reloadCount = 0
-  const reload = () => {
+  const reload = (): void => {
     reloadCount += 1
   }
 

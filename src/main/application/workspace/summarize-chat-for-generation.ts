@@ -1,14 +1,14 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 import { appendRuntimeDiagnosticLog } from '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-import { generateTextWithRuntimeRouter } from '../ai/generate-text'
-import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
-import { normalizeChatTranscriptForGeneration } from './normalize-chat-transcript'
+import { generateTextWithRuntimeRouter } from '../ai/generate-text.ts'
+import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout.ts'
+import { normalizeChatTranscriptForGeneration } from './normalize-chat-transcript.ts'
 import {
   isSummaryPayloadComplete,
   normalizeSummaryPayload,
   tryParseObject
-} from './summarize-chat-for-generation-support'
+} from './summarize-chat-for-generation-support.ts'
 
 const STORY_INTAKE_MAX_OUTPUT_TOKENS = 2600
 

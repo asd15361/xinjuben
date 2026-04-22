@@ -15,9 +15,12 @@
  *   -> generateOutlineAndCharactersFromConfirmedSevenQuestions（生成粗纲）
  */
 
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { OutlineDraftDto, SevenQuestionsResultDto } from '../../../shared/contracts/workflow'
-import { writeConfirmedSevenQuestionsToOutlineBlocks } from '../../../shared/domain/workflow/seven-questions-authority'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
+import type {
+  OutlineDraftDto,
+  SevenQuestionsResultDto
+} from '../../../shared/contracts/workflow.ts'
+import { writeConfirmedSevenQuestionsToOutlineBlocks } from '../../../shared/domain/workflow/seven-questions-authority.ts'
 
 export interface SaveConfirmedSevenQuestionsInput {
   storyIntent: StoryIntentPackageDto

@@ -7,9 +7,9 @@
  * lines from the middle-to-end portion. Maximum 30% compression.
  * Never touches dialogue, action, hooks, scene structure.
  */
-import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
-import { inspectScreenplayQualityEpisode } from './screenplay-quality'
-import { extractStructuredSceneFromScreenplay } from './screenplay-format'
+import type { ScriptSegmentDto } from '../../../shared/contracts/workflow.ts'
+import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
+import { extractStructuredSceneFromScreenplay } from './screenplay-format.ts'
 
 // ── Trim patterns ─────────────────────────────────────────────────────────────
 
@@ -21,14 +21,39 @@ const TRIM_PATTERNS = [
   // Summary / closure
   /^(?!.*[：:])(?=.{0,20}(?:总之|归根结底|到头来|说到底))/,
   // Passive emotional observation
-  /^(?!.*[：:])(?=.{0,20}(?:不禁|不由得|只觉得|感到一股))/,
+  /^(?!.*[：:])(?=.{0,20}(?:不禁|不由得|只觉得|感到一股))/
 ]
 
 // Hook continuation markers — must never be trimmed
 const HOOK_MARKERS = [
-  '转身', '扭头', '门外', '下一瞬', '话没说完', '忽然', '外头', '脚步',
-  '抬眼', '压低声音', '追', '冲', '扑', '拽', '拉', '扯', '抽出', '掏出',
-  '举起', '逼近', '瞪', '愣', '倒退', '退', '迎', '按', '抓住', '按住'
+  '转身',
+  '扭头',
+  '门外',
+  '下一瞬',
+  '话没说完',
+  '忽然',
+  '外头',
+  '脚步',
+  '抬眼',
+  '压低声音',
+  '追',
+  '冲',
+  '扑',
+  '拽',
+  '拉',
+  '扯',
+  '抽出',
+  '掏出',
+  '举起',
+  '逼近',
+  '瞪',
+  '愣',
+  '倒退',
+  '退',
+  '迎',
+  '按',
+  '抓住',
+  '按住'
 ]
 
 // ── Line classifiers ─────────────────────────────────────────────────────────
@@ -46,7 +71,7 @@ function isRosterLine(line: string): boolean {
 }
 
 function isSceneHeading(line: string): boolean {
-  return /^\d+\-\d+\s+/.test(line.trim())
+  return /^\d+-\d+\s+/.test(line.trim())
 }
 
 function isTrimTarget(line: string): boolean {
@@ -78,7 +103,7 @@ function parseScreenplayScenesForTrim(screenplay: string): RepairScene[] {
   const scenes: RepairScene[] = []
   let current: RepairScene | null = null
   for (const line of lines) {
-    const headingMatch = line.match(/^(\d+\-\d+)\s+(.+)$/)
+    const headingMatch = line.match(/^(\d+-\d+)\s+(.+)$/)
     if (headingMatch) {
       if (current) scenes.push(current)
       current = {
@@ -128,7 +153,10 @@ function rebuildScreenplayFromScenes(scenes: RepairScene[], episodeNo: number): 
 
 // ── Core trim function ───────────────────────────────────────────────────────
 
-function trimLastSceneBody(body: string, maxCompressionRatio = 0.3): {
+function trimLastSceneBody(
+  body: string,
+  maxCompressionRatio = 0.3
+): {
   trimmed: string
   trimmedChars: number
 } {
@@ -161,7 +189,10 @@ function trimLastSceneBody(body: string, maxCompressionRatio = 0.3): {
     return prev !== '' && next !== ''
   })
   return {
-    trimmed: cleaned.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
+    trimmed: cleaned
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
     trimmedChars: removedChars
   }
 }
@@ -172,10 +203,7 @@ function trimLastSceneBody(body: string, maxCompressionRatio = 0.3): {
  * Problems that ARE allowed to coexist with word count in trim trigger.
  * These are "tail pollution" problems that trim might incidentally improve.
  */
-const TRIM_OK_PROBLEMS = new Set([
-  '含不可拍心理描写',
-  '集尾钩子偏弱'
-])
+const TRIM_OK_PROBLEMS = new Set(['含不可拍心理描写', '集尾钩子偏弱'])
 
 /**
  * Problems that BLOCK trim entirely — structural problems needing rewrite,

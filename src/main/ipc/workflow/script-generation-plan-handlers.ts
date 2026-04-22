@@ -1,23 +1,23 @@
 import { ipcMain } from 'electron'
-import { buildScriptGenerationExecutionPlan } from '../../application/script-generation/build-execution-plan'
+import { buildScriptGenerationExecutionPlan } from '../../application/script-generation/build-execution-plan.ts'
 import {
   createFailureResolution,
   createInitialProgressBoard,
   resolveResumeFromBoard
-} from '../../application/script-generation/progress-board'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+} from '../../application/script-generation/progress-board.ts'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type {
   BuildScriptGenerationPlanInputDto,
   ScriptGenerationExecutionPlanDto,
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto
-} from '../../../shared/contracts/script-generation'
+} from '../../../shared/contracts/script-generation.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 
 export function registerScriptGenerationPlanHandlers(): void {
   ipcMain.handle(
@@ -47,13 +47,16 @@ export function registerScriptGenerationPlanHandlers(): void {
 
   ipcMain.handle(
     'workflow:create-script-generation-progress-board',
-    (_event, input: { plan: ScriptGenerationExecutionPlanDto; stageContractFingerprint: string | null }) =>
-      createInitialProgressBoard(input.plan, input.stageContractFingerprint)
+    (
+      _event,
+      input: { plan: ScriptGenerationExecutionPlanDto; stageContractFingerprint: string | null }
+    ) => createInitialProgressBoard(input.plan, input.stageContractFingerprint)
   )
 
   ipcMain.handle(
     'workflow:resolve-script-generation-resume',
-    (_event, input: { board: ScriptGenerationProgressBoardDto }) => resolveResumeFromBoard(input.board)
+    (_event, input: { board: ScriptGenerationProgressBoardDto }) =>
+      resolveResumeFromBoard(input.board)
   )
 
   ipcMain.handle(

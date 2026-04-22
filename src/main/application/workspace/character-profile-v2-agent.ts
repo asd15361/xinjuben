@@ -11,13 +11,10 @@
  * 输出：CharacterProfileV2Dto[]（严格 JSON）
  */
 
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 import { generateTextWithRuntimeRouter } from '../ai/generate-text.ts'
 import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
-import type {
-  FactionDto,
-  FactionMatrixDto
-} from '../../../shared/contracts/faction-matrix.ts'
+import type { FactionDto, FactionMatrixDto } from '../../../shared/contracts/faction-matrix.ts'
 import type { CharacterProfileV2Dto } from '../../../shared/contracts/character-profile-v2.ts'
 
 export interface CharacterProfileV2AgentInput {
@@ -108,10 +105,13 @@ function summarizeCharacterProfileV2ParseIssues(rawText: string): string[] {
       if (!hasText(char.plotFunction)) issues.push(`plot_function_missing:character_${index + 1}`)
 
       if (char.depthLevel === 'core') {
-        if (!hasText(char.hiddenPressure)) issues.push(`hidden_pressure_missing:character_${index + 1}`)
+        if (!hasText(char.hiddenPressure))
+          issues.push(`hidden_pressure_missing:character_${index + 1}`)
         if (!hasText(char.fear)) issues.push(`fear_missing:character_${index + 1}`)
-        if (!hasText(char.protectTarget)) issues.push(`protect_target_missing:character_${index + 1}`)
-        if (!hasText(char.conflictTrigger)) issues.push(`conflict_trigger_missing:character_${index + 1}`)
+        if (!hasText(char.protectTarget))
+          issues.push(`protect_target_missing:character_${index + 1}`)
+        if (!hasText(char.conflictTrigger))
+          issues.push(`conflict_trigger_missing:character_${index + 1}`)
         if (!hasText(char.advantage)) issues.push(`advantage_missing:character_${index + 1}`)
         if (!hasText(char.weakness)) issues.push(`weakness_missing:character_${index + 1}`)
         if (!hasText(char.goal)) issues.push(`goal_missing:character_${index + 1}`)
@@ -188,9 +188,7 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
   const worldView = input.storyIntent.shortDramaConstitution?.worldViewBrief || '待补'
 
   const currentFaction = input.factionMatrix.factions[0]
-  const factionSummary = currentFaction
-    ? serializeFactionSummary(currentFaction)
-    : '无势力'
+  const factionSummary = currentFaction ? serializeFactionSummary(currentFaction) : '无势力'
 
   const crossRelationsSummary = input.factionMatrix.crossRelations
     .map((rel) => {
@@ -201,7 +199,10 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
 
   const existingCharHint = input.existingCharacters
     ? input.existingCharacters
-        .map((c) => `  - ${c.name}：${c.biography}${c.publicMask ? ` | 表面演法：${c.publicMask}` : ''}`)
+        .map(
+          (c) =>
+            `  - ${c.name}：${c.biography}${c.publicMask ? ` | 表面演法：${c.publicMask}` : ''}`
+        )
         .join('\n')
     : '无旧版人物小传'
 
@@ -508,14 +509,18 @@ async function generateCharacterProfileV2ForFaction(input: {
       ) {
         retryMode = 'retry_runtime'
         const backoffMs =
-          CHARACTER_PROFILE_V2_BACKOFF_MS[Math.min(attempt - 1, CHARACTER_PROFILE_V2_BACKOFF_MS.length - 1)]
+          CHARACTER_PROFILE_V2_BACKOFF_MS[
+            Math.min(attempt - 1, CHARACTER_PROFILE_V2_BACKOFF_MS.length - 1)
+          ]
         await input.log(
           `faction_runtime_retry faction=${input.faction.name} elapsedMs=${Date.now() - input.startedAt} nextAttempt=${attempt + 1} backoffMs=${backoffMs} reason=${normalizedError.message}`
         )
         await delay(backoffMs)
         continue
       }
-      throw new Error(`character_profile_v2_generation_failed:${input.faction.name}:${normalizedError.message}`)
+      throw new Error(
+        `character_profile_v2_generation_failed:${input.faction.name}:${normalizedError.message}`
+      )
     }
   }
 
@@ -538,15 +543,13 @@ async function generateCharacterProfileV2ForFactionWithAdaptiveSplit(input: {
   try {
     return await generateCharacterProfileV2ForFaction(input)
   } catch (error) {
-    const normalizedError = error instanceof Error ? error : new Error(String(error || 'unknown_error'))
+    const normalizedError =
+      error instanceof Error ? error : new Error(String(error || 'unknown_error'))
     const isRuntimeFailure = normalizedError.message.startsWith(
       `character_profile_v2_generation_failed:${input.faction.name}:`
     )
 
-    if (
-      !isRuntimeFailure ||
-      !shouldSplitFactionIntoSingleCharacterCalls(normalizedError.message)
-    ) {
+    if (!isRuntimeFailure || !shouldSplitFactionIntoSingleCharacterCalls(normalizedError.message)) {
       throw normalizedError
     }
 
@@ -591,9 +594,8 @@ export async function generateCharacterProfileV2(input: {
   const log =
     input.diagnosticLogger ??
     (async (message: string) => {
-      const { appendRuntimeDiagnosticLog } = await import(
-        '../../infrastructure/diagnostics/runtime-diagnostic-log.ts'
-      )
+      const { appendRuntimeDiagnosticLog } =
+        await import('../../infrastructure/diagnostics/runtime-diagnostic-log.ts')
       await appendRuntimeDiagnosticLog('character_profile_v2', message)
     })
 
@@ -623,7 +625,9 @@ export async function generateCharacterProfileV2(input: {
   })
 
   const characters = factionResults.flat()
-  await log(`finish elapsedMs=${Date.now() - startedAt} factionCount=${input.factionMatrix.factions.length} characterCount=${characters.length}`)
+  await log(
+    `finish elapsedMs=${Date.now() - startedAt} factionCount=${input.factionMatrix.factions.length} characterCount=${characters.length}`
+  )
 
   return { characters }
 }

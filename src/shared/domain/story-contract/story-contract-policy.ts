@@ -1,7 +1,7 @@
-import type { StoryIntentPackageDto } from '../../contracts/intake'
-import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract'
-import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow'
-import { getConfirmedFormalFacts } from '../formal-fact/selectors'
+import type { StoryIntentPackageDto } from '../../contracts/intake.ts'
+import type { StoryContractDto, UserAnchorLedgerDto } from '../../contracts/story-contract.ts'
+import type { CharacterDraftDto, OutlineDraftDto } from '../../contracts/workflow.ts'
+import { getConfirmedFormalFacts } from '../formal-fact/selectors.ts'
 
 function unique(values: Array<string | undefined | null>): string[] {
   const used = new Set<string>()
@@ -18,7 +18,8 @@ function unique(values: Array<string | undefined | null>): string[] {
 function normalizeAnchorName(value: string | undefined | null): string {
   const text = String(value || '').trim()
   if (!text) return ''
-  if (!/[，,。；、\s]/.test(text) && !/(盯上|被当|异动|持续施压|做筹码|交出)/.test(text)) return text
+  if (!/[，,。；、\s]/.test(text) && !/(盯上|被当|异动|持续施压|做筹码|交出)/.test(text))
+    return text
 
   const roleMatch = text.match(/(少年守钥人|小镇少女|恶霸|反派|仇家|族长|城主|掌柜|恶少|师父|师妹)/)
   if (roleMatch) return roleMatch[1]
@@ -43,11 +44,16 @@ function findCharacterByKeyword(characters: CharacterDraftDto[], pattern: RegExp
 }
 
 function buildHardFacts(outline: OutlineDraftDto): string[] {
-  const formalFacts = getConfirmedFormalFacts(outline).map((fact) => `${fact.label}：${fact.description}`)
+  const formalFacts = getConfirmedFormalFacts(outline).map(
+    (fact) => `${fact.label}：${fact.description}`
+  )
   return unique([outline.mainConflict, outline.theme, ...formalFacts]).slice(0, 6)
 }
 
-function buildSoftFacts(intent: StoryIntentPackageDto | null, characters: CharacterDraftDto[]): string[] {
+function buildSoftFacts(
+  intent: StoryIntentPackageDto | null,
+  characters: CharacterDraftDto[]
+): string[] {
   return unique([
     ...(intent?.themeAnchors || []),
     ...(intent?.worldAnchors || []),
@@ -103,10 +109,13 @@ export function buildStoryContract(input: {
   ]
     .filter(Boolean)
     .join('\n')
-  const heroineHint = unique([
-    ...(intent?.relationAnchors || []).filter((item) => /(女主|爱人|恋人|伴侣|心上人)/.test(item)),
-    findCharacterByKeyword(input.characters, /(爱人|恋人|伴侣|心上人|情感|关系)/)
-  ])[0] || ''
+  const heroineHint =
+    unique([
+      ...(intent?.relationAnchors || []).filter((item) =>
+        /(女主|爱人|恋人|伴侣|心上人)/.test(item)
+      ),
+      findCharacterByKeyword(input.characters, /(爱人|恋人|伴侣|心上人|情感|关系)/)
+    ])[0] || ''
 
   const mentorHint = findCharacterByKeyword(input.characters, /(师父|师傅|老师|导师|引路)/)
   const hardFacts = buildHardFacts(input.outline)
@@ -128,7 +137,11 @@ export function buildStoryContract(input: {
 
   return {
     characterSlots: {
-      protagonist: input.outline.protagonist.trim() || intent?.protagonist?.trim() || input.characters[0]?.name || '',
+      protagonist:
+        input.outline.protagonist.trim() ||
+        intent?.protagonist?.trim() ||
+        input.characters[0]?.name ||
+        '',
       antagonist: normalizeAnchorName(intent?.antagonist) || input.characters[1]?.name || '',
       heroine: heroineHint,
       mentor: mentorHint
@@ -142,7 +155,9 @@ export function buildStoryContract(input: {
       themeRealization: input.outline.theme.trim()
     },
     requirements: {
-      requireFinalePayoff: Boolean(intent?.endingDirection?.trim() || input.outline.mainConflict.trim()),
+      requireFinalePayoff: Boolean(
+        intent?.endingDirection?.trim() || input.outline.mainConflict.trim()
+      ),
       requireHiddenCapabilityForeshadow,
       requireAntagonistContinuity: Boolean(intent?.antagonist?.trim()),
       requireAntagonistLoveConflict,
@@ -189,8 +204,13 @@ export function buildUserAnchorLedger(input: {
   }
 }
 
-export function collectMissingUserAnchorNames(ledger: UserAnchorLedgerDto, characters: CharacterDraftDto[]): string[] {
-  const roster = new Set(characters.map((character) => normalizeAnchorName(character.name)).filter(Boolean))
+export function collectMissingUserAnchorNames(
+  ledger: UserAnchorLedgerDto,
+  characters: CharacterDraftDto[]
+): string[] {
+  const roster = new Set(
+    characters.map((character) => normalizeAnchorName(character.name)).filter(Boolean)
+  )
   // 【第二刀延伸】模糊匹配：如果锚点名字被人物名字包含，视为已覆盖
   return ledger.anchorNames
     .map((name) => normalizeAnchorName(name))
@@ -207,7 +227,10 @@ export function collectMissingUserAnchorNames(ledger: UserAnchorLedgerDto, chara
     })
 }
 
-export function hasHeroineAnchorCoverage(ledger: UserAnchorLedgerDto, characters: CharacterDraftDto[]): boolean {
+export function hasHeroineAnchorCoverage(
+  ledger: UserAnchorLedgerDto,
+  characters: CharacterDraftDto[]
+): boolean {
   if (!ledger.heroineRequired) return true
   const merged = characters
     .flatMap((character) => [
@@ -226,23 +249,50 @@ export function hasHeroineAnchorCoverage(ledger: UserAnchorLedgerDto, characters
   return /(女主|爱人|恋人|伴侣|心上人)/.test(merged)
 }
 
-export function renderStoryContractPromptBlock(contract: StoryContractDto, ledger: UserAnchorLedgerDto): string {
+export function renderStoryContractPromptBlock(
+  contract: StoryContractDto,
+  ledger: UserAnchorLedgerDto
+): string {
   return [
     '【故事合同】',
     `- 主角槽位：${contract.characterSlots.protagonist || '待定义'}`,
     `- 对手槽位：${contract.characterSlots.antagonist || '待定义'}`,
-    contract.characterSlots.heroine ? `- 情感槽位：${contract.characterSlots.heroine}` : '- 情感槽位：当前未锁定',
-    contract.characterSlots.mentor ? `- 导师槽位：${contract.characterSlots.mentor}` : '- 导师槽位：当前未锁定',
-    contract.requirements.requireFinalePayoff ? `- 终局必须回收：${contract.eventSlots.finalePayoff}` : '- 终局回收：当前待补',
-    contract.requirements.requireHiddenCapabilityForeshadow ? '- 前段必须埋隐藏能力/克制出手伏笔' : '- 隐藏能力伏笔：当前未强制',
-    contract.requirements.requireAntagonistContinuity ? `- 对手必须贯穿：${contract.eventSlots.antagonistPressure}` : '- 对手贯穿：当前未强制',
-    contract.requirements.requireAntagonistLoveConflict ? `- 对手情感争夺：${contract.eventSlots.antagonistLoveConflict}` : '- 对手情感争夺：当前未强制',
-    contract.requirements.requireHealingTechnique ? `- 关键救治事件：${contract.eventSlots.healingTechnique}` : '- 关键救治事件：当前未强制',
-    contract.requirements.requireThemeRealization ? `- 主题必须兑现：${contract.eventSlots.themeRealization}` : '- 主题兑现：当前待补',
-    contract.hardFacts.length > 0 ? `- 硬事实：${contract.hardFacts.join('；')}` : '- 硬事实：当前待补',
-    contract.softFacts.length > 0 ? `- 软事实：${contract.softFacts.join('；')}` : '- 软事实：当前待补',
-    ledger.anchorNames.length > 0 ? `- 用户锚点名册：${ledger.anchorNames.join('、')}` : '- 用户锚点名册：当前为空',
-    ledger.protectedFacts.length > 0 ? `- 受保护事实：${ledger.protectedFacts.join('；')}` : '- 受保护事实：当前为空',
+    contract.characterSlots.heroine
+      ? `- 情感槽位：${contract.characterSlots.heroine}`
+      : '- 情感槽位：当前未锁定',
+    contract.characterSlots.mentor
+      ? `- 导师槽位：${contract.characterSlots.mentor}`
+      : '- 导师槽位：当前未锁定',
+    contract.requirements.requireFinalePayoff
+      ? `- 终局必须回收：${contract.eventSlots.finalePayoff}`
+      : '- 终局回收：当前待补',
+    contract.requirements.requireHiddenCapabilityForeshadow
+      ? '- 前段必须埋隐藏能力/克制出手伏笔'
+      : '- 隐藏能力伏笔：当前未强制',
+    contract.requirements.requireAntagonistContinuity
+      ? `- 对手必须贯穿：${contract.eventSlots.antagonistPressure}`
+      : '- 对手贯穿：当前未强制',
+    contract.requirements.requireAntagonistLoveConflict
+      ? `- 对手情感争夺：${contract.eventSlots.antagonistLoveConflict}`
+      : '- 对手情感争夺：当前未强制',
+    contract.requirements.requireHealingTechnique
+      ? `- 关键救治事件：${contract.eventSlots.healingTechnique}`
+      : '- 关键救治事件：当前未强制',
+    contract.requirements.requireThemeRealization
+      ? `- 主题必须兑现：${contract.eventSlots.themeRealization}`
+      : '- 主题兑现：当前待补',
+    contract.hardFacts.length > 0
+      ? `- 硬事实：${contract.hardFacts.join('；')}`
+      : '- 硬事实：当前待补',
+    contract.softFacts.length > 0
+      ? `- 软事实：${contract.softFacts.join('；')}`
+      : '- 软事实：当前待补',
+    ledger.anchorNames.length > 0
+      ? `- 用户锚点名册：${ledger.anchorNames.join('、')}`
+      : '- 用户锚点名册：当前为空',
+    ledger.protectedFacts.length > 0
+      ? `- 受保护事实：${ledger.protectedFacts.join('；')}`
+      : '- 受保护事实：当前为空',
     ledger.heroineRequired
       ? `- 情感锚点必须覆盖：${ledger.heroineHint || '已声明情感对象'}`
       : '- 当前没有强制情感锚点'

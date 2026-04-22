@@ -1,7 +1,7 @@
 import { dirname } from 'path'
 
-import type { ProjectSnapshotDto } from '../../../shared/contracts/project'
-import { getStorePath } from './project-store-core'
+import type { ProjectSnapshotDto } from '../../../shared/contracts/project.ts'
+import { getStorePath } from './project-store-core.ts'
 import { removeProjectsIndexEntry, upsertProjectsIndexEntry } from './project-files/write-index.ts'
 import {
   buildShardPayloads,
@@ -42,7 +42,8 @@ export async function mirrorProjectSnapshot(project: ProjectSnapshotDto): Promis
       characters: Array.isArray(project.characterDrafts) ? project.characterDrafts.length : 0,
       detailedOutlineBeats: Array.isArray(project.detailedOutlineSegments)
         ? project.detailedOutlineSegments.reduce(
-            (total, segment) => total + (Array.isArray(segment.episodeBeats) ? segment.episodeBeats.length : 0),
+            (total, segment) =>
+              total + (Array.isArray(segment.episodeBeats) ? segment.episodeBeats.length : 0),
             0
           )
         : 0,

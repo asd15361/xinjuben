@@ -11,7 +11,9 @@ interface DetailedOutlineEpisodeEditorsPanelProps {
   ) => void
 }
 
-export function DetailedOutlineEpisodeEditorsPanel(props: DetailedOutlineEpisodeEditorsPanelProps) {
+export function DetailedOutlineEpisodeEditorsPanel(
+  props: DetailedOutlineEpisodeEditorsPanelProps
+): JSX.Element {
   const { episodes, downstreamLocked, onEpisodeChange } = props
 
   return (
@@ -56,9 +58,24 @@ export function DetailedOutlineEpisodeEditorsPanel(props: DetailedOutlineEpisode
                     </span>
                   </div>
                   <div className="space-y-2 text-[11px] leading-relaxed text-white/60">
-                    {scene.setup && <p><span className="text-white/40">起手：</span>{scene.setup}</p>}
-                    {scene.tension && <p><span className="text-white/40">压强：</span>{scene.tension}</p>}
-                    {scene.hookEnd && <p><span className="text-white/40">场尾钩：</span>{scene.hookEnd}</p>}
+                    {scene.setup && (
+                      <p>
+                        <span className="text-white/40">起手：</span>
+                        {scene.setup}
+                      </p>
+                    )}
+                    {scene.tension && (
+                      <p>
+                        <span className="text-white/40">压强：</span>
+                        {scene.tension}
+                      </p>
+                    )}
+                    {scene.hookEnd && (
+                      <p>
+                        <span className="text-white/40">场尾钩：</span>
+                        {scene.hookEnd}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}

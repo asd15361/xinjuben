@@ -7,7 +7,7 @@
  * 将结果供 arc-control-agent 和 ContentQualitySignal 使用。
  */
 
-import type { ScriptSegmentDto } from '../../contracts/workflow'
+import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 窝囊行为类型
@@ -53,16 +53,43 @@ export interface WeaknessDetectionResult {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const KNEELING_KEYWORDS = ['下跪', '跪下', '磕头', '跪地', '扑通跪', '双膝跪']
-const BEGGING_KEYWORDS = ['求你', '求饶', '饶命', '放过我', '饶了我', '我错了，求', '别杀我', '求你别']
+const BEGGING_KEYWORDS = [
+  '求你',
+  '求饶',
+  '饶命',
+  '放过我',
+  '饶了我',
+  '我错了，求',
+  '别杀我',
+  '求你别'
+]
 const FREEZE_KEYWORDS = ['愣住', '发呆', '呆立', '沉默不语', '站在原地', '不知所措', '无话可说']
 const EMPTY_THREAT_KEYWORDS = ['你等着', '走着瞧', '我会回来', '以后你', '你迟早']
 const APOLOGY_KEYWORDS = ['对不起', '抱歉', '我的错', '是我不对', '我认错', '我赔罪']
 
 /** 装弱上下文关键词：出现在同一行或相邻 3 行内，说明是战略忍让 */
 const STRATEGIC_CONTEXT_KEYWORDS = [
-  '故意', '假装', '实则', '暗中', '后手', '诱敌', '藏', '取',
-  '反咬', '借机', '趁机', '趁机拿', '实则已', '实则把', '其实已',
-  '眼里闪过', '嘴角微', '袖中', '指尖', '低头的瞬间', '假意'
+  '故意',
+  '假装',
+  '实则',
+  '暗中',
+  '后手',
+  '诱敌',
+  '藏',
+  '取',
+  '反咬',
+  '借机',
+  '趁机',
+  '趁机拿',
+  '实则已',
+  '实则把',
+  '其实已',
+  '眼里闪过',
+  '嘴角微',
+  '袖中',
+  '指尖',
+  '低头的瞬间',
+  '假意'
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────────────
@@ -70,12 +97,17 @@ const STRATEGIC_CONTEXT_KEYWORDS = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 function normalize(text: string | undefined): string {
-  return String(text || '').replace(/\r\n/g, '\n').trim()
+  return String(text || '')
+    .replace(/\r\n/g, '\n')
+    .trim()
 }
 
 function getScreenplayLines(scene: ScriptSegmentDto): string[] {
   const screenplay = normalize(scene.screenplay)
-  return screenplay.split('\n').map((l) => l.trim()).filter(Boolean)
+  return screenplay
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
 }
 
 /** 判断某行落点前后是否存在装弱上下文 */
@@ -172,9 +204,7 @@ export function detectProtagonistWeakness(
   }
 
   // 证据文本（最多 5 条，优先真弱行为）
-  const evidence = forbiddenBehaviors
-    .slice(0, 5)
-    .map((b) => b.lineText)
+  const evidence = forbiddenBehaviors.slice(0, 5).map((b) => b.lineText)
 
   return {
     hasForbiddenBehavior: hasForbidden,

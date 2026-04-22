@@ -40,9 +40,9 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers
+    }
   })
 
   if (!res.ok) {
@@ -53,7 +53,7 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
   return res.json()
 }
 
-export function CreditsTopupPage() {
+export function CreditsTopupPage(): JSX.Element {
   const [balance, setBalance] = useState<Balance | null>(null)
   const [packages, setPackages] = useState<CreditPackage[]>([])
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null)
@@ -63,11 +63,11 @@ export function CreditsTopupPage() {
 
   // 加载余额和套餐
   useEffect(() => {
-    async function loadData() {
+    async function loadData(): Promise<void> {
       try {
         const [balanceRes, packagesRes] = await Promise.all([
           apiRequest<{ balance: number; frozenBalance: number }>('/api/credits/balance'),
-          apiRequest<{ packages: CreditPackage[] }>('/api/pay/packages'),
+          apiRequest<{ packages: CreditPackage[] }>('/api/pay/packages')
         ])
         setBalance(balanceRes)
         setPackages(packagesRes.packages)
@@ -80,13 +80,15 @@ export function CreditsTopupPage() {
   }, [])
 
   // 轮询订单状态
-  const pollOrderStatus = useCallback(async (outTradeNo: string) => {
+  const pollOrderStatus = useCallback(async (outTradeNo: string): Promise<void> => {
     try {
       const result: OrderStatus = await apiRequest(`/api/pay/order/${outTradeNo}`)
       if (result.status === 'paid') {
         setPendingOrder(null)
         // 刷新余额
-        const newBalance = await apiRequest<{ balance: number; frozenBalance: number }>('/api/credits/balance')
+        const newBalance = await apiRequest<{ balance: number; frozenBalance: number }>(
+          '/api/credits/balance'
+        )
         setBalance(newBalance)
         alert(`充值成功！已到账 ${result.credits} 积分`)
         return
@@ -100,7 +102,7 @@ export function CreditsTopupPage() {
   }, [])
 
   // 发起支付
-  async function handlePay() {
+  async function handlePay(): Promise<void> {
     if (!selectedPackage) {
       setError('请选择充值套餐')
       return
@@ -112,7 +114,7 @@ export function CreditsTopupPage() {
     try {
       const result = await apiRequest<{ outTradeNo: string; payUrl: string }>('/api/pay/create', {
         method: 'POST',
-        body: JSON.stringify({ packageId: selectedPackage }),
+        body: JSON.stringify({ packageId: selectedPackage })
       })
 
       // 打开支付链接
@@ -148,7 +150,7 @@ export function CreditsTopupPage() {
       <div className="packages-section">
         <h3>选择充值套餐</h3>
         <div className="packages-grid">
-          {packages.map(pkg => (
+          {packages.map((pkg) => (
             <div
               key={pkg.id}
               className={`package-card ${selectedPackage === pkg.id ? 'selected' : ''}`}

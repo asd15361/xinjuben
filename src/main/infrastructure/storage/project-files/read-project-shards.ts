@@ -1,6 +1,6 @@
 import { access } from 'fs/promises'
 
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
 import { normalizeProjectSnapshot } from '../project-snapshot-normalize.ts'
 import { readParsedStoreWithRepair } from '../project-store-read-repair.ts'
 import { readProjectsIndex } from './read-index.ts'

@@ -1,5 +1,5 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
-import type { CharacterDraftDto } from '../../../shared/contracts/workflow'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
+import type { CharacterDraftDto } from '../../../shared/contracts/workflow.ts'
 import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support.ts'
 
 type BriefCharacterCard = { name?: string; summary?: string }
@@ -37,7 +37,10 @@ const GENERIC_FIELD_PATTERNS = [
 ]
 
 function cleanText(value: string): string {
-  return value.replace(/\s+/g, ' ').replace(/^[，。；、]+|[，。；、]+$/g, '').trim()
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(/^[，。；、]+|[，。；、]+$/g, '')
+    .trim()
 }
 
 function isGenericField(value: string): boolean {
@@ -159,7 +162,7 @@ export function enrichCharacterDrafts(input: {
 }): CharacterDraftDto[] {
   const structured = parseStructuredGenerationBrief(input.generationBriefText)
   const brief =
-    structured?.generationBrief && typeof structured.generationBrief === "object"
+    structured?.generationBrief && typeof structured.generationBrief === 'object'
       ? (structured.generationBrief as {
           characterCards?: BriefCharacterCard[]
           characterLayers?: BriefCharacterLayer[]
@@ -170,21 +173,25 @@ export function enrichCharacterDrafts(input: {
 
   return input.characters.map((character) => {
     const card = cards.find((item) => cleanText(item.name || '') === character.name)
-    const layer = cleanText(layers.find((item) => cleanText(item.name || '') === character.name)?.layer || '')
+    const layer = cleanText(
+      layers.find((item) => cleanText(item.name || '') === character.name)?.layer || ''
+    )
     const summary = cleanText(card?.summary || character.biography)
     if (!summary) return character
 
-    const isProtagonist = cleanText(character.name) === cleanText(input.storyIntent.protagonist || '')
+    const isProtagonist =
+      cleanText(character.name) === cleanText(input.storyIntent.protagonist || '')
     const isAntagonist = cleanText(character.name) === cleanText(input.storyIntent.antagonist || '')
-    const rewriteAsEmotion = !isProtagonist && !isAntagonist && shouldForceEmotionRewrite(character, summary)
+    const rewriteAsEmotion =
+      !isProtagonist && !isAntagonist && shouldForceEmotionRewrite(character, summary)
 
     const synthesized = rewriteAsEmotion
       ? buildEmotionLeverDraft({
-            name: character.name,
-            summary,
-            protagonist: input.storyIntent.protagonist || '',
-            antagonist: input.storyIntent.antagonist || ''
-          })
+          name: character.name,
+          summary,
+          protagonist: input.storyIntent.protagonist || '',
+          antagonist: input.storyIntent.antagonist || ''
+        })
       : buildSynthesizedDraft({
           name: character.name,
           summary,
@@ -201,21 +208,38 @@ export function enrichCharacterDrafts(input: {
         rewriteAsEmotion || isGenericField(character.publicMask)
           ? cleanText(synthesized.publicMask || '')
           : character.publicMask,
-      hiddenPressure: isGenericField(character.hiddenPressure) || rewriteAsEmotion
-        ? cleanText(synthesized.hiddenPressure || '')
-        : character.hiddenPressure,
-      fear: isGenericField(character.fear) || rewriteAsEmotion ? cleanText(synthesized.fear || '') : character.fear,
-      protectTarget: isGenericField(character.protectTarget)
-        || rewriteAsEmotion
-        ? cleanText(synthesized.protectTarget || '')
-        : character.protectTarget,
-      conflictTrigger: isGenericField(character.conflictTrigger) || rewriteAsEmotion
-        ? cleanText(synthesized.conflictTrigger || '')
-        : character.conflictTrigger,
-      advantage: isGenericField(character.advantage) || rewriteAsEmotion ? cleanText(synthesized.advantage || '') : character.advantage,
-      weakness: isGenericField(character.weakness) || rewriteAsEmotion ? cleanText(synthesized.weakness || '') : character.weakness,
-      goal: isGenericField(character.goal) || rewriteAsEmotion ? cleanText(synthesized.goal || '') : character.goal,
-      arc: isGenericField(character.arc) || rewriteAsEmotion ? cleanText(synthesized.arc || '') : character.arc
+      hiddenPressure:
+        isGenericField(character.hiddenPressure) || rewriteAsEmotion
+          ? cleanText(synthesized.hiddenPressure || '')
+          : character.hiddenPressure,
+      fear:
+        isGenericField(character.fear) || rewriteAsEmotion
+          ? cleanText(synthesized.fear || '')
+          : character.fear,
+      protectTarget:
+        isGenericField(character.protectTarget) || rewriteAsEmotion
+          ? cleanText(synthesized.protectTarget || '')
+          : character.protectTarget,
+      conflictTrigger:
+        isGenericField(character.conflictTrigger) || rewriteAsEmotion
+          ? cleanText(synthesized.conflictTrigger || '')
+          : character.conflictTrigger,
+      advantage:
+        isGenericField(character.advantage) || rewriteAsEmotion
+          ? cleanText(synthesized.advantage || '')
+          : character.advantage,
+      weakness:
+        isGenericField(character.weakness) || rewriteAsEmotion
+          ? cleanText(synthesized.weakness || '')
+          : character.weakness,
+      goal:
+        isGenericField(character.goal) || rewriteAsEmotion
+          ? cleanText(synthesized.goal || '')
+          : character.goal,
+      arc:
+        isGenericField(character.arc) || rewriteAsEmotion
+          ? cleanText(synthesized.arc || '')
+          : character.arc
     }
   })
 }

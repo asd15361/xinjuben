@@ -1,6 +1,6 @@
-import type { StoryIntentPackageDto } from '../../../contracts/intake'
-import type { ScriptStateLedgerDto } from '../../../contracts/script-ledger'
-import type { PolicyMetadata } from '../policy-metadata'
+import type { StoryIntentPackageDto } from '../../../contracts/intake.ts'
+import type { ScriptStateLedgerDto } from '../../../contracts/script-ledger.ts'
+import type { PolicyMetadata } from '../policy-metadata.ts'
 
 export interface RelationshipPressureSnapshot {
   leverLine: string
@@ -60,7 +60,9 @@ export function buildPressureExecutionSnapshot(
     }
   }
 
-  const pressureCharacterCount = ledger.characters.filter((character) => character.relationshipPressure.length > 0).length
+  const pressureCharacterCount = ledger.characters.filter(
+    (character) => character.relationshipPressure.length > 0
+  ).length
   const unboundTraitCount = ledger.characters.reduce(
     (sum, character) => sum + character.traitBindings.filter((binding) => !binding.isBound).length,
     0

@@ -40,35 +40,31 @@ function buildLightCardDetails(card: CharacterStageLightCard): Array<{
   label: string
   value: string
 }> {
-  return ([
-    { key: 'current-function', label: '当前功能', value: card.currentFunction || '' },
-    { key: 'public-identity', label: '对外身份', value: card.publicIdentity || '' },
-    { key: 'stance', label: '立场', value: card.stance || '' },
-    { key: 'voice-style', label: '口风', value: card.voiceStyle || '' }
-  ] as const).filter((item) => item.value.trim())
+  return (
+    [
+      { key: 'current-function', label: '当前功能', value: card.currentFunction || '' },
+      { key: 'public-identity', label: '对外身份', value: card.publicIdentity || '' },
+      { key: 'stance', label: '立场', value: card.stance || '' },
+      { key: 'voice-style', label: '口风', value: card.voiceStyle || '' }
+    ] as const
+  ).filter((item) => item.value.trim())
 }
 
-export function CharacterStage() {
+export function CharacterStage(): JSX.Element {
   const characters = useStageStore((s) => s.characters)
   const updateCharacter = useStageStore((s) => s.updateCharacter)
   const addCharacter = useStageStore((s) => s.addCharacter)
   const removeCharacter = useStageStore((s) => s.removeCharacter)
   const projectId = useWorkflowStore((s) => s.projectId)
   const exportStage = useProjectStageExport()
-  const {
-    actionLabel,
-    generationStatus,
-    generationBusy,
-    handleGenerateOutlineAndCharacters
-  } = useOutlineCharacterGeneration('character')
+  const { actionLabel, generationStatus, generationBusy, handleGenerateOutlineAndCharacters } =
+    useOutlineCharacterGeneration('character')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const entityStore = useWorkflowStore((state) => state.projectEntityStore)
   const sections = useMemo(
     () => buildCharacterStageSections({ characterDrafts: characters, entityStore }),
     [characters, entityStore]
   )
-
-
 
   async function handleGoToDetailedOutline(): Promise<void> {
     if (!projectId) return
@@ -78,7 +74,7 @@ export function CharacterStage() {
     }
   }
 
-  function handleRemoveCharacter(index: number) {
+  function handleRemoveCharacter(index: number): void {
     removeCharacter(index)
     setEditingIndex((current) => {
       if (current === null) return null
@@ -88,7 +84,7 @@ export function CharacterStage() {
     })
   }
 
-  function createEmptyCharacter() {
+  function createEmptyCharacter(): CharacterDraftDto {
     return {
       name: '新人物',
       biography: '',
@@ -105,7 +101,7 @@ export function CharacterStage() {
     }
   }
 
-  function handleUpgradeLightCard(entityId: string) {
+  function handleUpgradeLightCard(entityId: string): void {
     const draft = createCharacterDraftFromEntityStore({
       entityStore,
       characterEntityId: entityId
@@ -231,105 +227,109 @@ export function CharacterStage() {
                   return (
                     <div
                       key={card.entityId}
-                      data-testid={card.identityMode === 'slot' ? 'character-slot-light-card' : 'character-light-card'}
+                      data-testid={
+                        card.identityMode === 'slot'
+                          ? 'character-slot-light-card'
+                          : 'character-light-card'
+                      }
                       data-entity-id={card.entityId}
                       data-identity-mode={card.identityMode}
                       className="rounded-2xl border border-orange-500/15 bg-orange-500/[0.04] p-4"
                     >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h4
-                          data-testid="character-light-card-name"
-                          className="text-base font-black text-white/90"
-                        >
-                          {card.name}
-                        </h4>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {card.identityMode === 'slot' && (
-                            <span
-                              data-testid="character-light-card-slot-badge"
-                              className="rounded-md border border-sky-500/25 bg-sky-500/10 px-2 py-1 text-[10px] font-black text-sky-100"
-                            >
-                              势力人物位
-                            </span>
-                          )}
-                          {card.factionRole && (
-                            <span
-                              data-testid="character-light-card-faction-role"
-                              className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-200"
-                            >
-                              {card.factionRole}
-                            </span>
-                          )}
-                          <span className="rounded-md border border-orange-500/25 bg-orange-500/10 px-2 py-1 text-[10px] font-black text-orange-200">
-                            {card.roleLayerLabel}
-                          </span>
-                          {card.factionNames.map((factionName) => (
-                            <span
-                              key={`${card.entityId}_${factionName}`}
-                              className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black text-white/45"
-                            >
-                              {factionName}
-                            </span>
-                          ))}
-                        </div>
-                        {card.publicIdentity && (
-                          <p
-                            data-testid="character-light-card-public-identity-preview"
-                            className="mt-3 text-[11px] font-black tracking-[0.08em] text-white/40"
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4
+                            data-testid="character-light-card-name"
+                            className="text-base font-black text-white/90"
                           >
-                            对外身份：{card.publicIdentity}
-                          </p>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleUpgradeLightCard(card.entityId)}
-                        className="shrink-0 rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-2 text-[11px] font-black text-orange-200 hover:bg-orange-500/25 transition-all"
-                      >
-                        升级成完整小传
-                      </button>
-                    </div>
-
-                    <p className="mt-4 text-[12px] leading-6 text-white/55">
-                      {card.summary || '世界底账已经识别到这个人物，但还没补出更细的人物说明。'}
-                    </p>
-
-                    {lightCardDetails.length > 0 && (
-                      <dl
-                        data-testid="character-light-card-detail-list"
-                        className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/8 bg-black/10 p-3"
-                      >
-                        {lightCardDetails.map((detail) => (
-                          <div
-                            key={`${card.entityId}_${detail.label}`}
-                            data-testid={`character-light-card-detail-${detail.key}`}
-                            className="flex items-start gap-2 text-[11px] leading-5"
-                          >
-                            <dt className="shrink-0 font-black text-orange-100/75">
-                              {detail.label}：
-                            </dt>
-                            <dd className="text-white/55">{detail.value}</dd>
+                            {card.name}
+                          </h4>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {card.identityMode === 'slot' && (
+                              <span
+                                data-testid="character-light-card-slot-badge"
+                                className="rounded-md border border-sky-500/25 bg-sky-500/10 px-2 py-1 text-[10px] font-black text-sky-100"
+                              >
+                                势力人物位
+                              </span>
+                            )}
+                            {card.factionRole && (
+                              <span
+                                data-testid="character-light-card-faction-role"
+                                className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-200"
+                              >
+                                {card.factionRole}
+                              </span>
+                            )}
+                            <span className="rounded-md border border-orange-500/25 bg-orange-500/10 px-2 py-1 text-[10px] font-black text-orange-200">
+                              {card.roleLayerLabel}
+                            </span>
+                            {card.factionNames.map((factionName) => (
+                              <span
+                                key={`${card.entityId}_${factionName}`}
+                                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black text-white/45"
+                              >
+                                {factionName}
+                              </span>
+                            ))}
                           </div>
-                        ))}
-                      </dl>
-                    )}
+                          {card.publicIdentity && (
+                            <p
+                              data-testid="character-light-card-public-identity-preview"
+                              className="mt-3 text-[11px] font-black tracking-[0.08em] text-white/40"
+                            >
+                              对外身份：{card.publicIdentity}
+                            </p>
+                          )}
+                        </div>
 
-                    {(card.goalPreview || card.pressurePreview) && (
-                      <div className="mt-4 space-y-2">
-                        {card.goalPreview && (
-                          <p className="text-[11px] text-white/45 leading-5">
-                            想要：{card.goalPreview}
-                          </p>
-                        )}
-                        {card.pressurePreview && (
-                          <p className="text-[11px] text-white/45 leading-5">
-                            压力：{card.pressurePreview}
-                          </p>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleUpgradeLightCard(card.entityId)}
+                          className="shrink-0 rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-2 text-[11px] font-black text-orange-200 hover:bg-orange-500/25 transition-all"
+                        >
+                          升级成完整小传
+                        </button>
                       </div>
-                    )}
+
+                      <p className="mt-4 text-[12px] leading-6 text-white/55">
+                        {card.summary || '世界底账已经识别到这个人物，但还没补出更细的人物说明。'}
+                      </p>
+
+                      {lightCardDetails.length > 0 && (
+                        <dl
+                          data-testid="character-light-card-detail-list"
+                          className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-white/8 bg-black/10 p-3"
+                        >
+                          {lightCardDetails.map((detail) => (
+                            <div
+                              key={`${card.entityId}_${detail.label}`}
+                              data-testid={`character-light-card-detail-${detail.key}`}
+                              className="flex items-start gap-2 text-[11px] leading-5"
+                            >
+                              <dt className="shrink-0 font-black text-orange-100/75">
+                                {detail.label}：
+                              </dt>
+                              <dd className="text-white/55">{detail.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+
+                      {(card.goalPreview || card.pressurePreview) && (
+                        <div className="mt-4 space-y-2">
+                          {card.goalPreview && (
+                            <p className="text-[11px] text-white/45 leading-5">
+                              想要：{card.goalPreview}
+                            </p>
+                          )}
+                          {card.pressurePreview && (
+                            <p className="text-[11px] text-white/45 leading-5">
+                              压力：{card.pressurePreview}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -399,7 +399,8 @@ export function CharacterStage() {
                                     : 'border-white/10 bg-white/5 text-white/45'
                                 }`}
                               >
-                                {member.name} · {member.isFullProfile ? '已升完整' : member.roleLayerLabel}
+                                {member.name} ·{' '}
+                                {member.isFullProfile ? '已升完整' : member.roleLayerLabel}
                               </span>
                             ))
                           )}

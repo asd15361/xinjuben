@@ -1,4 +1,8 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPostflightDto, ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger'
+import type {
+  ScriptLedgerIssueDto,
+  ScriptLedgerPostflightDto,
+  ScriptStateLedgerDto
+} from '../../../../shared/contracts/script-ledger.ts'
 
 export function collectLedgerFactPostflight(input: {
   previousLedger: ScriptStateLedgerDto
@@ -50,13 +54,18 @@ export function collectLedgerFactPostflight(input: {
     })
   }
 
-  if (input.previousLedger.anchorState.heroineCovered && !input.nextLedger.anchorState.heroineCovered) {
+  if (
+    input.previousLedger.anchorState.heroineCovered &&
+    !input.nextLedger.anchorState.heroineCovered
+  ) {
     issues.push({
       severity: 'medium',
       code: 'heroine_anchor_regressed',
       detail: '生成后情感锚点从已覆盖退回未覆盖，说明新批次削弱了关系主线。'
     })
-  } else if (input.previousLedger.anchorState.heroineCovered !== input.nextLedger.anchorState.heroineCovered) {
+  } else if (
+    input.previousLedger.anchorState.heroineCovered !== input.nextLedger.anchorState.heroineCovered
+  ) {
     updates.push({
       path: 'anchorState.heroineCovered',
       value: input.nextLedger.anchorState.heroineCovered,

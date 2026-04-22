@@ -4,7 +4,8 @@ import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto,
   ScriptGenerationResumeResolutionDto
-} from '../../../../shared/contracts/script-generation'
+} from '../../../../shared/contracts/script-generation.ts'
+import { apiGetProject } from '../../services/api-client.ts'
 
 function shouldReusePersistedBoard(
   board: ScriptGenerationProgressBoardDto | null | undefined,
@@ -31,10 +32,16 @@ export function useScriptGenerationRuntime(input: {
   projectId: string | null
   plan: ScriptGenerationExecutionPlanDto | null
   stageContractFingerprint: string | null
-}) {
+}): {
+  board: ScriptGenerationProgressBoardDto | null
+  resume: ScriptGenerationResumeResolutionDto | null
+  failurePreview: ScriptGenerationFailureResolutionDto | null
+} {
   const [board, setBoard] = useState<ScriptGenerationProgressBoardDto | null>(null)
   const [resume, setResume] = useState<ScriptGenerationResumeResolutionDto | null>(null)
-  const [failurePreview, setFailurePreview] = useState<ScriptGenerationFailureResolutionDto | null>(null)
+  const [failurePreview, setFailurePreview] = useState<ScriptGenerationFailureResolutionDto | null>(
+    null
+  )
 
   useEffect(() => {
     let active = true
@@ -53,8 +60,15 @@ export function useScriptGenerationRuntime(input: {
       // otherwise fall back to a fresh board for preview.
       let nextBoard: ScriptGenerationProgressBoardDto
       if (input.projectId) {
-        const snapshot = await window.api.workspace.getProject(input.projectId)
-        if (shouldReusePersistedBoard(snapshot?.scriptProgressBoard, input.plan, input.stageContractFingerprint)) {
+        const result = await apiGetProject(input.projectId)
+        const snapshot = result.project
+        if (
+          shouldReusePersistedBoard(
+            snapshot?.scriptProgressBoard,
+            input.plan,
+            input.stageContractFingerprint
+          )
+        ) {
           nextBoard = snapshot.scriptProgressBoard
         } else {
           nextBoard = await window.api.workflow.createScriptGenerationProgressBoard({
@@ -68,7 +82,9 @@ export function useScriptGenerationRuntime(input: {
           stageContractFingerprint: input.stageContractFingerprint
         })
       }
-      const nextResume = await window.api.workflow.resolveScriptGenerationResume({ board: nextBoard })
+      const nextResume = await window.api.workflow.resolveScriptGenerationResume({
+        board: nextBoard
+      })
       const nextFailurePreview = await window.api.workflow.createScriptGenerationFailureResolution({
         board: nextBoard,
         kind: input.plan.ready ? 'retry' : 'failed',

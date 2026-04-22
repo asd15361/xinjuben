@@ -1,12 +1,16 @@
 import { useCallback, useState } from 'react'
-import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
-import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
-import { useStageStore } from '../../../store/useStageStore'
+import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation.ts'
+import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
+import { useStageStore } from '../../../store/useStageStore.ts'
 import { clearScriptPlanCache } from '../../../app/services/script-plan-service.ts'
 import { buildDetailedOutlineFailureNotice } from './detailed-outline-generation-notice.ts'
 import { resolveDetailedOutlineEntryBlock } from './detailed-outline-entry-guard.ts'
 import { buildDetailedOutlineGenerationSuccessNotice } from './detailed-outline-stage-label.ts'
-import { apiGenerateDetailedOutline } from '../../../services/api-client'
+import {
+  apiGenerateDetailedOutline,
+  apiSaveOutlineDraft,
+  apiSaveCharacterDrafts
+} from '../../../services/api-client.ts'
 
 interface DetailedOutlineStageActionsResult {
   generationStatus: ProjectGenerationStatusDto | null
@@ -41,21 +45,18 @@ export function useDetailedOutlineStageActions(): DetailedOutlineStageActionsRes
     setGenerationKickoffPending(true)
 
     try {
-      // 【第三刀】静默自动保存：生成前先确保所有前置数据落盘
-      // 避免 frontend 本地 state 与 backend persisted state 不同步导致门禁误报
-      await window.api.workspace.saveOutlineDraft({
-        projectId: requestProjectId,
-        outlineDraft: outline
-      })
-      await window.api.workspace.saveCharacterDrafts({
-        projectId: requestProjectId,
-        characterDrafts: characters
-      })
+      // 生成前先确保所有前置数据落盘
+      await apiSaveOutlineDraft({ projectId: requestProjectId, outlineDraft: outline })
+      await apiSaveCharacterDrafts({ projectId: requestProjectId, characterDrafts: characters })
 
       const result = await apiGenerateDetailedOutline({
         projectId: requestProjectId
       })
-      if (!result.project || !result.detailedOutlineSegments || result.detailedOutlineSegments.length === 0) {
+      if (
+        !result.project ||
+        !result.detailedOutlineSegments ||
+        result.detailedOutlineSegments.length === 0
+      ) {
         throw new Error('detailed_outline_persist_missing')
       }
       if (useWorkflowStore.getState().projectId === requestProjectId) {

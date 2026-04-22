@@ -2,17 +2,20 @@ import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 
 // Mock window.api before importing the service
-const mockIpcCalls: Record<string, any> = {}
+import type { BuildScriptGenerationPlanInputDto } from '../../../../shared/contracts/script-generation.ts'
+
+const mockIpcCalls: Record<string, (params: unknown) => unknown> = {}
 const mockWindowApi = {
   workflow: {
-    buildScriptGenerationPlan: async (params: any) => {
+    buildScriptGenerationPlan: async (params: unknown) => {
       return mockIpcCalls.buildScriptGenerationPlan?.(params)
     }
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-;(globalThis as any).window = { api: mockWindowApi }
+;(globalThis as typeof globalThis & { window: typeof mockWindowApi }).window = {
+  api: mockWindowApi
+}
 
 import { getScriptGenerationPlan, clearScriptPlanCache } from './script-plan-service.ts'
 
@@ -33,7 +36,10 @@ describe('script-plan-service', () => {
     mockIpcCalls.buildScriptGenerationPlan = async () => null
 
     const result = await getScriptGenerationPlan({
-      planInput: { mode: 'standard', targetEpisodes: 1 } as any,
+      planInput: {
+        mode: 'standard',
+        targetEpisodes: 1
+      } satisfies BuildScriptGenerationPlanInputDto,
       storyIntent: null,
       outline: null,
       characters: null,
@@ -53,7 +59,10 @@ describe('script-plan-service', () => {
     }
 
     const input = {
-      planInput: { mode: 'fresh_start', targetEpisodes: 10 } as any,
+      planInput: {
+        mode: 'fresh_start',
+        targetEpisodes: 10
+      } satisfies BuildScriptGenerationPlanInputDto,
       storyIntent: null,
       outline: { summaryEpisodes: [{ episodeNo: 1, summary: '摘要' }] },
       characters: [],
@@ -62,8 +71,8 @@ describe('script-plan-service', () => {
       failureHistory: []
     }
 
-    const first = await getScriptGenerationPlan(input as any)
-    const second = await getScriptGenerationPlan(input as any)
+    const first = await getScriptGenerationPlan(input)
+    const second = await getScriptGenerationPlan(input)
 
     assert.deepStrictEqual(first, second)
     assert.strictEqual(calls, 1)
@@ -77,7 +86,10 @@ describe('script-plan-service', () => {
     }
 
     const baseInput = {
-      planInput: { mode: 'fresh_start', targetEpisodes: 10 } as any,
+      planInput: {
+        mode: 'fresh_start',
+        targetEpisodes: 10
+      } satisfies BuildScriptGenerationPlanInputDto,
       storyIntent: null,
       outline: { summaryEpisodes: [{ episodeNo: 1, summary: '摘要' }], facts: [] },
       characters: [],
@@ -86,11 +98,11 @@ describe('script-plan-service', () => {
       failureHistory: []
     }
 
-    const first = await getScriptGenerationPlan(baseInput as any)
+    const first = await getScriptGenerationPlan(baseInput)
     const second = await getScriptGenerationPlan({
       ...baseInput,
       segments: [{ act: 'opening', content: '新内容', hookType: '', episodeBeats: [] }]
-    } as any)
+    })
 
     assert.notDeepStrictEqual(first, second)
     assert.strictEqual(calls, 2)
@@ -104,7 +116,10 @@ describe('script-plan-service', () => {
     }
 
     const baseInput = {
-      planInput: { mode: 'fresh_start', targetEpisodes: 10 } as any,
+      planInput: {
+        mode: 'fresh_start',
+        targetEpisodes: 10
+      } satisfies BuildScriptGenerationPlanInputDto,
       storyIntent: null,
       outline: { summaryEpisodes: [{ episodeNo: 1, summary: '摘要' }], facts: [] },
       characters: [],
@@ -113,11 +128,11 @@ describe('script-plan-service', () => {
       failureHistory: []
     }
 
-    const first = await getScriptGenerationPlan(baseInput as any)
+    const first = await getScriptGenerationPlan(baseInput)
     const second = await getScriptGenerationPlan({
       ...baseInput,
       script: [{ sceneNo: 11, action: '越界第11集' }]
-    } as any)
+    })
 
     assert.notDeepStrictEqual(first, second)
     assert.strictEqual(calls, 2)

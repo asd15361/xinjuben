@@ -19,7 +19,7 @@ import {
   type User,
   type LoginInput,
   type RegisterInput
-} from '../../services/api-client'
+} from '../../services/api-client.ts'
 
 interface AuthState {
   // 状态

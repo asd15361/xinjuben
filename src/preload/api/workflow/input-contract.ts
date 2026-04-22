@@ -1,12 +1,12 @@
 import { ipcRenderer } from 'electron'
-import type { InputContractValidationDto } from '../../../shared/contracts/input-contract'
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake'
+import type { InputContractValidationDto } from '../../../shared/contracts/input-contract.ts'
+import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto
-} from '../../../shared/contracts/workflow'
+} from '../../../shared/contracts/workflow.ts'
 
 export const workflowInputContractApi = {
   validateStageInputContract(input: {

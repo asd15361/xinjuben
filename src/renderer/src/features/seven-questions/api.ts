@@ -1,16 +1,16 @@
-import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake'
-import type { ProjectSnapshotDto } from '../../../../shared/contracts/project'
+import type { StoryIntentPackageDto } from '../../../../shared/contracts/intake.ts'
+import type { ProjectSnapshotDto } from '../../../../shared/contracts/project.ts'
 import type {
   OutlineDraftDto,
   SevenQuestionsResultDto
-} from '../../../../shared/contracts/workflow'
+} from '../../../../shared/contracts/workflow.ts'
 import {
   apiGetProject,
   apiGenerateOutlineAndCharacters,
   apiGenerateSevenQuestions,
   apiSaveConfirmedSevenQuestions,
   type StoryIntent
-} from '../../services/api-client'
+} from '../../services/api-client.ts'
 
 /**
  * 将 StoryIntentPackageDto 转换为 API 所需的 StoryIntent 格式

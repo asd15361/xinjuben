@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import type {
   BuildScriptGenerationPlanInputDto,
   ScriptGenerationExecutionPlanDto
-} from '../../../../shared/contracts/script-generation'
-import { useWorkflowStore } from '../store/useWorkflowStore'
-import { useStageStore } from '../../store/useStageStore'
-import { getScriptGenerationPlan } from '../services/script-plan-service'
+} from '../../../../shared/contracts/script-generation.ts'
+import { useWorkflowStore } from '../store/useWorkflowStore.ts'
+import { useStageStore } from '../../store/useStageStore.ts'
+import { getScriptGenerationPlan } from '../services/script-plan-service.ts'
 
 export function useScriptGenerationPlan(
   planInput: BuildScriptGenerationPlanInputDto

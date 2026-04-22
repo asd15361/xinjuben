@@ -5,9 +5,9 @@ import type {
   RuntimeTaskPhaseDto,
   RuntimeTaskSnapshotDto,
   RuntimeTaskStatusDto
-} from '../../../shared/contracts/runtime-task'
-import type { ProjectGenerationTaskDto } from '../../../shared/contracts/generation'
-import type { ScriptGenerationProgressBoardDto } from '../../../shared/contracts/script-generation'
+} from '../../../shared/contracts/runtime-task.ts'
+import type { ProjectGenerationTaskDto } from '../../../shared/contracts/generation.ts'
+import type { ScriptGenerationProgressBoardDto } from '../../../shared/contracts/script-generation.ts'
 
 const runtimeTasks = new Map<string, RuntimeTaskSnapshotDto>()
 const runtimeEvents = new Map<string, RuntimeTaskLogDto[]>()

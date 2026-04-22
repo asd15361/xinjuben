@@ -9,7 +9,10 @@ import {
   stopScriptGenerationRun
 } from './script-generation-run-registry.ts'
 
-function createWorkerStub() {
+function createWorkerStub(): {
+  terminateCalls: number
+  worker: Worker
+} {
   const stub = {
     terminateCalls: 0,
     worker: {

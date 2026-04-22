@@ -1,6 +1,6 @@
-import type { AiGenerateRequestDto, ModelRouteLane } from '../../../shared/contracts/ai'
+import type { AiGenerateRequestDto, ModelRouteLane } from '../../../shared/contracts/ai.ts'
 import { decideRuntimePolicyOrder } from '../../../shared/domain/policy/runtime/runtime-policy.ts'
-import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config.ts'
 
 interface RuntimeRouteDecision {
   primary: ModelRouteLane[]

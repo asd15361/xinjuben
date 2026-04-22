@@ -1,4 +1,4 @@
-import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai'
+import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai.ts'
 
 export function mockAiEnabled(): boolean {
   const raw = process.env.MOCK_AI_ENABLE
@@ -14,8 +14,7 @@ function buildMockOutlineOverviewResponse(): string {
         genre: '现代都市·情感逆袭',
         theme: '自我价值觉醒·阶层突围',
         protagonist: '苏棠',
-        mainConflict:
-          '女主带着婚约原件回城自证身份，秦曼联手陆家与舆论把她往骗子位置上钉死。',
+        mainConflict: '女主带着婚约原件回城自证身份，秦曼联手陆家与舆论把她往骗子位置上钉死。',
         summary:
           '苏棠带着婚约原件回到权力中心，先要在众人质疑里证明自己不是骗子。她越想守住身份和尊严，秦曼越把名誉、亲情和继承权三线一起压下来。中段开始，苏棠必须边自证边反打，把一层层旧账和证据搬到台面。临近终局时，婚约真相会把继承链彻底掀翻，也逼所有人公开站队。最后真相公开，但旧情和家族裂口不会被轻易抹平。',
         facts: [
@@ -196,7 +195,11 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
             themeAnchors: ['自我价值觉醒', '身份真相', '破局'],
             worldAnchors: ['豪门继承', '职场权力', '舆论审判'],
             relationAnchors: ['旧情与利益冲突', '亲情绑架', '权力压迫'],
-            dramaticMovement: ['第3集公开她才是真正继承人', '代价升级：名誉崩盘', '集尾钩子：证据反转'],
+            dramaticMovement: [
+              '第3集公开她才是真正继承人',
+              '代价升级：名誉崩盘',
+              '集尾钩子：证据反转'
+            ],
             manualRequirementNotes: '（本地 Mock）',
             freeChatFinalSummary: '（本地 Mock）用户想要都市情感逆袭，核心是婚约真相与继承权之争。'
           },
@@ -221,7 +224,8 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
           characters: [
             {
               name: '苏棠',
-              biography: '前集团秘书，手里握着婚约原件，看似回来自证身份，实际是在赌自己还能不能把被碾碎的尊严拿回来。她最怕的不是外面的舆论，而是亲情和旧情一起压过来时自己会不会再退缩。',
+              biography:
+                '前集团秘书，手里握着婚约原件，看似回来自证身份，实际是在赌自己还能不能把被碾碎的尊严拿回来。她最怕的不是外面的舆论，而是亲情和旧情一起压过来时自己会不会再退缩。',
               advantage: '握有婚约原件，冷静反杀，敢在公众场合自证。',
               weakness: '过度在意父亲评价，容易被亲情绑架牵制。',
               goal: '夺回身份与尊严，逼迫男主承认真相。',
@@ -229,7 +233,8 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
             },
             {
               name: '陆峥',
-              biography: '继承链上的核心人物，表面冷硬克制，实际被旧情、家族责任和权力布局同时撕扯。越想把苏棠压回去，越会被她手里的真相逼出自己的裂缝。',
+              biography:
+                '继承链上的核心人物，表面冷硬克制，实际被旧情、家族责任和权力布局同时撕扯。越想把苏棠压回去，越会被她手里的真相逼出自己的裂缝。',
               advantage: '掌控资源与舆论，擅长施压与封口。',
               weakness: '对旧情有裂缝，越压越心虚。',
               goal: '维持继承权稳定，逼女主退出。',
@@ -237,7 +242,8 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
             },
             {
               name: '秦曼',
-              biography: '真正擅长操盘局势的人，习惯把名誉、亲情和公众视线一起变成武器。她最大的危险不是没有手段，而是太相信自己能永远把真相按死。',
+              biography:
+                '真正擅长操盘局势的人，习惯把名誉、亲情和公众视线一起变成武器。她最大的危险不是没有手段，而是太相信自己能永远把真相按死。',
               advantage: '擅长操控家族与公众舆论，用“名誉与亲情”双重绑架。',
               weakness: '真正的继承链路经不起公开核验，越强势越露出破绽。',
               goal: '守住继承权布局，逼苏棠在公开场合自毁信用。',
@@ -295,8 +301,7 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
             },
             {
               name: '陆峥',
-              biography:
-                '继承链核心人物，表面冷硬克制，实际被旧情、家族责任和权力布局同时撕扯。',
+              biography: '继承链核心人物，表面冷硬克制，实际被旧情、家族责任和权力布局同时撕扯。',
               publicMask: '掌控全局、不会失态的继承人。',
               hiddenPressure: '越想压住苏棠，越怕真相核验时自己先崩。',
               fear: '最怕继承链公开翻盘。',
@@ -309,8 +314,7 @@ export function createMockResponse(request: AiGenerateRequestDto): AiGenerateRes
             },
             {
               name: '秦曼',
-              biography:
-                '最擅长操盘名誉和家族秩序的人，习惯把亲情、舆论和规则一起变成武器。',
+              biography: '最擅长操盘名誉和家族秩序的人，习惯把亲情、舆论和规则一起变成武器。',
               publicMask: '体面、稳重、为家族大局着想。',
               hiddenPressure: '真正的继承链路经不起公开核验。',
               fear: '最怕苏棠把证据搬到所有人面前。',

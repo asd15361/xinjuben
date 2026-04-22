@@ -23,10 +23,7 @@ function tryLoadEnvFile(filePath: string): void {
 }
 
 export function loadRuntimeEnv(): void {
-  const candidates = [
-    path.resolve(process.cwd(), '.env'),
-    path.resolve(__dirname, '../../../.env')
-  ]
+  const candidates = [path.resolve(process.cwd(), '.env'), path.resolve(__dirname, '../../../.env')]
 
   for (const candidate of candidates) {
     tryLoadEnvFile(candidate)

@@ -12,7 +12,7 @@
  *
  * @see script-segment-text.ts for the full legacy adapter boundary definition
  */
-import type { ScriptSegmentDto } from '../../contracts/workflow'
+import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
 import {
   EPISODE_CHAR_COUNT,
   EPISODE_CHAR_COUNT_MAX,
@@ -23,9 +23,9 @@ import {
   PENALTY_SCENE_COUNT_OUT_OF_RANGE,
   SCENE_COUNT_MINIMUM,
   SCENE_COUNT_QUALITY
-} from '../workflow/contract-thresholds'
-import { extractStructuredSceneFromScreenplay, parseScreenplayScenes } from './screenplay-format'
-import { inspectScreenplayQualityEpisode } from './screenplay-quality'
+} from '../workflow/contract-thresholds.ts'
+import { extractStructuredSceneFromScreenplay, parseScreenplayScenes } from './screenplay-format.ts'
+import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
 
 export type EpisodeGuardFailureCode =
   | 'voice_over'
@@ -286,9 +286,7 @@ function extractCharCountGap(failures: EpisodeGuardFailure[]): number {
   return match ? Number(match[1]) : Number.POSITIVE_INFINITY
 }
 
-function extractCharCountDirection(
-  failures: EpisodeGuardFailure[]
-): 'fat' | 'thin' | null {
+function extractCharCountDirection(failures: EpisodeGuardFailure[]): 'fat' | 'thin' | null {
   const detail = failures.find((failure) => failure.code === 'char_count')?.detail || ''
   if (detail.includes('偏胖')) return 'fat'
   if (detail.includes('偏瘦')) return 'thin'

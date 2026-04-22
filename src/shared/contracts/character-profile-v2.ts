@@ -100,7 +100,8 @@ export function mapV2ToLegacyCharacterDraft(profile: CharacterProfileV2Dto): {
 } {
   return {
     name: profile.name,
-    biography: profile.biography || `${profile.identity}，${profile.values}。${profile.plotFunction}`,
+    biography:
+      profile.biography || `${profile.identity}，${profile.values}。${profile.plotFunction}`,
     publicMask: profile.publicMask || (profile.depthLevel === 'core' ? '待补' : ''),
     hiddenPressure: profile.hiddenPressure || '',
     fear: profile.fear || '',
@@ -116,6 +117,11 @@ export function mapV2ToLegacyCharacterDraft(profile: CharacterProfileV2Dto): {
     values: profile.values,
     plotFunction: profile.plotFunction,
     depthLevel: profile.depthLevel,
-    roleLayer: profile.depthLevel === 'core' ? 'core' : profile.depthLevel === 'mid' ? 'active' : 'functional'
+    roleLayer:
+      profile.depthLevel === 'core'
+        ? 'core'
+        : profile.depthLevel === 'mid'
+          ? 'active'
+          : 'functional'
   }
 }
