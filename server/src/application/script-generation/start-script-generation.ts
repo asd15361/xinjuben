@@ -25,9 +25,7 @@ interface ScriptGenerationStaleWarning {
   detail: string
 }
 
-function buildCharactersFingerprintStaleError(
-  warning: ScriptGenerationStaleWarning
-): Error {
+function buildCharactersFingerprintStaleError(warning: ScriptGenerationStaleWarning): Error {
   return new Error(
     `stale_warning:${warning.type}:${warning.baselineFingerprint}:${warning.latestFingerprint}`
   )
@@ -96,6 +94,7 @@ export async function startScriptGeneration(
       phase: 'generate_batch' | 'repair_batch' | 'postflight' | 'completed' | 'failed'
       detail: string
       board: ScriptGenerationProgressBoardDto
+      generatedScenes: ScriptSegmentDto[]
     }) => void
     batchRunner?: ScriptBatchRunner
     resolveLatestCharactersFingerprint?: () => Promise<string | null>
@@ -107,7 +106,7 @@ export async function startScriptGeneration(
     type: 'batch_started',
     reason: '真实生成已启动。'
   })
-  let generatedScenes: ScriptSegmentDto[] = []
+  const generatedScenes: ScriptSegmentDto[] = []
   const batchRunner = options?.batchRunner ?? runScriptGenerationBatch
   const baselineCharactersFingerprint = buildCharacterFingerprint(context.characters)
 
@@ -138,7 +137,7 @@ export async function startScriptGeneration(
           })
         },
         onProgress: options?.onProgress,
-        enableImmediateRepair: false
+      enableImmediateRepair: false
       })
       board = batchResult.board
 
