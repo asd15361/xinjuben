@@ -18,7 +18,8 @@ function unique(values: Array<string | undefined | null>): string[] {
 function normalizeAnchorName(value: string | undefined | null): string {
   const text = String(value || '').trim()
   if (!text) return ''
-  if (!/[，,。；、\s]/.test(text) && !/(盯上|被当|异动|持续施压|做筹码|交出)/.test(text)) return text
+  if (!/[，,。；、\s]/.test(text) && !/(盯上|被当|异动|持续施压|做筹码|交出)/.test(text))
+    return text
 
   const roleMatch = text.match(/(少年守钥人|小镇少女|恶霸|反派|仇家|族长|城主|掌柜|恶少|师父|师妹)/)
   if (roleMatch) return roleMatch[1]
@@ -43,11 +44,16 @@ function findCharacterByKeyword(characters: CharacterDraftDto[], pattern: RegExp
 }
 
 function buildHardFacts(outline: OutlineDraftDto): string[] {
-  const formalFacts = getConfirmedFormalFacts(outline).map((fact) => `${fact.label}：${fact.description}`)
+  const formalFacts = getConfirmedFormalFacts(outline).map(
+    (fact) => `${fact.label}：${fact.description}`
+  )
   return unique([outline.mainConflict, outline.theme, ...formalFacts]).slice(0, 6)
 }
 
-function buildSoftFacts(intent: StoryIntentPackageDto | null, characters: CharacterDraftDto[]): string[] {
+function buildSoftFacts(
+  intent: StoryIntentPackageDto | null,
+  characters: CharacterDraftDto[]
+): string[] {
   return unique([
     ...(intent?.themeAnchors || []),
     ...(intent?.worldAnchors || []),
@@ -103,10 +109,13 @@ export function buildStoryContract(input: {
   ]
     .filter(Boolean)
     .join('\n')
-  const heroineHint = unique([
-    ...(intent?.relationAnchors || []).filter((item) => /(女主|爱人|恋人|伴侣|心上人)/.test(item)),
-    findCharacterByKeyword(input.characters, /(爱人|恋人|伴侣|心上人|情感|关系)/)
-  ])[0] || ''
+  const heroineHint =
+    unique([
+      ...(intent?.relationAnchors || []).filter((item) =>
+        /(女主|爱人|恋人|伴侣|心上人)/.test(item)
+      ),
+      findCharacterByKeyword(input.characters, /(爱人|恋人|伴侣|心上人|情感|关系)/)
+    ])[0] || ''
 
   const mentorHint = findCharacterByKeyword(input.characters, /(师父|师傅|老师|导师|引路)/)
   const hardFacts = buildHardFacts(input.outline)
@@ -128,7 +137,11 @@ export function buildStoryContract(input: {
 
   return {
     characterSlots: {
-      protagonist: input.outline.protagonist.trim() || intent?.protagonist?.trim() || input.characters[0]?.name || '',
+      protagonist:
+        input.outline.protagonist.trim() ||
+        intent?.protagonist?.trim() ||
+        input.characters[0]?.name ||
+        '',
       antagonist: normalizeAnchorName(intent?.antagonist) || input.characters[1]?.name || '',
       heroine: heroineHint,
       mentor: mentorHint
@@ -142,7 +155,9 @@ export function buildStoryContract(input: {
       themeRealization: input.outline.theme.trim()
     },
     requirements: {
-      requireFinalePayoff: Boolean(intent?.endingDirection?.trim() || input.outline.mainConflict.trim()),
+      requireFinalePayoff: Boolean(
+        intent?.endingDirection?.trim() || input.outline.mainConflict.trim()
+      ),
       requireHiddenCapabilityForeshadow,
       requireAntagonistContinuity: Boolean(intent?.antagonist?.trim()),
       requireAntagonistLoveConflict,
@@ -193,7 +208,9 @@ export function collectMissingUserAnchorNames(
   ledger: UserAnchorLedgerDto,
   characters: CharacterDraftDto[]
 ): string[] {
-  const roster = new Set(characters.map((character) => normalizeAnchorName(character.name)).filter(Boolean))
+  const roster = new Set(
+    characters.map((character) => normalizeAnchorName(character.name)).filter(Boolean)
+  )
   return ledger.anchorNames
     .map((name) => normalizeAnchorName(name))
     .filter(Boolean)

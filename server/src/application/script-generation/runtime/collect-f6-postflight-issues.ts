@@ -4,7 +4,18 @@ import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 function lacksContinuationHook(scene: ScriptSegmentDto): boolean {
   const text = `${scene.action}${scene.dialogue}${scene.emotion}`.replace(/\s+/g, '')
   if (!text) return false
-  const continuationMarkers = ['转身', '扭头', '门外', '下一瞬', '话没说完', '忽然', '外头', '脚步', '抬眼', '压低声音']
+  const continuationMarkers = [
+    '转身',
+    '扭头',
+    '门外',
+    '下一瞬',
+    '话没说完',
+    '忽然',
+    '外头',
+    '脚步',
+    '抬眼',
+    '压低声音'
+  ]
   return !continuationMarkers.some((marker) => text.includes(marker))
 }
 
@@ -12,14 +23,54 @@ function lacksPlayableBlocking(scene: ScriptSegmentDto): boolean {
   const action = scene.action.replace(/\s+/g, '')
   const emotion = scene.emotion.replace(/\s+/g, '')
   if (!action) return false
-  const actionMarkers = ['推', '拉', '按', '退', '冲', '攥', '抬', '甩', '扑', '拦', '逼', '挡', '站', '跪', '抓', '扯', '压', '锁', '挣扎']
-  const emotionMarkers = ['沉默', '停了停', '顿了顿', '咬', '盯', '笑', '哽', '抖', '喘', '绷', '滚', '闭', '睁', '盯住', '发紧']
+  const actionMarkers = [
+    '推',
+    '拉',
+    '按',
+    '退',
+    '冲',
+    '攥',
+    '抬',
+    '甩',
+    '扑',
+    '拦',
+    '逼',
+    '挡',
+    '站',
+    '跪',
+    '抓',
+    '扯',
+    '压',
+    '锁',
+    '挣扎'
+  ]
+  const emotionMarkers = [
+    '沉默',
+    '停了停',
+    '顿了顿',
+    '咬',
+    '盯',
+    '笑',
+    '哽',
+    '抖',
+    '喘',
+    '绷',
+    '滚',
+    '闭',
+    '睁',
+    '盯住',
+    '发紧'
+  ]
   const hasAction = actionMarkers.some((marker) => action.includes(marker))
-  const hasEmotion = emotionMarkers.some((marker) => action.includes(marker) || emotion.includes(marker))
+  const hasEmotion = emotionMarkers.some(
+    (marker) => action.includes(marker) || emotion.includes(marker)
+  )
   return !(hasAction && hasEmotion)
 }
 
-export function collectF6PostflightIssues(generatedScenes: ScriptSegmentDto[]): ScriptLedgerIssueDto[] {
+export function collectF6PostflightIssues(
+  generatedScenes: ScriptSegmentDto[]
+): ScriptLedgerIssueDto[] {
   const issues: ScriptLedgerIssueDto[] = []
   const latestScene = generatedScenes[generatedScenes.length - 1]
   if (!latestScene) return issues

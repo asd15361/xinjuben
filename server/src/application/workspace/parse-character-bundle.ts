@@ -1,9 +1,6 @@
 import type { CharacterDraftDto } from '@shared/contracts/workflow'
 import { normalizeCharacterLikeName } from '@shared/domain/workflow/character-draft-normalization'
-import {
-  tryParseArray,
-  tryParseObject
-} from './summarize-chat-for-generation-json'
+import { tryParseArray, tryParseObject } from './summarize-chat-for-generation-json'
 
 type UnknownRecord = Record<string, unknown>
 type ParsedCharacterDraftDto = Omit<CharacterDraftDto, 'roleLayer'> & {
@@ -174,7 +171,9 @@ function normalizeCharacter(value: unknown): ParsedCharacterDraftDto | null {
   const record = value as UnknownRecord
   const name = normalizeCharacterLikeName(pickText(record, NAME_KEYS))
   if (!name) return null
-  const hasRoleLayer = ROLE_LAYER_KEYS.some((key) => Object.prototype.hasOwnProperty.call(record, key))
+  const hasRoleLayer = ROLE_LAYER_KEYS.some((key) =>
+    Object.prototype.hasOwnProperty.call(record, key)
+  )
   const hasActiveBlockNos = ACTIVE_BLOCK_KEYS.some((key) =>
     Object.prototype.hasOwnProperty.call(record, key)
   )
@@ -194,9 +193,7 @@ function normalizeCharacter(value: unknown): ParsedCharacterDraftDto | null {
     goal: pickText(record, GOAL_KEYS),
     arc: pickText(record, ARC_KEYS),
     ...(hasRoleLayer || roleLayer ? { roleLayer: roleLayer || '' } : {}),
-    ...(hasActiveBlockNos || activeBlockNos.length > 0
-      ? { activeBlockNos: activeBlockNos }
-      : {})
+    ...(hasActiveBlockNos || activeBlockNos.length > 0 ? { activeBlockNos: activeBlockNos } : {})
   } satisfies ParsedCharacterDraftDto
 }
 
@@ -219,7 +216,9 @@ function findCharacterList(payload: unknown): unknown[] {
   return single ? [record] : []
 }
 
-export function parseCharacterBundleText(text: string): { characters?: CharacterDraftDto[] } | null {
+export function parseCharacterBundleText(
+  text: string
+): { characters?: CharacterDraftDto[] } | null {
   const objectPayload = tryParseObject(text)
   const arrayPayload = tryParseArray(text)
   const objectList = findCharacterList(objectPayload)
@@ -231,4 +230,3 @@ export function parseCharacterBundleText(text: string): { characters?: Character
     .filter((item): item is ParsedCharacterDraftDto => Boolean(item)) as CharacterDraftDto[]
   return rawList.length > 0 || characters.length > 0 ? { characters } : null
 }
-

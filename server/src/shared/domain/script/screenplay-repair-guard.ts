@@ -286,9 +286,7 @@ function extractCharCountGap(failures: EpisodeGuardFailure[]): number {
   return match ? Number(match[1]) : Number.POSITIVE_INFINITY
 }
 
-function extractCharCountDirection(
-  failures: EpisodeGuardFailure[]
-): 'fat' | 'thin' | null {
+function extractCharCountDirection(failures: EpisodeGuardFailure[]): 'fat' | 'thin' | null {
   const detail = failures.find((failure) => failure.code === 'char_count')?.detail || ''
   if (detail.includes('偏胖')) return 'fat'
   if (detail.includes('偏瘦')) return 'thin'

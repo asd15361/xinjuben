@@ -337,4 +337,3 @@ export function ensureScreenplaySceneBlockDefaults(
     ...scene
   }
 }
-

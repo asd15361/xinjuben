@@ -98,7 +98,7 @@ export function analyzeLoadBearingRoles(input: {
   const annotations: LoadBearingRoleAnnotation[] = []
   const addedNames = new Set<string>()
 
-  const addAnnotation = (annotation: LoadBearingRoleAnnotation) => {
+  const addAnnotation = (annotation: LoadBearingRoleAnnotation): void => {
     if (!addedNames.has(annotation.name)) {
       annotations.push(annotation)
       addedNames.add(annotation.name)
@@ -265,7 +265,7 @@ export function analyzeLoadBearingEntities(input: {
   const annotations: LoadBearingEntityAnnotation[] = []
   const addedIds = new Set<string>()
 
-  const addAnnotation = (annotation: LoadBearingEntityAnnotation) => {
+  const addAnnotation = (annotation: LoadBearingEntityAnnotation): void => {
     if (!addedIds.has(annotation.entityId)) {
       annotations.push(annotation)
       addedIds.add(annotation.entityId)

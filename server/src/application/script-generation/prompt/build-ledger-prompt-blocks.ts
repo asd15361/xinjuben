@@ -6,8 +6,11 @@ export function buildLedgerAssertionBlock(ledger: ScriptStateLedgerDto): string 
 
 export function buildKnowledgeBoundaryBlock(ledger: ScriptStateLedgerDto): string {
   const publicFacts = ledger.knowledgeBoundaries.publicFacts.slice(0, 3).join('；') || '当前待补'
-  const hiddenFacts = ledger.knowledgeBoundaries.hiddenFacts.slice(0, 3).join('；') || '当前无额外隐藏事实'
-  const forbiddenRules = ledger.knowledgeBoundaries.forbiddenOmniscienceRules.map((rule) => `- ${rule}`).join('\n')
+  const hiddenFacts =
+    ledger.knowledgeBoundaries.hiddenFacts.slice(0, 3).join('；') || '当前无额外隐藏事实'
+  const forbiddenRules = ledger.knowledgeBoundaries.forbiddenOmniscienceRules
+    .map((rule) => `- ${rule}`)
+    .join('\n')
 
   return [
     '【Knowledge Boundary】',
@@ -77,10 +80,7 @@ function buildTacticBanLines(ledger: ScriptStateLedgerDto): string[] {
 }
 
 export function buildLedgerConstraintBlock(ledger: ScriptStateLedgerDto): string {
-  const lines = [
-    ...buildCharacterContinuityLockLines(ledger),
-    ...buildTacticBanLines(ledger)
-  ]
+  const lines = [...buildCharacterContinuityLockLines(ledger), ...buildTacticBanLines(ledger)]
 
   if (lines.length === 0) {
     return ''

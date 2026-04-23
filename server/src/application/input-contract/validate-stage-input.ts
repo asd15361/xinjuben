@@ -56,17 +56,34 @@ export function validateStageInputContract(
   const heroineCovered = hasHeroineAnchorCoverage(userAnchorLedger, payload.characters)
 
   if (targetStage === 'outline') {
-    if (!hasText(payload.outline.title)) issues.push({ code: 'outline_title_missing', message: '粗纲标题还没稳定下来。' })
-    if (!hasText(payload.outline.genre)) issues.push({ code: 'outline_genre_missing', message: '粗纲题材还没定义。' })
-    if (!hasText(payload.outline.theme)) issues.push({ code: 'outline_theme_missing', message: '粗纲主题锚点还没定义。' })
-    if (!hasText(payload.outline.mainConflict)) issues.push({ code: 'outline_conflict_missing', message: '粗纲主线冲突还没定义。' })
-    if (!hasText(payload.outline.protagonist)) issues.push({ code: 'outline_protagonist_missing', message: '粗纲主角承载体还没定义。' })
-    if (!hasText(payload.outline.summary)) issues.push({ code: 'outline_summary_missing', message: '粗略大纲骨架还没成稿，当前还只是事实和槽位。' })
+    if (!hasText(payload.outline.title))
+      issues.push({ code: 'outline_title_missing', message: '粗纲标题还没稳定下来。' })
+    if (!hasText(payload.outline.genre))
+      issues.push({ code: 'outline_genre_missing', message: '粗纲题材还没定义。' })
+    if (!hasText(payload.outline.theme))
+      issues.push({ code: 'outline_theme_missing', message: '粗纲主题锚点还没定义。' })
+    if (!hasText(payload.outline.mainConflict))
+      issues.push({ code: 'outline_conflict_missing', message: '粗纲主线冲突还没定义。' })
+    if (!hasText(payload.outline.protagonist))
+      issues.push({ code: 'outline_protagonist_missing', message: '粗纲主角承载体还没定义。' })
+    if (!hasText(payload.outline.summary))
+      issues.push({
+        code: 'outline_summary_missing',
+        message: '粗略大纲骨架还没成稿，当前还只是事实和槽位。'
+      })
   }
 
   if (targetStage === 'character') {
-    if (!hasText(payload.outline.title) || !hasText(payload.outline.mainConflict) || !hasText(payload.outline.theme) || !hasText(payload.outline.summary)) {
-      issues.push({ code: 'character_upstream_outline_incomplete', message: '人物工序启动前，粗纲标题、主题、主线冲突和粗略大纲骨架必须先完整。' })
+    if (
+      !hasText(payload.outline.title) ||
+      !hasText(payload.outline.mainConflict) ||
+      !hasText(payload.outline.theme) ||
+      !hasText(payload.outline.summary)
+    ) {
+      issues.push({
+        code: 'character_upstream_outline_incomplete',
+        message: '人物工序启动前，粗纲标题、主题、主线冲突和粗略大纲骨架必须先完整。'
+      })
     }
     if (
       !isCharacterBundleStructurallyComplete({
@@ -85,7 +102,10 @@ export function validateStageInputContract(
 
   if (targetStage === 'detailed_outline') {
     if (payload.characters.length === 0) {
-      issues.push({ code: 'detailed_outline_character_missing', message: '详细大纲启动前，至少要先沉淀 1 个角色。' })
+      issues.push({
+        code: 'detailed_outline_character_missing',
+        message: '详细大纲启动前，至少要先沉淀 1 个角色。'
+      })
     }
     if (
       !isCharacterBundleStructurallyComplete({
@@ -110,17 +130,28 @@ export function validateStageInputContract(
 
   if (targetStage === 'script') {
     if (payload.segments.length === 0) {
-      issues.push({ code: 'script_segment_missing', message: '剧本启动前，至少要先沉淀 1 个详纲分段。' })
+      issues.push({
+        code: 'script_segment_missing',
+        message: '剧本启动前，至少要先沉淀 1 个详纲分段。'
+      })
     }
-    const segmentActs = new Set(payload.segments.filter((item) => hasText(item.content)).map((item) => item.act))
+    const segmentActs = new Set(
+      payload.segments.filter((item) => hasText(item.content)).map((item) => item.act)
+    )
     if (segmentActs.size < 2) {
-      issues.push({ code: 'script_segment_structure_weak', message: '剧本启动前，详纲至少要有 2 个有效分段，避免下游偷补结构。' })
+      issues.push({
+        code: 'script_segment_structure_weak',
+        message: '剧本启动前，详纲至少要有 2 个有效分段，避免下游偷补结构。'
+      })
     }
     if (payload.characters.length === 0) {
       issues.push({ code: 'script_character_missing', message: '剧本启动前，人物小传不能为空。' })
     }
     if (confirmedFormalFacts.length === 0) {
-      issues.push({ code: 'script_formal_fact_missing', message: '剧本启动前，必须先有已确认正式事实，不能让下游自己发明主线事实。' })
+      issues.push({
+        code: 'script_formal_fact_missing',
+        message: '剧本启动前，必须先有已确认正式事实，不能让下游自己发明主线事实。'
+      })
     }
     const mergedSegments = payload.segments.map((segment) => segment.content).join('\n')
     const missingFormalFactLandings = confirmedFormalFacts.filter(

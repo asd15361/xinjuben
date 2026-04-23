@@ -47,9 +47,7 @@ export const SCENE_COUNT_MINIMUM = 2
  * - 当前集字数不达标时，必须重写当前集；当前集不过线，不继续往下写
  */
 export const EPISODE_CHAR_COUNT = {
-  min: (_sceneCount: number): number => {
-    return 800
-  },
+  min: (): number => 800,
   max: 1800
 } as const
 

@@ -8,7 +8,10 @@ import type {
   EpisodeControlCardDto,
   OutlineDraftDto
 } from '@shared/contracts/workflow'
-import { normalizeEpisodeControlCard, buildEpisodeControlCard } from '@shared/domain/short-drama/episode-control-card'
+import {
+  normalizeEpisodeControlCard,
+  buildEpisodeControlCard
+} from '@shared/domain/short-drama/episode-control-card'
 import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
 
 const EPISODE_CONTROL_MAX_OUTPUT_TOKENS = 3200
@@ -24,9 +27,8 @@ function normalizeJsonEnvelope(rawText: string): string {
 
 async function appendEpisodeControlDiagnostic(message: string): Promise<void> {
   try {
-    const { appendRuntimeDiagnosticLog } = await import(
-      '../../infrastructure/diagnostics/runtime-diagnostic-log.js'
-    )
+    const { appendRuntimeDiagnosticLog } =
+      await import('../../infrastructure/diagnostics/runtime-diagnostic-log.js')
     await appendRuntimeDiagnosticLog('episode_control', message)
   } catch {
     // 诊断日志只能旁路记录，不能反过来打断详细大纲生成。
@@ -49,7 +51,9 @@ function formatSegmentEpisodeBeats(segment: DetailedOutlineSegmentDto): string {
         )
         .join('\n')
 
-      return [`- 第${beat.episodeNo}集：${beat.summary || '待补'}`, sceneLines].filter(Boolean).join('\n')
+      return [`- 第${beat.episodeNo}集：${beat.summary || '待补'}`, sceneLines]
+        .filter(Boolean)
+        .join('\n')
     })
     .join('\n')
 }
@@ -80,14 +84,15 @@ export function buildEpisodeControlAgentPrompt(input: {
   characters: CharacterDraftDto[]
   usedTactics?: string[]
 }): string {
-  const usedTacticsBlock = input.usedTactics && input.usedTactics.length > 0
-    ? [
-        '',
-        '【计谋黑名单 · 本批禁止重复】',
-        `以下施压手段已在之前集使用过，本批次绝对禁止重复，必须切换施压维度：${input.usedTactics.join('、')}`,
-        '可切换维度：硬夺类→规则类→关系类→信息类→时空类。必须从黑名单外的维度中选择。'
-      ].join('\n')
-    : ''
+  const usedTacticsBlock =
+    input.usedTactics && input.usedTactics.length > 0
+      ? [
+          '',
+          '【计谋黑名单 · 本批禁止重复】',
+          `以下施压手段已在之前集使用过，本批次绝对禁止重复，必须切换施压维度：${input.usedTactics.join('、')}`,
+          '可切换维度：硬夺类→规则类→关系类→信息类→时空类。必须从黑名单外的维度中选择。'
+        ].join('\n')
+      : ''
 
   return [
     '【单集控制Agent · 集级调度指令】',
@@ -162,7 +167,7 @@ export function buildEpisodeControlAgentPrompt(input: {
     `你必须为传入的【每一集】都生成对应的控制卡，绝不允许遗漏！`,
     `当前批次共传入 ${input.segment.episodeBeats?.length || 0} 集，你必须输出 ${input.segment.episodeBeats?.length || 0} 张卡！`,
     `缺少任何一集的控制卡都将被视为失败！`,
-    `传入集号：${(input.segment.episodeBeats || []).map(b => b.episodeNo).join('、')}`,
+    `传入集号：${(input.segment.episodeBeats || []).map((b) => b.episodeNo).join('、')}`,
     `你输出的 cards 数组长度必须等于 ${input.segment.episodeBeats?.length || 0}！`
   ].join('\n')
 }
@@ -257,7 +262,7 @@ export async function generateEpisodeControlCardsForSegment(input: {
       )
       // 为缺失集数生成 fallback 控制卡
       for (const episodeNo of missingEpisodes) {
-        const beat = episodeBeats.find(b => b.episodeNo === episodeNo)
+        const beat = episodeBeats.find((b) => b.episodeNo === episodeNo)
         if (beat) {
           const fallbackCard = buildEpisodeControlCard({
             beat,

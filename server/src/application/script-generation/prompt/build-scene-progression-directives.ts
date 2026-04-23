@@ -15,8 +15,15 @@ function compactScene(scene: ScriptSegmentDto | undefined): string {
   const structuredSummary = (scene.screenplayScenes || [])
     .slice(0, 3)
     .map((item) => {
-      const heading = String(item.sceneCode || '').replace(/\s+/g, ' ').trim()
-      const body = clipText(String(item.body || '').replace(/\s+/g, ' ').trim(), 42)
+      const heading = String(item.sceneCode || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+      const body = clipText(
+        String(item.body || '')
+          .replace(/\s+/g, ' ')
+          .trim(),
+        42
+      )
       return [heading, body].filter(Boolean).join('｜')
     })
     .filter(Boolean)
@@ -65,7 +72,10 @@ function findSceneByEpisode(
   targetEp: number,
   targetEpisodes: number
 ): ScriptSegmentDto | undefined {
-  const result = script.filter((s: ScriptSegmentDto & { episodeNo?: number }) => resolveEpisodeNo(s) === targetEp && targetEp <= targetEpisodes)
+  const result = script.filter(
+    (s: ScriptSegmentDto & { episodeNo?: number }) =>
+      resolveEpisodeNo(s) === targetEp && targetEp <= targetEpisodes
+  )
   return result[result.length - 1]
 }
 

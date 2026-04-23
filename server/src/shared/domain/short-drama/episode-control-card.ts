@@ -5,10 +5,7 @@ import type {
   OutlineDraftDto,
   ScreenplaySceneBlockDto
 } from '../../contracts/workflow'
-import type {
-  ShortDramaConstitutionDto,
-  StoryIntentPackageDto
-} from '../../contracts/intake'
+import type { ShortDramaConstitutionDto, StoryIntentPackageDto } from '../../contracts/intake'
 import {
   buildShortDramaConstitutionFromStoryIntent,
   normalizeShortDramaConstitution
@@ -29,11 +26,15 @@ function pickFirstNonEmpty(...values: Array<string | undefined>): string {
   return ''
 }
 
-function getFirstScene(scenes: ScreenplaySceneBlockDto[] | undefined): ScreenplaySceneBlockDto | null {
+function getFirstScene(
+  scenes: ScreenplaySceneBlockDto[] | undefined
+): ScreenplaySceneBlockDto | null {
   return Array.isArray(scenes) && scenes.length > 0 ? scenes[0] : null
 }
 
-function getLastScene(scenes: ScreenplaySceneBlockDto[] | undefined): ScreenplaySceneBlockDto | null {
+function getLastScene(
+  scenes: ScreenplaySceneBlockDto[] | undefined
+): ScreenplaySceneBlockDto | null {
   return Array.isArray(scenes) && scenes.length > 0 ? scenes[scenes.length - 1] : null
 }
 
@@ -56,8 +57,12 @@ export function normalizeEpisodeControlCard(
           .map((item) => cleanText(item))
           .filter(Boolean)
       : [],
-    episodeIndex: typeof card.episodeIndex === 'number' && card.episodeIndex > 0 ? card.episodeIndex : undefined,
-    sceneCount: typeof card.sceneCount === 'number' && card.sceneCount > 0 ? card.sceneCount : undefined,
+    episodeIndex:
+      typeof card.episodeIndex === 'number' && card.episodeIndex > 0
+        ? card.episodeIndex
+        : undefined,
+    sceneCount:
+      typeof card.sceneCount === 'number' && card.sceneCount > 0 ? card.sceneCount : undefined,
     coreGoal: cleanText(card.coreGoal),
     villainPressure: cleanText(card.villainPressure),
     pressureType: cleanText(card.pressureType),

@@ -52,13 +52,13 @@ export interface PromptVariables {
 
 /** 题材原型枚举——决定原型库默认值 */
 export type GenreArchetype =
-  | 'xianxia'        // 修仙/玄幻
+  | 'xianxia' // 修仙/玄幻
   | 'modern_revenge' // 现代逆袭/霸总
-  | 'period_palace'  // 古装宫斗/权谋
-  | 'urban_romance'  // 都市言情
-  | 'scifi'          // 科幻/末日
-  | 'fantasy'        // 奇幻/魔幻
-  | 'default'        // 通用默认
+  | 'period_palace' // 古装宫斗/权谋
+  | 'urban_romance' // 都市言情
+  | 'scifi' // 科幻/末日
+  | 'fantasy' // 奇幻/魔幻
+  | 'default' // 通用默认
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 题材原型库
@@ -70,7 +70,10 @@ export type GenreArchetype =
  * 铁律：禁止平庸。如果用户没填，我们给的不是"性格温和"，
  * 而是能让戏炸起来的"性格冷峻、有仇必报、掌控全局"。
  */
-export const GENRE_ARCHETYPE_DEFAULTS: Record<GenreArchetype, Omit<PromptVariables, 'genre' | 'genreArchetype'>> = {
+export const GENRE_ARCHETYPE_DEFAULTS: Record<
+  GenreArchetype,
+  Omit<PromptVariables, 'genre' | 'genreArchetype'>
+> = {
   xianxia: {
     protagonist: '主角',
     antagonist: '对手',
@@ -283,9 +286,7 @@ function extractAntagonist(storyIntent: StoryIntentPackageDto, fallback: string)
 function extractLeverageCharacter(storyIntent: StoryIntentPackageDto, fallback: string): string {
   // 从关系锚点中寻找"被用来施压"的角色
   const relationAnchors = storyIntent.relationAnchors || []
-  const leverageAnchor = relationAnchors.find((a) =>
-    /拿|逼|威胁|筹码|要挟|人质/.test(a)
-  )
+  const leverageAnchor = relationAnchors.find((a) => /拿|逼|威胁|筹码|要挟|人质/.test(a))
   if (leverageAnchor) {
     // 尝试从锚点文本中提取角色名
     const nameMatch = leverageAnchor.match(/拿(.+?)(去|逼|威胁|要挟)/)
@@ -317,7 +318,9 @@ function extractCoreItem(storyIntent: StoryIntentPackageDto, fallback: string): 
 
   // 从核心冲突中提取
   const conflict = storyIntent.coreConflict || ''
-  const keyMatch = conflict.match(/(?:钥匙|秘宝|证据|密诏|虎符|合同|遗产|遗嘱|芯片|密钥|封印物|圣器)/)
+  const keyMatch = conflict.match(
+    /(?:钥匙|秘宝|证据|密诏|虎符|合同|遗产|遗嘱|芯片|密钥|封印物|圣器)/
+  )
   if (keyMatch) return keyMatch[0]
 
   return fallback
@@ -348,10 +351,7 @@ function extractWorldElement(storyIntent: StoryIntentPackageDto, fallback: strin
   return fallback
 }
 
-function extractExtraCharacters(
-  storyIntent: StoryIntentPackageDto,
-  fallback: string[]
-): string[] {
+function extractExtraCharacters(storyIntent: StoryIntentPackageDto, fallback: string[]): string[] {
   const chars = storyIntent.officialKeyCharacters || []
   // 取第4个及以后的角色作为额外角色
   if (chars.length > 3) return chars.slice(3)

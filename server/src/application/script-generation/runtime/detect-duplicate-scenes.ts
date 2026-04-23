@@ -1,10 +1,7 @@
 import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 
 function normalizeScene(scene: Pick<ScriptSegmentDto, 'action' | 'dialogue' | 'emotion'>): string {
-  return [scene.action, scene.dialogue, scene.emotion]
-    .join('\n')
-    .replace(/\s+/g, '')
-    .trim()
+  return [scene.action, scene.dialogue, scene.emotion].join('\n').replace(/\s+/g, '').trim()
 }
 
 export function detectDuplicateScenes(
@@ -19,10 +16,7 @@ export function detectDuplicateScenes(
   // previous scene, this is the same episode being regenerated — skip the check.
   // The duplicate detector guards against cross-episode harmful repeats, not against
   // a rewritten episode legitimately matching its own previous version.
-  if (
-    previousScene &&
-    firstGeneratedScene.sceneNo === previousScene.sceneNo
-  ) {
+  if (previousScene && firstGeneratedScene.sceneNo === previousScene.sceneNo) {
     // same episode rewrite — allowed to match
   } else if (
     previousScene &&

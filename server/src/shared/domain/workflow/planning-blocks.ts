@@ -14,10 +14,7 @@ import type { StoryIntentPackageDto } from '../../contracts/intake'
 import type { ProjectEntityStoreDto } from '../../contracts/entities'
 import { analyzeLoadBearing } from './load-bearing-annotations'
 import { deriveActiveCharacterPackage } from './active-character-package'
-import {
-  getGovernanceOutlineBlockSize,
-  getGovernanceScriptBatchSize
-} from './batching-contract'
+import { getGovernanceOutlineBlockSize, getGovernanceScriptBatchSize } from './batching-contract'
 
 const DEFAULT_OUTLINE_BLOCK_EPISODES = getGovernanceOutlineBlockSize()
 const DEFAULT_SCRIPT_BATCH_EPISODES = getGovernanceScriptBatchSize()
@@ -165,14 +162,20 @@ function buildRoleGovernance(input: {
     { label: string; roleNames: string[]; reasons: string[] }
   >()
 
-  const ensureRoleGroup = (groupKey: string, label: string) => {
+  const ensureRoleGroup = (
+    groupKey: string,
+    label: string
+  ): { label: string; roleNames: string[]; reasons: string[] } => {
     if (!roleGroups.has(groupKey)) {
       roleGroups.set(groupKey, { label, roleNames: [], reasons: [] })
     }
     return roleGroups.get(groupKey)!
   }
 
-  const ensureRoleLayer = (layerKey: 'core' | 'active' | 'supporting', label: string) => {
+  const ensureRoleLayer = (
+    layerKey: 'core' | 'active' | 'supporting',
+    label: string
+  ): { label: string; roleNames: string[]; reasons: string[] } => {
     if (!roleLayers.has(layerKey)) {
       roleLayers.set(layerKey, { label, roleNames: [], reasons: [] })
     }
@@ -333,7 +336,7 @@ function buildThreadGovernance(narrativeThreads: NarrativeThread[]): {
     threadLayers.get(layerKey)!.threads.push(thread)
   }
 
-  const dedupeThreads = (threads: NarrativeThread[]) =>
+  const dedupeThreads = (threads: NarrativeThread[]): NarrativeThread[] =>
     Array.from(new Map(threads.map((thread) => [thread.thread, thread])).values()).sort(
       (left, right) => left.thread.localeCompare(right.thread)
     )
@@ -628,10 +631,13 @@ export function buildCharacterBlocks(input: {
 }
 
 export function deriveProjectCharacterBlocks(input: {
-  outline: Pick<
-    OutlineDraftDto,
-    'summaryEpisodes' | 'outlineBlocks' | 'planningUnitEpisodes' | 'protagonist'
-  > | null | undefined
+  outline:
+    | Pick<
+        OutlineDraftDto,
+        'summaryEpisodes' | 'outlineBlocks' | 'planningUnitEpisodes' | 'protagonist'
+      >
+    | null
+    | undefined
   characters: CharacterDraftDto[]
 }): CharacterBlockDto[] {
   if (!input.outline || !Array.isArray(input.outline.summaryEpisodes)) return []
@@ -639,10 +645,7 @@ export function deriveProjectCharacterBlocks(input: {
   const outlineBlocks =
     Array.isArray(input.outline.outlineBlocks) && input.outline.outlineBlocks.length > 0
       ? input.outline.outlineBlocks
-      : buildOutlineBlocks(
-          input.outline.summaryEpisodes,
-          getPlanningUnitEpisodes(input.outline)
-        )
+      : buildOutlineBlocks(input.outline.summaryEpisodes, getPlanningUnitEpisodes(input.outline))
 
   if (outlineBlocks.length === 0) return []
 

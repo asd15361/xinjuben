@@ -470,4 +470,3 @@ export async function generateCharacterBundle(input: {
     throw error instanceof Error ? error : new Error(String(error || 'character_profile_failed'))
   }
 }
-

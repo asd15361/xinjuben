@@ -21,4 +21,3 @@ export function confirmFormalFact(input: {
     updatedAt: new Date().toISOString()
   }
 }
-

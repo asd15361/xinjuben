@@ -12,7 +12,12 @@ function resolveTotalEpisodes(outline: OutlineDraftDto): number {
   return Math.max(outline.summaryEpisodes?.length || 0, outline.planningUnitEpisodes || 0)
 }
 
-function resolveBatchContext(episodeNo: number, totalEpisodes: number) {
+function resolveBatchContext(
+  episodeNo: number,
+  totalEpisodes: number
+): {
+  isBatchClosingSection: boolean
+} {
   const batchSize = 5
   const batchIndex = Math.floor((episodeNo - 1) / batchSize)
   const batchStart = batchIndex * batchSize + 1

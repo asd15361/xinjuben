@@ -29,11 +29,7 @@ import { EPISODE_CHAR_COUNT } from '@shared/domain/workflow/contract-thresholds'
 
 const MAX_EPISODE_GENERATION_ATTEMPTS = 2
 
-export {
-  collectEpisodeGuardFailures,
-  shouldAcceptRepairCandidate,
-  shouldReplaceBestAttempt
-}
+export { collectEpisodeGuardFailures, shouldAcceptRepairCandidate, shouldReplaceBestAttempt }
 
 export function buildEpisodeRetryPrompt(
   promptText: string,
@@ -74,7 +70,11 @@ export function buildEpisodeRetryPrompt(
 }
 
 function resolveRewriteSceneCount(previousScene: ScriptSegmentDto): number {
-  return previousScene.screenplayScenes?.length || parseScreenplayScenes(previousScene.screenplay || '').length || 2
+  return (
+    previousScene.screenplayScenes?.length ||
+    parseScreenplayScenes(previousScene.screenplay || '').length ||
+    2
+  )
 }
 
 function buildCharCountRewriteGuidance(
@@ -109,7 +109,9 @@ function buildEpisodeIssueTicket(
   previousScene: ScriptSegmentDto,
   failures: EpisodeGuardFailure[]
 ): string[] {
-  const issueLines = failures.map((failure, index) => `${index + 1}. [${failure.code}] ${failure.detail}`)
+  const issueLines = failures.map(
+    (failure, index) => `${index + 1}. [${failure.code}] ${failure.detail}`
+  )
   const guidance: string[] = []
 
   if (failures.some((failure) => failure.code === 'template_pollution')) {
@@ -120,10 +122,18 @@ function buildEpisodeIssueTicket(
   }
   if (
     failures.some((failure) =>
-      ['missing_roster', 'missing_action', 'insufficient_dialogue', 'thin_scene_body', 'truncated_body'].includes(failure.code)
+      [
+        'missing_roster',
+        'missing_action',
+        'insufficient_dialogue',
+        'thin_scene_body',
+        'truncated_body'
+      ].includes(failure.code)
     )
   ) {
-    guidance.push('- 把缺的人物表、△动作、对白和残句补齐，但只补硬内容，不准顺手改掉已成立的剧情推进。')
+    guidance.push(
+      '- 把缺的人物表、△动作、对白和残句补齐，但只补硬内容，不准顺手改掉已成立的剧情推进。'
+    )
   }
   if (failures.some((failure) => failure.code === 'voice_over')) {
     guidance.push('- 画外音/旁白/OS 改成可拍动作，不准继续把未进场人物写成直接对白。')
@@ -263,6 +273,7 @@ export async function runScriptGenerationBatch(input: {
     phase: 'generate_batch'
     detail: string
     board: ScriptGenerationProgressBoardDto
+    generatedScenes: ScriptSegmentDto[]
   }) => void
   generateText?: typeof generateTextWithRuntimeRouter
   enableImmediateRepair?: boolean
@@ -299,11 +310,16 @@ export async function runScriptGenerationBatch(input: {
       episodeNo: episode.episodeNo,
       reason: '当前集进入生成中。'
     })
-    input.onProgress?.({
-      phase: 'generate_batch',
-      detail: `第${episode.episodeNo}集开始生成`,
-      board
-    })
+    // Note: Don't persist scriptDraft during episode_started - generatedScenes is still empty
+    // Only persist board state, not script content
+    if (input.onProgress) {
+      await input.onProgress({
+        phase: 'generate_batch',
+        detail: `第${episode.episodeNo}集开始生成`,
+        board,
+        generatedScenes: [...generatedScenes]
+      })
+    }
 
     try {
       const basePromptText = createScriptGenerationPrompt(
@@ -323,10 +339,8 @@ export async function runScriptGenerationBatch(input: {
         promptLength: number
         failures: EpisodeGuardFailure[]
       } | null = null
-      let episodeAttemptCount = 0
 
       for (let attempt = 1; attempt <= MAX_EPISODE_GENERATION_ATTEMPTS; attempt += 1) {
-        episodeAttemptCount = attempt
         const attemptRequest = buildEpisodeAttemptRequest({
           attempt,
           basePromptText,
@@ -393,11 +407,14 @@ export async function runScriptGenerationBatch(input: {
         episodeNo: episode.episodeNo,
         reason: `已生成并收成当前最佳稿，使用 ${episode.lane}`
       })
-      input.onProgress?.({
-        phase: 'generate_batch',
-        detail: `第${episode.episodeNo}集生成完成`,
-        board
-      })
+      if (input.onProgress) {
+        await input.onProgress({
+          phase: 'generate_batch',
+          detail: `第${episode.episodeNo}集生成完成`,
+          board,
+          generatedScenes: [...generatedScenes]
+        })
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error || 'unknown_error')
       board = advanceScriptGenerationState(board, {
@@ -405,11 +422,14 @@ export async function runScriptGenerationBatch(input: {
         episodeNo: episode.episodeNo,
         reason: `批次失败：${errorMessage}`
       })
-      input.onProgress?.({
-        phase: 'generate_batch',
-        detail: `第${episode.episodeNo}集生成失败`,
-        board
-      })
+      if (input.onProgress) {
+        await input.onProgress({
+          phase: 'generate_batch',
+          detail: `第${episode.episodeNo}集生成失败`,
+          board,
+          generatedScenes: [...generatedScenes]
+        })
+      }
       return {
         board,
         generatedScenes,

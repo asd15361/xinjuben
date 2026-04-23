@@ -4,7 +4,10 @@
  * 支持 DeepSeek 和 OpenRouter 两条通道，自动 fallback
  */
 import type { AiGenerateRequestDto, AiGenerateResponseDto } from '@shared/contracts/ai'
-import type { ProviderFamilyConfig, RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import type {
+  ProviderFamilyConfig,
+  RuntimeProviderConfig
+} from '../../infrastructure/runtime-env/provider-config'
 
 type LaneName = 'deepseek' | 'openrouterGeminiFlashLite' | 'openrouterQwenFree'
 
@@ -27,7 +30,9 @@ async function invokeDeepSeek(
     ],
     temperature: request.temperature ?? 0.7,
     max_tokens: request.maxOutputTokens ?? 2000,
-    ...(request.responseFormat === 'json_object' ? { response_format: { type: 'json_object' } } : {})
+    ...(request.responseFormat === 'json_object'
+      ? { response_format: { type: 'json_object' } }
+      : {})
   }
 
   const timeoutSignal = AbortSignal.timeout(request.timeoutMs ?? laneConfig.timeoutMs)
@@ -35,7 +40,7 @@ async function invokeDeepSeek(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${laneConfig.apiKey}`
+      Authorization: `Bearer ${laneConfig.apiKey}`
     },
     body: JSON.stringify(body),
     signal: parentSignal ? AbortSignal.any([timeoutSignal, parentSignal]) : timeoutSignal
@@ -86,7 +91,7 @@ async function invokeOpenRouter(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${laneConfig.apiKey}`,
+      Authorization: `Bearer ${laneConfig.apiKey}`,
       'HTTP-Referer': 'https://xinjuben.com',
       'X-Title': 'Xinjuben'
     },
@@ -116,10 +121,7 @@ async function invokeOpenRouter(
 /**
  * 决定通道顺序
  */
-function decideLaneOrder(
-  request: AiGenerateRequestDto,
-  config: RuntimeProviderConfig
-): LaneName[] {
+function decideLaneOrder(request: AiGenerateRequestDto, config: RuntimeProviderConfig): LaneName[] {
   const lanes: LaneName[] = []
 
   // 根据任务类型选择主通道
@@ -150,7 +152,9 @@ function decideLaneOrder(
 function shouldFallback(error: unknown): boolean {
   if (!(error instanceof Error)) return false
   const msg = error.message.toLowerCase()
-  return msg.includes('429') || msg.includes('502') || msg.includes('503') || msg.includes('timeout')
+  return (
+    msg.includes('429') || msg.includes('502') || msg.includes('503') || msg.includes('timeout')
+  )
 }
 
 /**

@@ -1,4 +1,7 @@
-import { hasValidApiKey, loadRuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import {
+  hasValidApiKey,
+  loadRuntimeProviderConfig
+} from '../../infrastructure/runtime-env/provider-config'
 import { ProjectRepository } from '../../infrastructure/pocketbase/project-repository'
 import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from './generate-outline-and-characters-from-confirmed-seven-questions'
 import {
@@ -35,7 +38,9 @@ export async function generateOutlineAndCharactersForProject(
     throw new Error('confirmed_story_intent_missing')
   }
 
-  let result = null as Awaited<ReturnType<typeof generateOutlineAndCharactersFromConfirmedSevenQuestions>> | null
+  let result = null as Awaited<
+    ReturnType<typeof generateOutlineAndCharactersFromConfirmedSevenQuestions>
+  > | null
   const maxAttempts = 3
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -66,7 +71,10 @@ export async function generateOutlineAndCharactersForProject(
     }
 
     const issueSummary = contractIssues.incompleteCharacters
-      .map((item) => `${item.name}{legacy:${item.missingLegacyFields.join('|') || '-'};v2:${item.missingV2Fields.join('|') || '-'}}`)
+      .map(
+        (item) =>
+          `${item.name}{legacy:${item.missingLegacyFields.join('|') || '-'};v2:${item.missingV2Fields.join('|') || '-'}}`
+      )
       .join(',')
     console.warn(
       `[OutlineCharacters] contract retry attempt=${attempt}/${maxAttempts} protagonistCovered=${contractIssues.protagonistCovered} antagonistCovered=${contractIssues.antagonistCovered} incomplete=[${issueSummary}]`

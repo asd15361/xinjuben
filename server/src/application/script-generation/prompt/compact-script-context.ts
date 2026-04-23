@@ -1,8 +1,5 @@
 import type { StartScriptGenerationInputDto } from '@shared/contracts/script-generation'
-import type {
-  CharacterDraftDto,
-  DetailedOutlineSegmentDto
-} from '@shared/contracts/workflow'
+import type { CharacterDraftDto, DetailedOutlineSegmentDto } from '@shared/contracts/workflow'
 
 function clipText(value: string, maxLength: number): string {
   const text = String(value || '')

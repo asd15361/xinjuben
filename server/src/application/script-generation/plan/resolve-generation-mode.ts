@@ -5,7 +5,10 @@ export function clampTargetEpisodes(targetEpisodes: number | undefined): number 
   return Math.max(1, Math.min(80, Math.floor(targetEpisodes)))
 }
 
-export function resolveMode(mode: ScriptGenerationMode | undefined, existingSceneCount: number): ScriptGenerationMode {
+export function resolveMode(
+  mode: ScriptGenerationMode | undefined,
+  existingSceneCount: number
+): ScriptGenerationMode {
   if (mode) return mode
   return existingSceneCount > 0 ? 'resume' : 'fresh_start'
 }

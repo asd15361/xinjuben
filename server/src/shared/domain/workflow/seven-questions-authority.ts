@@ -57,9 +57,7 @@ export function extractConfirmedSevenQuestions(
   return {
     needsSections: sections.length > 1,
     sectionCount: sections.length,
-    sectionCountReason: sections.length > 1
-      ? '剧本有明显的篇章划分'
-      : '剧本整体一个篇章',
+    sectionCountReason: sections.length > 1 ? '剧本有明显的篇章划分' : '剧本整体一个篇章',
     sections
   }
 }
@@ -69,9 +67,7 @@ export function extractConfirmedSevenQuestions(
  *
  * 这是粗纲生成的先决条件检查。
  */
-export function hasConfirmedSevenQuestions(
-  outlineDraft: OutlineDraftDto | null
-): boolean {
+export function hasConfirmedSevenQuestions(outlineDraft: OutlineDraftDto | null): boolean {
   return extractConfirmedSevenQuestions(outlineDraft) !== null
 }
 
@@ -127,9 +123,7 @@ export function writeConfirmedSevenQuestionsToOutlineBlocks(
 
   // 按篇章号更新或创建 outlineBlocks
   const updatedBlocks = sections.map((section) => {
-    const existingBlock = outlineDraft.outlineBlocks!.find(
-      (b) => b.blockNo === section.sectionNo
-    )
+    const existingBlock = outlineDraft.outlineBlocks!.find((b) => b.blockNo === section.sectionNo)
 
     if (existingBlock) {
       // 更新已有 block 的七问

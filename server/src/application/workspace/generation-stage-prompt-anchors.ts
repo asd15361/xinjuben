@@ -73,10 +73,15 @@ export function buildPromptAnchors(generationBriefText: string): PromptAnchors {
     sellingPremise: extractSection(generationBriefText, '设定成交句'),
     coreDislocation: extractSection(generationBriefText, '核心错位'),
     emotionalPayoff: extractSection(generationBriefText, '情绪兑现'),
-    worldBackground: stripNoisyThemeClauses(extractSection(generationBriefText, '世界观与故事背景')),
+    worldBackground: stripNoisyThemeClauses(
+      extractSection(generationBriefText, '世界观与故事背景')
+    ),
     keyCharacters: splitNameList(extractSection(generationBriefText, '关键角色')).slice(0, 6),
     characterLayers: splitBulletLines(extractSection(generationBriefText, '人物分层')).slice(0, 6),
-    relationAnchors: splitBulletLines(extractSection(generationBriefText, '人物关系总梳理')).slice(0, 8),
+    relationAnchors: splitBulletLines(extractSection(generationBriefText, '人物关系总梳理')).slice(
+      0,
+      8
+    ),
     roleCards: splitBulletLines(extractSection(generationBriefText, '角色卡'))
       .map((item) => stripNoisyThemeClauses(item))
       .filter(Boolean)

@@ -42,7 +42,9 @@ function parseCharacterCards(source: string): Array<{ name: string; summary: str
     .filter((item): item is { name: string; summary: string } => Boolean(item))
 }
 
-function parseCharacterLayers(source: string): Array<{ name: string; layer: string; duty: string }> {
+function parseCharacterLayers(
+  source: string
+): Array<{ name: string; layer: string; duty: string }> {
   const body = extractSectionBody(source, '人物分层')
   if (!body) return []
 

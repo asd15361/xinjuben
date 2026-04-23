@@ -1,7 +1,10 @@
 export type JsonRecord = Record<string, unknown>
 
 function stripJsonFences(text: string): string {
-  return text.replace(/```json|```/gi, '').replace(/\u00A0/g, ' ').trim()
+  return text
+    .replace(/```json|```/gi, '')
+    .replace(/\u00A0/g, ' ')
+    .trim()
 }
 
 function loosenJsonLikeText(text: string): string {
@@ -35,11 +38,7 @@ function tryParseArrayFromText(text: string): unknown[] | null {
   const firstBracket = text.indexOf('[')
   if (firstBracket < 0) return null
 
-  for (
-    let end = text.lastIndexOf(']');
-    end > firstBracket;
-    end = text.lastIndexOf(']', end - 1)
-  ) {
+  for (let end = text.lastIndexOf(']'); end > firstBracket; end = text.lastIndexOf(']', end - 1)) {
     const slice = text.slice(firstBracket, end + 1)
     try {
       const parsed = JSON.parse(slice)

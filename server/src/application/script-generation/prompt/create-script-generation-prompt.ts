@@ -29,9 +29,7 @@ import {
   EPISODE_CHAR_COUNT_MAX,
   EPISODE_CHAR_COUNT_MIN
 } from '@shared/domain/workflow/contract-thresholds'
-import {
-  resolveEpisodeControlCardFromPackage
-} from '@shared/domain/script-generation/script-control-package'
+import { resolveEpisodeControlCardFromPackage } from '@shared/domain/script-generation/script-control-package'
 import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
 import { buildScriptBatchContext } from '@shared/domain/workflow/planning-blocks'
 import {
@@ -284,8 +282,9 @@ function buildEpisodeTotalBudgetRule(): string {
 function buildPromptCharacterSummary(characters: CharacterDraftDto[]): string {
   return (
     characters
-      .map((character) =>
-        `${character.name}：${character.goal || character.biography || character.hiddenPressure || '待补人物摘要'}`
+      .map(
+        (character) =>
+          `${character.name}：${character.goal || character.biography || character.hiddenPressure || '待补人物摘要'}`
       )
       .join('；') || '待补人物摘要'
   )
@@ -557,9 +556,7 @@ export function createScriptGenerationPrompt(
     }),
     buildLedgerAssertionBlock(ledger),
     ledgerConstraintBlock,
-    compactMode
-      ? buildCompactLedgerBridgeBlock(ledger)
-      : buildKnowledgeBoundaryBlock(ledger),
+    compactMode ? buildCompactLedgerBridgeBlock(ledger) : buildKnowledgeBoundaryBlock(ledger),
     dialogueVoiceBlock,
     '禁止写成分析报告、人物解说、分点拆解、情绪层次总结；只保留剧本正文和场景格式，不要输出任何三段结构标签。',
     '正文里绝对不要出现"站位""钉子句""关系施压""说明如下""总结如下"这些幕后工作词，也不要写 ## 标题、序号小节或括号注释说明。',
@@ -567,5 +564,8 @@ export function createScriptGenerationPrompt(
     ...seasonFinaleContractLines,
     ...compactEpisodeSceneDirectives,
     ...compactSceneProgressionDirectives
-  ].flat().filter(Boolean).join('\n')
+  ]
+    .flat()
+    .filter(Boolean)
+    .join('\n')
 }

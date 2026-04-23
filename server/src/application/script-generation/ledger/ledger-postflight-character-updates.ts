@@ -1,4 +1,8 @@
-import type { ScriptLedgerIssueDto, ScriptLedgerPostflightDto, ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
+import type {
+  ScriptLedgerIssueDto,
+  ScriptLedgerPostflightDto,
+  ScriptStateLedgerDto
+} from '@shared/contracts/script-ledger'
 
 export function collectLedgerCharacterPostflight(input: {
   previousLedger: ScriptStateLedgerDto
@@ -33,10 +37,14 @@ export function collectLedgerCharacterPostflight(input: {
   }
 
   const previousUnboundTraits = input.previousLedger.characters.flatMap((character) =>
-    character.traitBindings.filter((binding) => !binding.isBound).map((binding) => `${character.name}:${binding.trait}`)
+    character.traitBindings
+      .filter((binding) => !binding.isBound)
+      .map((binding) => `${character.name}:${binding.trait}`)
   )
   const nextUnboundTraits = input.nextLedger.characters.flatMap((character) =>
-    character.traitBindings.filter((binding) => !binding.isBound).map((binding) => `${character.name}:${binding.trait}`)
+    character.traitBindings
+      .filter((binding) => !binding.isBound)
+      .map((binding) => `${character.name}:${binding.trait}`)
   )
   if (nextUnboundTraits.length > previousUnboundTraits.length) {
     issues.push({

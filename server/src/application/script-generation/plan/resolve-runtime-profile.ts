@@ -1,6 +1,10 @@
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { ScriptRuntimeFailureHistoryCode } from '@shared/contracts/script-generation'
-import type { CharacterDraftDto, DetailedOutlineSegmentDto, OutlineDraftDto } from '@shared/contracts/workflow'
+import type {
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  OutlineDraftDto
+} from '@shared/contracts/workflow'
 
 function normalizeCount(value: number | undefined): number {
   if (!Number.isFinite(value)) return 0
@@ -44,14 +48,27 @@ export function resolveScriptRuntimeProfile(input: {
       .join('\n').length
   )
   const outlineLength = normalizeCount(
-    [input.outline.title, input.outline.theme, input.outline.mainConflict, input.outline.protagonist].join('\n').length
+    [
+      input.outline.title,
+      input.outline.theme,
+      input.outline.mainConflict,
+      input.outline.protagonist
+    ].join('\n').length
   )
   const characterLength = normalizeCount(
     input.characters
-      .flatMap((character) => [character.name, character.goal, character.arc, character.advantage, character.weakness])
+      .flatMap((character) => [
+        character.name,
+        character.goal,
+        character.arc,
+        character.advantage,
+        character.weakness
+      ])
       .join('\n').length
   )
-  const segmentLength = normalizeCount(input.segments.map((segment) => segment.content).join('\n').length)
+  const segmentLength = normalizeCount(
+    input.segments.map((segment) => segment.content).join('\n').length
+  )
 
   let contextPressureScore = 0
   if (input.targetEpisodes >= 20) contextPressureScore += 4
@@ -67,13 +84,22 @@ export function resolveScriptRuntimeProfile(input: {
   contextPressureScore += Math.min(4, runtimeFailureCount * 2)
 
   const shouldCompactContextFirst = contextPressureScore >= 6 || runtimeFailureCount > 0
-  const maxStoryIntentChars =
-    shouldCompactContextFirst ? (runtimeFailureCount > 0 ? 1000 : 1200) : 1800
-  const maxCharacterChars =
-    shouldCompactContextFirst ? (runtimeFailureCount > 0 ? 1300 : 1600) : 2400
-  const maxSegmentChars =
-    shouldCompactContextFirst ? (runtimeFailureCount > 0 ? 760 : 900) : 1500
-  const recommendedBatchSize = clamp(Math.min(5, input.targetEpisodes), 1, Math.max(1, input.targetEpisodes))
+  const maxStoryIntentChars = shouldCompactContextFirst
+    ? runtimeFailureCount > 0
+      ? 1000
+      : 1200
+    : 1800
+  const maxCharacterChars = shouldCompactContextFirst
+    ? runtimeFailureCount > 0
+      ? 1300
+      : 1600
+    : 2400
+  const maxSegmentChars = shouldCompactContextFirst ? (runtimeFailureCount > 0 ? 760 : 900) : 1500
+  const recommendedBatchSize = clamp(
+    Math.min(5, input.targetEpisodes),
+    1,
+    Math.max(1, input.targetEpisodes)
+  )
   const profileLabel = [
     shouldCompactContextFirst ? 'compact' : 'full',
     `episodes-${input.targetEpisodes}`,

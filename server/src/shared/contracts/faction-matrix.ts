@@ -15,14 +15,14 @@
 
 /** 势力之间的交叉关系类型 */
 export type CrossRelationType =
-  | 'sleeper_agent'    // 卧底：A 安插在 B 中的人
-  | 'secret_ally'      // 暗盟：表面敌对，暗中合作
-  | 'secret_enemy'     // 暗敌：表面盟友，实则死敌
-  | 'pawn'              // 棋子：A 把 B 当棋子操控
-  | 'defector'          // 叛逃：从 A 投向 B
-  | 'double_agent'       // 双面间谍：同时给两方卖情报
-  | 'hostage_bond'      // 人质羁绊：因人质关系被迫从属
-  | 'debtor'            // 债务从属：因欠债或把柄被迫从属
+  | 'sleeper_agent' // 卧底：A 安插在 B 中的人
+  | 'secret_ally' // 暗盟：表面敌对，暗中合作
+  | 'secret_enemy' // 暗敌：表面盟友，实则死敌
+  | 'pawn' // 棋子：A 把 B 当棋子操控
+  | 'defector' // 叛逃：从 A 投向 B
+  | 'double_agent' // 双面间谍：同时给两方卖情报
+  | 'hostage_bond' // 人质羁绊：因人质关系被迫从属
+  | 'debtor' // 债务从属：因欠债或把柄被迫从属
 
 /** 势力交叉关系条目 */
 export interface CrossRelationDto {
@@ -51,10 +51,10 @@ export interface CrossRelationDto {
 
 /** 人物在势力中的角色类型 */
 export type CharacterRoleInFaction =
-  | 'leader'         // 领袖：定策略、拍板
-  | 'enforcer'       // 干将：执行冲突、打手
-  | 'variable'        // 变数/内鬼：立场摇摆、暗棋
-  | 'functional'     // 功能性龙套：一个场景一个作用
+  | 'leader' // 领袖：定策略、拍板
+  | 'enforcer' // 干将：执行冲突、打手
+  | 'variable' // 变数/内鬼：立场摇摆、暗棋
+  | 'functional' // 功能性龙套：一个场景一个作用
 
 /** 势力中的人物占位符 */
 export interface CharacterPlaceholderDto {

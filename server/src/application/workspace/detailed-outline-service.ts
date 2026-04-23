@@ -1,8 +1,13 @@
-import { hasValidApiKey, loadRuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import {
+  hasValidApiKey,
+  loadRuntimeProviderConfig
+} from '../../infrastructure/runtime-env/provider-config'
 import { ProjectRepository } from '../../infrastructure/pocketbase/project-repository'
-import { generateDetailedOutlineFromContext, isDetailedOutlineModelResultComplete } from './generate-detailed-outline-support'
+import {
+  generateDetailedOutlineFromContext,
+  isDetailedOutlineModelResultComplete
+} from './generate-detailed-outline-support'
 import { deriveOutlineEpisodeCount } from '@shared/domain/workflow/episode-count'
-import { ensureOutlineEpisodeShape } from '@shared/domain/workflow/outline-episodes'
 import type { ProjectSnapshotDto } from '@shared/contracts/project'
 import type { DetailedOutlineSegmentDto } from '@shared/contracts/workflow'
 
@@ -75,13 +80,16 @@ export async function generateDetailedOutlineForProject(
   const project = await projectRepository.saveDetailedOutline({
     userId: request.userId,
     projectId: request.projectId,
-    detailedOutlineBlocks: [{
-      blockNo: 1,
-      startEpisode: 1,
-      endEpisode: detailedOutlineResult.segments.reduce(
-        (max, seg) => Math.max(max, seg.endEpisode || 0), 0
-      )
-    }],
+    detailedOutlineBlocks: [
+      {
+        blockNo: 1,
+        startEpisode: 1,
+        endEpisode: detailedOutlineResult.segments.reduce(
+          (max, seg) => Math.max(max, seg.endEpisode || 0),
+          0
+        )
+      }
+    ],
     detailedOutlineSegments: detailedOutlineResult.segments
   })
 
