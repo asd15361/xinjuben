@@ -4,7 +4,14 @@
  * 用户注册、登录、获取当前用户信息
  */
 import { Router, Request, Response } from 'express'
-import { pb, PB_URL, authenticateAdmin, cachedAdminToken, APP_ID, TABLES, ensureUserAppBinding, ensureUserWallet, getUserWalletBalance } from '../../infrastructure/pocketbase/client'
+import {
+  pb,
+  APP_ID,
+  TABLES,
+  ensureUserAppBinding,
+  ensureUserWallet,
+  getUserWalletBalance
+} from '../../infrastructure/pocketbase/client'
 import { authMiddleware } from '../middleware/auth'
 
 export const authRouter = Router()
@@ -61,7 +68,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
         balanceAfter: initialBalance,
         description: '新用户注册奖励'
       })
-    } catch (e) {
+    } catch {
       console.log('[Auth] Transaction record may already exist')
     }
 
@@ -76,10 +83,15 @@ authRouter.post('/register', async (req: Request, res: Response) => {
         balance: initialBalance
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Auth] Registration error:', error)
 
-    if (error.data?.data?.email?.code === 'validation_invalid_email') {
+    const errorData =
+      error && typeof error === 'object' && 'data' in error
+        ? (error as { data?: { data?: { email?: { code?: string } } } }).data?.data?.email?.code
+        : undefined
+
+    if (errorData === 'validation_invalid_email') {
       res.status(400).json({
         error: 'invalid_email',
         message: '邮箱格式不正确'
@@ -87,7 +99,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       return
     }
 
-    if (error.data?.data?.email?.code === 'validation_not_unique') {
+    if (errorData === 'validation_not_unique') {
       // 邮箱已存在：引导登录流程
       res.status(400).json({
         error: 'email_exists',
@@ -141,7 +153,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         balance
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Auth] Login error:', error)
 
     res.status(401).json({

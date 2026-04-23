@@ -7,14 +7,12 @@ import { Request, Response, NextFunction } from 'express'
 import { validateUserToken } from '../../infrastructure/pocketbase/client'
 
 // 扩展 Request 类型，添加 user 属性
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string
-        email: string
-        name: string
-      }
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: {
+      id: string
+      email: string
+      name: string
     }
   }
 }
@@ -24,7 +22,11 @@ declare global {
  *
  * 从 Authorization header 提取 token 并验证
  */
-export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -65,7 +67,11 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
  *
  * 尝试解析 token，但不强制要求登录
  */
-export async function optionalAuthMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function optionalAuthMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
