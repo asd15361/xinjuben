@@ -248,6 +248,12 @@ export async function saveDetailedOutlineSegments(
   }))
 }
 
+/**
+ * @deprecated Authority migrated to server (2026-04-22).
+ * Use HTTP `apiSaveScriptDraft` instead. This method remains for
+ * local-only fallback during transition but must not be called
+ * for production script writes.
+ */
 export async function saveScriptDraft(
   input: SaveScriptDraftInputDto
 ): Promise<ProjectSnapshotDto | null> {
@@ -269,6 +275,12 @@ export async function saveScriptDraft(
   })
 }
 
+/**
+ * @deprecated Authority migrated to server (2026-04-22).
+ * Use HTTP `apiSaveScriptRuntimeState` instead. This method remains for
+ * local-only fallback during transition but must not be called
+ * for production script runtime state writes.
+ */
 export async function saveScriptRuntimeState(
   input: SaveScriptRuntimeStateInputDto
 ): Promise<ProjectSnapshotDto | null> {
