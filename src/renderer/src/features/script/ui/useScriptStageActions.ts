@@ -3,6 +3,7 @@ import { classifyRuntimeFailureHistory } from '../../../../../shared/domain/runt
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation.ts'
 import type { ScriptGenerationProgressBoardDto } from '../../../../../shared/contracts/script-generation.ts'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
+import { useAuthStore } from '../../../app/store/useAuthStore.ts'
 import { useStageStore } from '../../../store/useStageStore.ts'
 import type { useScriptGenerationPlan } from '../../../app/hooks/useScriptGenerationPlan.ts'
 import type { useScriptAudit } from '../../../app/hooks/useScriptAudit.ts'
@@ -155,12 +156,33 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
               pollingRef.current = null
             }
 
-            // Fetch the latest project snapshot with generated script
-            const { project: latestProject } = await apiGetProject(requestProjectId)
-            if (latestProject && useWorkflowStore.getState().projectId === requestProjectId) {
-              replaceScript(latestProject.scriptDraft)
-              setScriptProgressBoard(latestProject.scriptProgressBoard)
-              setScriptFailureResolution(latestProject.scriptFailureResolution)
+            // 从 status 接口获取完整生成结果，写入本地内容真相源
+            const userId = useAuthStore.getState().user?.id
+            if (userId && statusResult.generatedScenes) {
+              try {
+                await window.api.workspace.saveScriptGenerationResult({
+                  userId,
+                  projectId: requestProjectId,
+                  scriptDraft: statusResult.generatedScenes,
+                  scriptProgressBoard: statusResult.board ?? null,
+                  scriptFailureResolution: statusResult.failure ?? null,
+                  scriptStateLedger: statusResult.ledger ?? null
+                })
+              } catch (saveErr) {
+                console.error('[script-generation] save local content failed:', saveErr)
+                setGenerationNotice({
+                  kind: 'error',
+                  title: '剧本生成成功但本地保存失败',
+                  detail: '生成结果已拿到，但写入本地文件时出错。请勿刷新页面，联系技术支持。',
+                  primaryAction: { label: '留在剧本页', stage: 'script' }
+                })
+              }
+            }
+
+            if (statusResult.generatedScenes && useWorkflowStore.getState().projectId === requestProjectId) {
+              replaceScript(statusResult.generatedScenes)
+              setScriptProgressBoard(statusResult.board ?? null)
+              setScriptFailureResolution(statusResult.failure ?? null)
             }
 
             setGenerationStatus(null)
@@ -299,16 +321,40 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
           throw new Error(`rewrite_episode_failed:${episodeNo}`)
         }
 
-        // Fetch latest project to get updated script
-        const { project: latestProject } = await apiGetProject(requestProjectId)
-        if (latestProject && useWorkflowStore.getState().projectId === requestProjectId) {
-          replaceScript(latestProject.scriptDraft)
-          setGenerationNotice({
-            kind: 'success',
-            title: `第 ${episodeNo} 集已经改好`,
-            detail: '这一集已经重写完成，你可以继续看、改，或者再点一次。',
-            primaryAction: { label: '继续看剧本', stage: 'script' }
-          })
+        // 从 rewrite 结果获取 rewrittenScene，写本地内容真相源
+        const userId = useAuthStore.getState().user?.id
+        if (userId && rewriteResult.rewrittenScene) {
+          try {
+            const existingContent = await window.api.workspace.readLocalContent(
+              userId,
+              requestProjectId
+            )
+            const existingDraft = existingContent?.scriptDraft ?? []
+            const updatedScript = existingDraft.map((s) =>
+              s.sceneNo === episodeNo ? rewriteResult.rewrittenScene : s
+            )
+            await window.api.workspace.saveScriptGenerationResult({
+              userId,
+              projectId: requestProjectId,
+              scriptDraft: updatedScript,
+              scriptProgressBoard: existingContent?.scriptProgressBoard ?? null,
+              scriptFailureResolution: existingContent?.scriptFailureResolution ?? null,
+              scriptStateLedger: rewriteResult.ledger ?? null
+            })
+
+            if (useWorkflowStore.getState().projectId === requestProjectId) {
+              replaceScript(updatedScript)
+              setGenerationNotice({
+                kind: 'success',
+                title: `第 ${episodeNo} 集已经改好`,
+                detail: '这一集已经重写完成，你可以继续看、改，或者再点一次。',
+                primaryAction: { label: '继续看剧本', stage: 'script' }
+              })
+            }
+          } catch (saveErr) {
+            console.error('[script-rewrite] save local content failed:', saveErr)
+            throw new Error(`rewrite_save_failed:${episodeNo}`)
+          }
         }
       } catch (error) {
         if (useWorkflowStore.getState().projectId === requestProjectId) {
@@ -344,15 +390,17 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
 
   async function handleAutoRepair(): Promise<void> {
     if (!audit.repairPlan?.shouldRepair) return
-    // Auto-repair via server API - fetch latest project after repair
+    // Auto-repair: read from local content store (truth source)
     if (!projectId) return
+    const userId = useAuthStore.getState().user?.id
+    if (!userId) return
     try {
-      const { project: latestProject } = await apiGetProject(projectId)
-      if (latestProject?.scriptDraft) {
-        upsertScript(latestProject.scriptDraft)
+      const localContent = await window.api.workspace.readLocalContent(userId, projectId)
+      if (localContent?.scriptDraft) {
+        upsertScript(localContent.scriptDraft)
       }
     } catch (error) {
-      console.error('[script] Auto-repair fetch failed:', error)
+      console.error('[script] Auto-repair local read failed:', error)
     }
   }
 

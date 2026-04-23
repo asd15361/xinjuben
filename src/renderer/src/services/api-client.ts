@@ -18,8 +18,14 @@ import type {
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
-  OutlineDraftDto
+  OutlineDraftDto,
+  ScriptSegmentDto
 } from '../../../shared/contracts/workflow.ts'
+import type {
+  ScriptGenerationFailureResolutionDto,
+  ScriptGenerationProgressBoardDto
+} from '../../../shared/contracts/script-generation.ts'
+import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger.ts'
 
 /**
  * src/renderer/src/services/api-client.ts
@@ -486,6 +492,10 @@ export interface ScriptGenerationStatusResponse {
   startedAt: string
   board: unknown
   progress: string
+  // 完整生成结果（renderer 收到后写本地 content store）
+  generatedScenes?: ScriptSegmentDto[]
+  failure?: ScriptGenerationFailureResolutionDto | null
+  ledger?: ScriptStateLedgerDto | null
 }
 
 /**
@@ -553,7 +563,15 @@ export async function apiStopScriptGeneration(
 export async function apiRewriteScriptEpisode(input: {
   projectId: string
   episodeNo: number
-}): Promise<{ success: boolean; message: string; projectId: string; episodeNo: number }> {
+}): Promise<{
+  success: boolean
+  message: string
+  projectId: string
+  episodeNo: number
+  durationMs: number
+  rewrittenScene?: ScriptSegmentDto
+  ledger?: ScriptStateLedgerDto | null
+}> {
   return apiRequest('/api/script-generation/rewrite', {
     method: 'POST',
     body: input

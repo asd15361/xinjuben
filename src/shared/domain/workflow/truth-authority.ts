@@ -28,8 +28,10 @@
  * Modules that can own truth production authority
  */
 export const TruthOwner = {
-  /** Main process — the sole authoritative source for core business logic */
+  /** Main process — the sole authoritative source for desktop shell and IPC bridge */
   MAIN: 'main',
+  /** Server process — the sole authoritative source for core business logic and AI */
+  SERVER: 'server',
   /** Renderer process — consumer-only, display and user interaction only */
   RENDERER: 'renderer',
   /** Persistence layer — durable storage, not a truth producer */
@@ -121,7 +123,7 @@ export const TruthAuthorityMap = {
   } as ProducerConsumerPair,
 
   scriptRuntimeState: {
-    producer: TruthOwner.MAIN,
+    producer: TruthOwner.SERVER,
     consumers: [TruthOwner.RENDERER],
     persister: TruthOwner.PERSISTER
   } as ProducerConsumerPair,
@@ -282,23 +284,35 @@ export const truthAuthority: TruthAuthority = {
     for (const domain of Object.keys(TruthAuthorityMap) as TruthDomain[]) {
       assertSingleProducer(domain)
     }
-    // Verify MAIN is producer for all core truths
-    const coreTruths: TruthDomain[] = [
+    // Verify MAIN is producer for main-owned core truths
+    const mainOwnedCoreTruths: TruthDomain[] = [
       'stage',
       'blockedReason',
       'resumeEligibility',
-      'generationStatus',
-      'scriptRuntimeState'
+      'generationStatus'
     ]
-    for (const domain of coreTruths) {
+    for (const domain of mainOwnedCoreTruths) {
       if (TruthAuthorityMap[domain].producer !== TruthOwner.MAIN) {
         throw new Error(
           `[TruthAuthority] Core truth "${domain}" must have MAIN as producer, got: ${TruthAuthorityMap[domain].producer}`
         )
       }
     }
-    // Verify RENDERER is never a producer for core truths
-    for (const domain of coreTruths) {
+    // Verify SERVER is producer for scriptRuntimeState (migrated 2026-04-22)
+    if (TruthAuthorityMap['scriptRuntimeState'].producer !== TruthOwner.SERVER) {
+      throw new Error(
+        `[TruthAuthority] scriptRuntimeState must have SERVER as producer, got: ${TruthAuthorityMap['scriptRuntimeState'].producer}`
+      )
+    }
+    // Verify RENDERER is never a producer for any truth
+    const allTruths: TruthDomain[] = [
+      'stage',
+      'blockedReason',
+      'resumeEligibility',
+      'generationStatus',
+      'scriptRuntimeState'
+    ]
+    for (const domain of allTruths) {
       if (TruthAuthorityMap[domain].producer === TruthOwner.RENDERER) {
         throw new Error(`[TruthAuthority] RENDERER cannot be producer for core truth "${domain}"`)
       }

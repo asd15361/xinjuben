@@ -6,6 +6,7 @@ import type {
   ScriptGenerationResumeResolutionDto
 } from '../../../../shared/contracts/script-generation.ts'
 import { apiGetProject } from '../../services/api-client.ts'
+import { useAuthStore } from '../store/useAuthStore.ts'
 
 function shouldReusePersistedBoard(
   board: ScriptGenerationProgressBoardDto | null | undefined,
@@ -56,10 +57,32 @@ export function useScriptGenerationRuntime(input: {
         return
       }
 
-      // Prefer persisted runtime state when available (true "resume/failure" comes from history),
-      // otherwise fall back to a fresh board for preview.
+      // Prefer persisted runtime state from local content store (truth source),
+      // fall back to PB for backward compatibility, then fresh board.
       let nextBoard: ScriptGenerationProgressBoardDto
+      let localBoard: ScriptGenerationProgressBoardDto | null = null
+
       if (input.projectId) {
+        const userId = useAuthStore.getState().user?.id
+        if (userId) {
+          try {
+            const localContent = await window.api.workspace.readLocalContent(
+              userId,
+              input.projectId
+            )
+            localBoard = localContent?.scriptProgressBoard ?? null
+          } catch {
+            // ignore local read failure
+          }
+        }
+      }
+
+      if (
+        localBoard &&
+        shouldReusePersistedBoard(localBoard, input.plan, input.stageContractFingerprint)
+      ) {
+        nextBoard = localBoard
+      } else if (input.projectId) {
         const result = await apiGetProject(input.projectId)
         const snapshot = result.project
         if (

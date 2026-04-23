@@ -140,13 +140,16 @@ export const TruthOwnerMatrix: Record<TruthDomainType, DomainOwnership> = {
 
   /**
    * scriptRuntimeState — scenes written so far (ScriptSegmentDto[])
-   * Producer: MAIN (script-generation builds up ScriptSegmentDto[])
+   * Producer: SERVER (script-generation builds up ScriptSegmentDto[] via HTTP API)
    * Consumers: RENDERER (reads scene list for display, cannot modify scenes)
-   * Persister: PERSISTER (scenes persisted via IPC to project-store)
+   * Persister: PERSISTER (scenes persisted via HTTP to PocketBase)
    * displayOnly: none
+   *
+   * NOTE: Authority migrated to SERVER on 2026-04-22.
+   * MAIN no longer produces script runtime state.
    */
   [TruthDomain.SCRIPT_RUNTIME_STATE]: {
-    producer: TruthOwner.MAIN,
+    producer: TruthOwner.SERVER,
     consumers: [TruthOwner.RENDERER],
     persister: TruthOwner.PERSISTER
   },
@@ -287,13 +290,12 @@ export function validateTruthOwnerMatrix(): void {
     }
   }
 
-  // Verify MAIN is producer for all core truths
+  // Verify core truths have correct producers (MAIN or SERVER as appropriate)
   const coreTruths: TruthDomainType[] = [
     TruthDomain.STAGE,
     TruthDomain.BLOCKED_REASON,
     TruthDomain.RESUME_ELIGIBILITY,
-    TruthDomain.GENERATION_STATUS,
-    TruthDomain.SCRIPT_RUNTIME_STATE
+    TruthDomain.GENERATION_STATUS
   ]
 
   for (const domain of coreTruths) {
@@ -302,6 +304,13 @@ export function validateTruthOwnerMatrix(): void {
         `[TruthOwnerMatrix] Core truth "${domain}" must have MAIN as producer, got: ${TruthOwnerMatrix[domain].producer}`
       )
     }
+  }
+
+  // SCRIPT_RUNTIME_STATE has migrated to SERVER
+  if (TruthOwnerMatrix[TruthDomain.SCRIPT_RUNTIME_STATE].producer !== TruthOwner.SERVER) {
+    throw new Error(
+      `[TruthOwnerMatrix] SCRIPT_RUNTIME_STATE must have SERVER as producer, got: ${TruthOwnerMatrix[TruthDomain.SCRIPT_RUNTIME_STATE].producer}`
+    )
   }
 
   // Verify RENDERER is never a producer for any domain

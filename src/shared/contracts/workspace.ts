@@ -108,6 +108,20 @@ export interface SaveScriptRuntimeStateInputDto {
   scriptPostflight?: ScriptLedgerPostflightDto | null
 }
 
+/**
+ * 保存剧本生成结果到本地内容存储的输入
+ * 跨 preload / main / renderer 三层共享
+ */
+export interface SaveScriptGenerationResultInputDto {
+  userId: string
+  projectId: string
+  scriptDraft: ScriptSegmentDto[]
+  scriptProgressBoard: ScriptGenerationProgressBoardDto | null
+  scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
+  scriptStateLedger: ScriptStateLedgerDto | null
+  scriptRuntimeFailureHistory?: string[]
+}
+
 export interface AtomicSaveGenerationStateInputDto {
   projectId: string
   scriptProgressBoard: ScriptGenerationProgressBoardDto | null

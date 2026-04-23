@@ -6,48 +6,59 @@
  * POST /api/script-generation/resume    - 恢复暂停的生成
  * POST /api/script-generation/stop      - 强制停止生成
  * POST /api/script-generation/rewrite   - 单集重写
+ *
+ * 架构口径：server 只负责鉴权/扣积分/AI 调用并返回结果，
+ * 不再把完整剧本写入 PB。PB 只更新轻量 metadata。
+ * renderer 收到结果后写入本地内容真相源。
  */
 
 import { Router, Request, Response } from 'express'
 import { authMiddleware } from '../middleware/auth'
 import { CreditService } from '../../services/credit-service'
 import { ProjectRepository } from '../../infrastructure/pocketbase/project-repository'
-import { loadRuntimeProviderConfig, hasValidApiKey } from '../../infrastructure/runtime-env/provider-config'
+import {
+  loadRuntimeProviderConfig,
+  hasValidApiKey
+} from '../../infrastructure/runtime-env/provider-config'
 import { buildScriptGenerationExecutionPlan } from '../../application/script-generation/build-execution-plan'
 import { createInitialProgressBoard } from '../../application/script-generation/progress-board'
 import { startScriptGeneration } from '../../application/script-generation/start-script-generation'
 import type {
   ScriptGenerationProgressBoardDto,
   ScriptGenerationFailureResolutionDto,
-  ScriptEpisodeStatusDto,
   StartScriptGenerationInputDto
 } from '@shared/contracts/script-generation'
 import type { ScriptSegmentDto } from '@shared/contracts/workflow'
+import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
+import type { WorkflowStage } from '@shared/contracts/workflow'
+import { executeScriptRewrite } from '../../application/script-generation/rewrite/execute-script-rewrite'
+import { collectEpisodeGuardFailures } from '@shared/domain/script/screenplay-repair-guard'
 
 export const scriptsRouter = Router()
 
 const creditService = new CreditService()
 const projectRepo = new ProjectRepository()
 
-// Phase 8.2: 最大允许集数上限
 const MAX_TARGET_EPISODES = 2
+
+function getErrorMessage(error: unknown, fallback = 'unknown_error'): string {
+  return error instanceof Error ? error.message : String(error || fallback)
+}
 
 // ============================================================
 // Type Extensions
 // ============================================================
 
-declare global {
-  namespace Express {
-    interface Request {
-      creditDeduction?: {
-        userId: string
-        amount: number
-      }
-      user?: {
-        id: string
-        email: string
-        name: string
-      }
+declare module 'express-serve-static-core' {
+  interface Request {
+    creditDeduction?: {
+      userId: string
+      amount: number
+    }
+    user?: {
+      id: string
+      email: string
+      name: string
     }
   }
 }
@@ -65,6 +76,10 @@ interface RunningTask {
   totalEpisodes: number
   startedAt: Date
   abortController?: AbortController
+  // 存储生成结果（不再写 PB 大 JSON）
+  generatedScenes?: ScriptSegmentDto[]
+  failure?: ScriptGenerationFailureResolutionDto | null
+  ledger?: ScriptStateLedgerDto | null
 }
 
 const runningTasks = new Map<string, RunningTask>()
@@ -79,7 +94,11 @@ interface StartScriptRequest {
   targetEpisodes?: number
 }
 
-async function checkCreditsMiddleware(req: Request, res: Response, next: Function) {
+async function checkCreditsMiddleware(
+  req: Request,
+  res: Response,
+  next: () => void
+): Promise<void> {
   if (!req.user) {
     res.status(401).json({ error: 'not_authenticated', message: '请先登录' })
     return
@@ -104,7 +123,7 @@ async function checkCreditsMiddleware(req: Request, res: Response, next: Functio
 
     req.creditDeduction = { userId: req.user.id, amount: requiredCredits }
     next()
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'credit_check_failed', message: '积分检查失败' })
   }
 }
@@ -113,25 +132,50 @@ async function checkCreditsMiddleware(req: Request, res: Response, next: Functio
 // 真实剧本生成 Worker（Phase 8.2）
 // ============================================================
 
-async function persistBoard(
+/**
+ * 更新 PB 轻量 metadata（不写完整剧本）
+ * 调用方应 fire-and-forget，不阻塞主流程
+ */
+async function updateProjectMetadata(
   userId: string,
   projectId: string,
   board: ScriptGenerationProgressBoardDto,
-  generatedScenes: StartScriptGenerationInputDto['existingScript'],
-  failure?: ScriptGenerationFailureResolutionDto | null,
-  ledger?: unknown | null
+  startedAt: number
 ): Promise<void> {
   try {
-    await projectRepo.saveScriptState({
+    const completedCount = board.episodeStatuses.filter(
+      (e) => e.status === 'completed'
+    ).length
+    const totalCount = board.episodeStatuses.length
+
+    await projectRepo.saveProjectMeta({
       userId,
       projectId,
-      scriptDraft: generatedScenes,
-      scriptProgressBoard: board,
-      scriptFailureResolution: failure ?? null,
-      scriptStateLedger: (ledger as any) ?? null
+      stage: 'script' as WorkflowStage,
+      generationStatus: {
+        task: 'script',
+        stage: 'script',
+        title: '剧本生成中',
+        detail: `${completedCount}/${totalCount} 集已完成`,
+        startedAt,
+        estimatedSeconds: 0
+      },
+      visibleResult: {
+        status: (completedCount > 0 ? 'visible' : 'pending') as 'visible' | 'pending',
+        description:
+          completedCount > 0
+            ? `${completedCount} 集剧本已生成`
+            : '剧本生成中，暂无可用结果',
+        payload: null,
+        failureResolution: null,
+        updatedAt: new Date().toISOString()
+      }
     })
   } catch (err) {
-    console.error('[ScriptGeneration] Failed to persist board:', err)
+    console.error(
+      `[updateProjectMetadata] FAILED: projectId=${projectId} error=${getErrorMessage(err)}`
+    )
+    // 不抛错：metadata 更新失败不影响主流程
   }
 }
 
@@ -211,8 +255,7 @@ async function launchScriptGenerationWorker(
     existingScript
   }
 
-  // 异步后台执行 - track generated scenes incrementally
-  let incrementalScenes: ScriptSegmentDto[] = []
+  // 异步后台执行
   ;(async () => {
     try {
       const result = await startScriptGeneration(
@@ -225,7 +268,7 @@ async function launchScriptGenerationWorker(
           existingScript
         },
         {
-          onProgress: async (payload) => {
+          onProgress: (payload) => {
             const currentTask = runningTasks.get(projectId)
             if (!currentTask) return
 
@@ -234,17 +277,10 @@ async function launchScriptGenerationWorker(
               (e) => e.status === 'completed'
             ).length
             currentTask.completedEpisodes = completedCount
+            currentTask.generatedScenes = [...existingScript, ...payload.generatedScenes]
 
-            // Only persist board during progress, scenes come from incrementalScenes
-            const allScenes = [...existingScript, ...incrementalScenes]
-            await persistBoard(
-              userId,
-              projectId,
-              payload.board,
-              allScenes,
-              null,
-              null
-            )
+            // fire-and-forget：metadata 更新失败不阻塞生成 worker
+            void updateProjectMetadata(userId, projectId, payload.board, task.startedAt.getTime())
 
             console.log(
               `[ScriptGeneration] projectId=${projectId} phase=${payload.phase} detail=${payload.detail}`
@@ -257,25 +293,14 @@ async function launchScriptGenerationWorker(
       if (currentTask) {
         currentTask.board = result.board
         currentTask.completedEpisodes = result.generatedScenes.length
-        incrementalScenes = result.generatedScenes
-
-        if (result.success) {
-          currentTask.status = 'completed'
-        } else {
-          currentTask.status = 'failed'
-        }
+        currentTask.generatedScenes = [...existingScript, ...result.generatedScenes]
+        currentTask.failure = result.failure
+        currentTask.ledger = result.ledger
+        currentTask.status = result.success ? 'completed' : 'failed'
       }
 
-      // 最终落盘：写入完整剧本 + board + ledger + failure
-      const allScenes = [...existingScript, ...result.generatedScenes]
-      await persistBoard(
-        userId,
-        projectId,
-        result.board,
-        allScenes,
-        result.failure,
-        result.ledger
-      )
+      // 最终更新 metadata（fire-and-forget）
+      void updateProjectMetadata(userId, projectId, result.board, task.startedAt.getTime())
 
       // 成功后扣费：按实际完成的集数扣
       if (result.success && result.generatedScenes.length > 0) {
@@ -299,12 +324,20 @@ async function launchScriptGenerationWorker(
         `[ScriptGeneration] projectId=${projectId} finished success=${result.success} episodes=${result.generatedScenes.length}`
       )
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error || 'unknown_error')
-      console.error(`[ScriptGeneration] projectId=${projectId} fatal error: ${errorMessage}`)
+      console.error(`[ScriptGeneration] projectId=${projectId} fatal error: ${getErrorMessage(error)}`)
 
       const currentTask = runningTasks.get(projectId)
       if (currentTask) {
         currentTask.status = 'failed'
+      }
+    } finally {
+      // 延迟清理内存：给 renderer 轮询留出窗口，避免终态后立即 404
+      const finalTask = runningTasks.get(projectId)
+      if (finalTask && ['completed', 'failed', 'stopped'].includes(finalTask.status)) {
+        setTimeout(() => {
+          runningTasks.delete(projectId)
+          console.log(`[ScriptGeneration] Cleaned up task projectId=${projectId} after grace period`)
+        }, 60000)
       }
     }
   })()
@@ -359,12 +392,13 @@ scriptsRouter.post(
         message: `已启动 ${targetEpisodes} 集剧本生成任务，请通过 GET /api/projects/:projectId 轮询进度`
       })
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error || 'unknown_error')
-      const statusCode = errorMessage.includes('not_found') || errorMessage.includes('missing_')
-        ? 400
-        : errorMessage.includes('no_valid_api_key')
-          ? 503
-          : 500
+      const errorMessage = getErrorMessage(error)
+      const statusCode =
+        errorMessage.includes('not_found') || errorMessage.includes('missing_')
+          ? 400
+          : errorMessage.includes('no_valid_api_key')
+            ? 503
+            : 500
 
       res.status(statusCode).json({
         error: 'script_generation_start_failed',
@@ -376,51 +410,47 @@ scriptsRouter.post(
 )
 
 // ============================================================
-// 路由：POST /api/script-generation/pause
+  // 路由：POST /api/script-generation/pause
 // ============================================================
 
-scriptsRouter.post(
-  '/pause',
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    const { projectId } = req.body
+scriptsRouter.post('/pause', authMiddleware, async (req: Request, res: Response) => {
+  const { projectId } = req.body
 
-    if (!projectId || typeof projectId !== 'string') {
-      res.status(400).json({
-        error: 'missing_project_id',
-        message: '请提供项目 ID'
-      })
-      return
-    }
-
-    const task = runningTasks.get(projectId)
-    if (!task) {
-      res.status(404).json({
-        error: 'task_not_found',
-        message: '未找到该项目的生成任务'
-      })
-      return
-    }
-
-    if (task.status !== 'running') {
-      res.status(400).json({
-        error: 'cannot_pause',
-        message: `当前任务状态为 ${task.status}，无法暂停`
-      })
-      return
-    }
-
-    task.status = 'paused'
-
-    res.json({
-      success: true,
-      status: 'paused',
-      message: `已暂停剧本生成，当前已完成 ${task.completedEpisodes}/${task.totalEpisodes} 集`,
-      completedEpisodes: task.completedEpisodes,
-      totalEpisodes: task.totalEpisodes
+  if (!projectId || typeof projectId !== 'string') {
+    res.status(400).json({
+      error: 'missing_project_id',
+      message: '请提供项目 ID'
     })
+    return
   }
-)
+
+  const task = runningTasks.get(projectId)
+  if (!task) {
+    res.status(404).json({
+      error: 'task_not_found',
+      message: '未找到该项目的生成任务'
+    })
+    return
+  }
+
+  if (task.status !== 'running') {
+    res.status(400).json({
+      error: 'cannot_pause',
+      message: `当前任务状态为 ${task.status}，无法暂停`
+    })
+    return
+  }
+
+  task.status = 'paused'
+
+  res.json({
+    success: true,
+    status: 'paused',
+    message: `已暂停剧本生成，当前已完成 ${task.completedEpisodes}/${task.totalEpisodes} 集`,
+    completedEpisodes: task.completedEpisodes,
+    totalEpisodes: task.totalEpisodes
+  })
+})
 
 // ============================================================
 // 路由：POST /api/script-generation/resume
@@ -490,126 +520,192 @@ scriptsRouter.post(
 // 路由：POST /api/script-generation/stop
 // ============================================================
 
-scriptsRouter.post(
-  '/stop',
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    const { projectId } = req.body
+scriptsRouter.post('/stop', authMiddleware, async (req: Request, res: Response) => {
+  const { projectId } = req.body
 
-    if (!projectId || typeof projectId !== 'string') {
-      res.status(400).json({
-        error: 'missing_project_id',
-        message: '请提供项目 ID'
-      })
-      return
-    }
-
-    const task = runningTasks.get(projectId)
-    if (!task) {
-      res.status(404).json({
-        error: 'task_not_found',
-        message: '未找到该项目的生成任务'
-      })
-      return
-    }
-
-    task.status = 'stopped'
-
-    res.json({
-      success: true,
-      status: 'stopped',
-      message: `已强制停止剧本生成，当前已完成 ${task.completedEpisodes}/${task.totalEpisodes} 集`,
-      completedEpisodes: task.completedEpisodes,
-      totalEpisodes: task.totalEpisodes
+  if (!projectId || typeof projectId !== 'string') {
+    res.status(400).json({
+      error: 'missing_project_id',
+      message: '请提供项目 ID'
     })
+    return
   }
-)
+
+  const task = runningTasks.get(projectId)
+  if (!task) {
+    res.status(404).json({
+      error: 'task_not_found',
+      message: '未找到该项目的生成任务'
+    })
+    return
+  }
+
+  task.status = 'stopped'
+
+  res.json({
+    success: true,
+    status: 'stopped',
+    message: `已强制停止剧本生成，当前已完成 ${task.completedEpisodes}/${task.totalEpisodes} 集`,
+    completedEpisodes: task.completedEpisodes,
+    totalEpisodes: task.totalEpisodes
+  })
+})
 
 // ============================================================
 // 路由：POST /api/script-generation/rewrite
 // ============================================================
 
-scriptsRouter.post(
-  '/rewrite',
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    const { projectId, episodeNo } = req.body
+scriptsRouter.post('/rewrite', authMiddleware, async (req: Request, res: Response) => {
+  const { projectId, episodeNo } = req.body
 
-    if (!projectId || typeof projectId !== 'string') {
-      res.status(400).json({
-        error: 'missing_project_id',
-        message: '请提供项目 ID'
+  if (!projectId || typeof projectId !== 'string') {
+    res.status(400).json({
+      error: 'missing_project_id',
+      message: '请提供项目 ID'
+    })
+    return
+  }
+
+  if (!episodeNo || typeof episodeNo !== 'number' || episodeNo < 1) {
+    res.status(400).json({
+      error: 'invalid_episode_no',
+      message: '请提供有效的集数（正整数）'
+    })
+    return
+  }
+
+  if (!req.user) {
+    res.status(401).json({ error: 'not_authenticated', message: '请先登录' })
+    return
+  }
+
+  try {
+    const balance = await creditService.getBalance(req.user.id)
+    if (balance.balance < 1) {
+      res.status(402).json({
+        error: 'insufficient_credits',
+        message: `积分不足，单集重写需要 1 积分，当前余额 ${balance.balance}`,
+        balance: balance.balance,
+        required: 1
+      })
+      return
+    }
+  } catch {
+    res.status(500).json({ error: 'credit_check_failed', message: '积分检查失败' })
+    return
+  }
+
+  // 检查 AI 配置
+  const runtimeConfig = loadRuntimeProviderConfig()
+  if (!hasValidApiKey(runtimeConfig)) {
+    res.status(503).json({
+      error: 'ai_not_configured',
+      message: '服务器未配置 AI API Key'
+    })
+    return
+  }
+
+  try {
+    const project = await projectRepo.getProject(req.user.id, projectId)
+    if (!project) {
+      res.status(404).json({
+        error: 'project_not_found',
+        message: '项目不存在，或你没有权限访问'
       })
       return
     }
 
-    if (!episodeNo || typeof episodeNo !== 'number' || episodeNo < 1) {
-      res.status(400).json({
-        error: 'invalid_episode_no',
-        message: '请提供有效的集数（正整数）'
+    // 找到目标集
+    const targetScene = project.scriptDraft.find((s) => s.sceneNo === episodeNo)
+    if (!targetScene) {
+      res.status(404).json({
+        error: 'episode_not_found',
+        message: `第 ${episodeNo} 集不存在`
       })
       return
     }
 
-    if (!req.user) {
-      res.status(401).json({ error: 'not_authenticated', message: '请先登录' })
-      return
-    }
+    // 收集 guard failures
+    const failures = collectEpisodeGuardFailures(targetScene)
 
+    // 执行重写
+    const startedAt = Date.now()
+
+    const result = await executeScriptRewrite({
+      rewriteInput: {
+        episodeNo,
+        existingScript: project.scriptDraft,
+        failures,
+        storyIntent: project.storyIntent,
+        outline: project.outlineDraft ?? undefined,
+        characters: project.characterDrafts ?? undefined
+      },
+      runtimeConfig
+    })
+
+    // 扣积分
     try {
-      const balance = await creditService.getBalance(req.user.id)
-      if (balance.balance < 1) {
-        res.status(402).json({
-          error: 'insufficient_credits',
-          message: `积分不足，单集重写需要 1 积分，当前余额 ${balance.balance}`,
-          balance: balance.balance,
-          required: 1
-        })
-        return
-      }
-    } catch (error) {
-      res.status(500).json({ error: 'credit_check_failed', message: '积分检查失败' })
-      return
+      await creditService.deductCredits(req.user.id, 1, {
+        task: 'episode_rewrite',
+        projectId,
+        lane: 'rewrite',
+        model: 'rewrite',
+        durationMs: Date.now() - startedAt
+      })
+    } catch {
+      console.error('[Scripts] credit deduction failed, but rewrite already executed')
     }
 
-    // Phase 8.2: 单集重写暂未实现，返回占位
-    res.status(202).json({
+    // 返回结果给 renderer（不写 PB 完整剧本）
+    // renderer 收到后写本地 content store
+    res.json({
       success: true,
-      message: `已启动第 ${episodeNo} 集重写任务（Phase 8.2 单集重写待实现）`,
+      message: `第 ${episodeNo} 集已重写完成`,
       projectId,
-      episodeNo
+      episodeNo,
+      durationMs: Date.now() - startedAt,
+      // 完整剧本内容（renderer 收到后写本地 content store）
+      rewrittenScene: result.rewrittenScene,
+      ledger: result.ledger
+    })
+  } catch (error) {
+    console.error('[Scripts] rewrite failed:', error)
+    res.status(500).json({
+      error: 'rewrite_failed',
+      message: getErrorMessage(error, '单集重写失败')
     })
   }
-)
+})
 
 // ============================================================
 // 路由：GET /api/script-generation/status (调试口)
 // ============================================================
 
-scriptsRouter.get(
-  '/status/:projectId',
-  authMiddleware,
-  async (req: Request, res: Response) => {
-    const { projectId } = req.params
+scriptsRouter.get('/status/:projectId', authMiddleware, async (req: Request, res: Response) => {
+  const { projectId } = req.params
 
-    const task = runningTasks.get(projectId)
-    if (!task) {
-      res.status(404).json({
-        error: 'task_not_found',
-        message: '未找到该项目的生成任务'
-      })
-      return
-    }
-
-    res.json({
-      projectId: task.projectId,
-      userId: task.userId,
-      status: task.status,
-      totalEpisodes: task.totalEpisodes,
-      completedEpisodes: task.completedEpisodes,
-      startedAt: task.startedAt.toISOString(),
-      board: task.board,
-      progress: `${task.completedEpisodes}/${task.totalEpisodes} (${Math.round(task.completedEpisodes / task.totalEpisodes * 100)}%)`
+  const task = runningTasks.get(projectId)
+  if (!task) {
+    res.status(404).json({
+      error: 'task_not_found',
+      message: '未找到该项目的生成任务'
     })
+    return
   }
-)
+
+  // 返回完整结果给 renderer（含 generatedScenes，renderer 写本地 content store）
+  res.json({
+    projectId: task.projectId,
+    userId: task.userId,
+    status: task.status,
+    totalEpisodes: task.totalEpisodes,
+    completedEpisodes: task.completedEpisodes,
+    startedAt: task.startedAt.toISOString(),
+    board: task.board,
+    // 完整剧本内容（renderer 收到后写本地 content store）
+    generatedScenes: task.generatedScenes,
+    failure: task.failure,
+    ledger: task.ledger,
+    progress: `${task.completedEpisodes}/${task.totalEpisodes} (${Math.round((task.completedEpisodes / task.totalEpisodes) * 100)}%)`
+  })
+})
