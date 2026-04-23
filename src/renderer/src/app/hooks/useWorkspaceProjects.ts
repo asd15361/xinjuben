@@ -106,12 +106,12 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     const userId = useAuthStore.getState().user?.id
     if (!userId) throw new Error('未登录')
     await window.api.workspace.saveScriptDraft(userId, input.projectId, input.scriptDraft)
-    setActiveProject((prev) =>
-      prev && prev.id === input.projectId
-        ? { ...prev, scriptDraft: input.scriptDraft }
-        : prev
-    )
-    return activeProject
+    const next =
+      activeProject && activeProject.id === input.projectId
+        ? { ...activeProject, scriptDraft: input.scriptDraft }
+        : activeProject
+    setActiveProject(next)
+    return next
   }
 
   async function saveScriptRuntimeState(
@@ -125,18 +125,18 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
       scriptStateLedger: input.scriptStateLedger ?? null,
       scriptRuntimeFailureHistory: input.scriptRuntimeFailureHistory
     })
-    setActiveProject((prev) =>
-      prev && prev.id === input.projectId
+    const next =
+      activeProject && activeProject.id === input.projectId
         ? {
-            ...prev,
+            ...activeProject,
             scriptProgressBoard: input.scriptProgressBoard ?? null,
             scriptFailureResolution: input.scriptFailureResolution ?? null,
             scriptStateLedger: input.scriptStateLedger ?? null,
             scriptRuntimeFailureHistory: input.scriptRuntimeFailureHistory ?? []
           }
-        : prev
-    )
-    return activeProject
+        : activeProject
+    setActiveProject(next)
+    return next
   }
 
   async function createOutlineSeedFromProject(projectId: string): Promise<OutlineSeedDto | null> {

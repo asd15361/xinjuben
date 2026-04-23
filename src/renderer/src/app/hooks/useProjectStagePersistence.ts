@@ -14,6 +14,7 @@ export function useProjectStagePersistence(): void {
   const projectId = useWorkflowStore((s) => s.projectId)
   const chatMessages = useWorkflowStore((s) => s.chatMessages)
   const storyIntent = useWorkflowStore((s) => s.storyIntent)
+  const setGenerationNotice = useWorkflowStore((s) => s.setGenerationNotice)
   const outline = useStageStore((s) => s.outline)
   const characters = useStageStore((s) => s.characters)
   const segments = useStageStore((s) => s.segments)
@@ -116,7 +117,17 @@ export function useProjectStagePersistence(): void {
       lastScriptRef.current = payload
       const userId = useAuthStore.getState().user?.id
       if (!userId) return
-      void window.api.workspace.saveScriptDraft(userId, projectId, script)
+      void window.api.workspace
+        .saveScriptDraft(userId, projectId, script)
+        .catch((error: unknown) => {
+          console.error('[stage-persistence] saveScriptDraft failed', error)
+          setGenerationNotice({
+            kind: 'error',
+            title: '剧本草稿保存失败',
+            detail:
+              '本地自动保存剧本草稿时出错，修改可能丢失。请勿刷新页面，可尝试手动保存。'
+          })
+        })
     }, 400)
 
     return () => window.clearTimeout(timer)
