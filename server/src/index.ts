@@ -16,6 +16,9 @@ import { detailedOutlineRouter } from './api/routes/detailed-outline'
 import { scriptsRouter } from './api/routes/scripts'
 import { projectsRouter } from './api/routes/projects'
 import { payRouter } from './api/routes/pay'
+import { stageContractRouter } from './api/routes/stage-contract'
+import { formalFactRouter } from './api/routes/formal-fact'
+import { scriptAuditRouter } from './api/routes/script-audit'
 
 // 加载环境变量
 dotenv.config()
@@ -27,12 +30,15 @@ const PORT = process.env.PORT || 3000
 app.use(helmet())
 
 // CORS 配置
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://xinjuben.com', 'https://app.xinjuben.com']
-    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
-  credentials: true
-}))
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? ['https://xinjuben.com', 'https://app.xinjuben.com']
+        : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001'],
+    credentials: true
+  })
+)
 
 // JSON 解析
 app.use(express.json({ limit: '10mb' }))
@@ -55,6 +61,9 @@ app.use('/api/generate', generateRouter)
 app.use('/api/generate', outlineCharactersRouter)
 app.use('/api/generate', detailedOutlineRouter)
 app.use('/api/script-generation', scriptsRouter)
+app.use('/api/stage', stageContractRouter)
+app.use('/api/formal-fact', formalFactRouter)
+app.use('/api/script-audit', scriptAuditRouter)
 app.use('/api/pay', payRouter)
 
 // 404 处理
@@ -66,7 +75,7 @@ app.use((req, res) => {
 })
 
 // 错误处理
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response) => {
   console.error('[Server] Error:', err)
 
   res.status(500).json({
