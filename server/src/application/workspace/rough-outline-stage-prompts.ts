@@ -5,7 +5,7 @@ import { renderAnchorBlock } from './generation-stage-prompt-anchors'
 import { formatSevenQuestionsAsNarrativeConstraint } from './generate-seven-questions-prompt'
 import { formatCharacterProfileSummary } from './generate-character-profile-prompt'
 import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
-import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
+import type { FactionMatrixDto, FactionDto, CharacterPlaceholderDto } from '@shared/contracts/faction-matrix'
 import type { PromptVariables } from '@shared/contracts/prompt-variables'
 
 export type RoughOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
@@ -135,7 +135,7 @@ function pickRelevantFactionsForRange(
   factionMatrix: FactionMatrixDto,
   startEpisode: number,
   endEpisode: number
-): string[] {
+): FactionDto[] {
   const relevantIds = new Set<string>()
 
   for (const entry of factionMatrix.factionTimetable || []) {
@@ -175,7 +175,7 @@ function renderFactionMatrixSummary(
     for (const branch of faction.branches.slice(0, 2)) {
       const members = branch.characters
         .slice(0, 4)
-        .map((character) => `${character.name}(${character.roleInFaction})`)
+        .map((character: CharacterPlaceholderDto) => `${character.name}(${character.roleInFaction})`)
         .join('、')
       lines.push(`  ${branch.name}：${members}`)
     }
