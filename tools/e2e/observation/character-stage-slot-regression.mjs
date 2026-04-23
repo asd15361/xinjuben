@@ -27,7 +27,9 @@ function normalizeText(value) {
 }
 
 function escapeForAttribute(value) {
-  return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
 }
 
 async function copyDir(src, dst) {
@@ -53,7 +55,8 @@ async function readMaybeText(locator) {
 
 async function waitForRendererApi(page) {
   await page.waitForFunction(
-    () => Boolean(window.api?.workspace?.listProjects) && Boolean(window.api?.workspace?.getProject),
+    () =>
+      Boolean(window.api?.workspace?.listProjects) && Boolean(window.api?.workspace?.getProject),
     { timeout: UI_TIMEOUT_MS }
   )
 }
@@ -79,7 +82,10 @@ async function ensureCharacterStage(page) {
     return
   }
 
-  const characterButton = page.getByRole('button').filter({ hasText: /人物小传/ }).first()
+  const characterButton = page
+    .getByRole('button')
+    .filter({ hasText: /人物小传/ })
+    .first()
   await characterButton.waitFor({ state: 'visible', timeout: UI_TIMEOUT_MS })
   await characterButton.click()
 }
@@ -113,14 +119,18 @@ async function collectExpectedSnapshot(page, projectId) {
 
 async function collectUiSlotCard(page, entityId) {
   const escapedId = escapeForAttribute(entityId)
-  const card = page.locator(`[data-testid="character-slot-light-card"][data-entity-id="${escapedId}"]`)
+  const card = page.locator(
+    `[data-testid="character-slot-light-card"][data-entity-id="${escapedId}"]`
+  )
   await card.waitFor({ state: 'visible', timeout: UI_TIMEOUT_MS })
 
   return {
     entityId,
     name: await readMaybeText(card.locator('[data-testid="character-light-card-name"]')),
     slotBadge: await readMaybeText(card.locator('[data-testid="character-light-card-slot-badge"]')),
-    factionRole: await readMaybeText(card.locator('[data-testid="character-light-card-faction-role"]')),
+    factionRole: await readMaybeText(
+      card.locator('[data-testid="character-light-card-faction-role"]')
+    ),
     currentFunction: await readMaybeText(
       card.locator('[data-testid="character-light-card-detail-current-function"]')
     ),
@@ -143,14 +153,19 @@ function compareSlotCard(expected, actual) {
   if (!actual.slotBadge?.includes('势力人物位')) {
     failures.push('slot_badge_missing')
   }
-  if (expected.factionRole && normalizeText(actual.factionRole) !== normalizeText(expected.factionRole)) {
+  if (
+    expected.factionRole &&
+    normalizeText(actual.factionRole) !== normalizeText(expected.factionRole)
+  ) {
     failures.push(`faction_role_mismatch:${expected.factionRole}->${actual.factionRole}`)
   }
   if (
     expected.currentFunction &&
     !normalizeText(actual.currentFunction).includes(normalizeText(expected.currentFunction))
   ) {
-    failures.push(`current_function_mismatch:${expected.currentFunction}->${actual.currentFunction}`)
+    failures.push(
+      `current_function_mismatch:${expected.currentFunction}->${actual.currentFunction}`
+    )
   }
   if (
     expected.publicIdentity &&
@@ -161,7 +176,10 @@ function compareSlotCard(expected, actual) {
   if (expected.stance && !normalizeText(actual.stance).includes(normalizeText(expected.stance))) {
     failures.push(`stance_mismatch:${expected.stance}->${actual.stance}`)
   }
-  if (expected.voiceStyle && !normalizeText(actual.voiceStyle).includes(normalizeText(expected.voiceStyle))) {
+  if (
+    expected.voiceStyle &&
+    !normalizeText(actual.voiceStyle).includes(normalizeText(expected.voiceStyle))
+  ) {
     failures.push(`voice_style_mismatch:${expected.voiceStyle}->${actual.voiceStyle}`)
   }
 
@@ -270,4 +288,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-

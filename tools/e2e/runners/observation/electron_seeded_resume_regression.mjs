@@ -95,8 +95,7 @@ async function main() {
 
   const app = await electron.launch({
     args: [mainEntry],
-    env: { ...process.env,
-      XINJUBEN_APP_MODE: 'e2e', E2E_USER_DATA_DIR: userDataDir }
+    env: { ...process.env, XINJUBEN_APP_MODE: 'e2e', E2E_USER_DATA_DIR: userDataDir }
   })
 
   try {
@@ -319,5 +318,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-
-

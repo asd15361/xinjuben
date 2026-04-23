@@ -21,4 +21,3 @@ export function buildRunnerEvidenceMap() {
     getRunnerTaxonomy().map((runner) => [runner.name, buildEvidencePath(runner.evidenceKey)])
   )
 }
-

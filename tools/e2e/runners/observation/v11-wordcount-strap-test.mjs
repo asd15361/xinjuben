@@ -78,7 +78,9 @@ async function waitForProject(projectFile, predicate, timeoutMs, label) {
       const project = Object.values(data.projects || {})[0] || null
       if (project && (await predicate(project))) return project
       lastProject = project
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     await new Promise((resolve) => setTimeout(resolve, 1200))
   }
   throw new Error(
@@ -94,10 +96,11 @@ function computeEpisodeStats(scenes) {
     const screenplay = String(scene.screenplay || '')
     const total = screenplay.replace(/\s+/g, '').length
     const screenplayRaw = screenplay.length
-    const legacyAggregate = ((scene.action || '') + (scene.dialogue || '') + (scene.emotion || '')).length
+    const legacyAggregate = ((scene.action || '') + (scene.dialogue || '') + (scene.emotion || ''))
+      .length
     const screenplayScenes = (scene.screenplayScenes || []).map((s) => ({
       code: s.sceneCode || '',
-      bodyLen: ((s.body || '') || '').length
+      bodyLen: (s.body || '' || '').length
     }))
     return {
       episode: i + 1,
@@ -118,7 +121,16 @@ function summarizeResults(stats) {
   const min = chars.length ? Math.min(...chars) : 0
   const max = chars.length ? Math.max(...chars) : 0
   const avg = chars.length ? Math.round(chars.reduce((a, b) => a + b, 0) / chars.length) : 0
-  return { total: stats.length, pass, thin, fat, passRate: stats.length ? `${pass}/${stats.length}` : '0/0', minChars: min, maxChars: max, avgChars: avg }
+  return {
+    total: stats.length,
+    pass,
+    thin,
+    fat,
+    passRate: stats.length ? `${pass}/${stats.length}` : '0/0',
+    minChars: min,
+    maxChars: max,
+    avgChars: avg
+  }
 }
 
 async function main() {
@@ -135,10 +147,14 @@ async function main() {
     throw new Error(`failed_to_load_snapshot:${snapshotPath}:${err.message}`)
   }
 
-  console.error(`[${RUN_LABEL}] Loaded snapshot: ${snapshot.name || snapshot.id} (outlineEpisodes: ${snapshot.outlineDraft?.summaryEpisodes?.length})`)
+  console.error(
+    `[${RUN_LABEL}] Loaded snapshot: ${snapshot.name || snapshot.id} (outlineEpisodes: ${snapshot.outlineDraft?.summaryEpisodes?.length})`
+  )
 
   // Prepare fresh output dir
-  const { outDir, userDataDir } = await prepareE2EOutDir(repoRoot, RUN_LABEL, { keepLatestPerFamily: 20 })
+  const { outDir, userDataDir } = await prepareE2EOutDir(repoRoot, RUN_LABEL, {
+    keepLatestPerFamily: 20
+  })
   const caseId = path.basename(userDataDir).replace(/^userdata-/, '')
 
   // Build a minimal userdata skeleton (workspace dir)
@@ -212,7 +228,10 @@ async function main() {
 
     // Run script generation via API — wrapped in a timeout so Electron crashes don't hang the test
     // page.evaluate timeout: 基础 20 分钟，每超 10 集加 30 分钟
-    const SCRIPT_GEN_TIMEOUT_MS = Math.max(1_200_000, 1_200_000 + Math.floor((TARGET_EPISODES - 10) / 10) * 1_800_000)
+    const SCRIPT_GEN_TIMEOUT_MS = Math.max(
+      1_200_000,
+      1_200_000 + Math.floor((TARGET_EPISODES - 10) / 10) * 1_800_000
+    )
     const scriptResult = await Promise.race([
       page.evaluate(
         async ({ projectId, targetEpisodes }) => {
@@ -229,7 +248,11 @@ async function main() {
           })
 
           if (!plan.ready) {
-            return { ready: false, blockedBy: plan.blockedBy || [], contract: plan.contract || null }
+            return {
+              ready: false,
+              blockedBy: plan.blockedBy || [],
+              contract: plan.contract || null
+            }
           }
 
           const result = await window.api.workflow.startScriptGeneration({
@@ -248,8 +271,13 @@ async function main() {
             existingScript: []
           })
 
-          await window.api.workspace.saveScriptDraft({ projectId, scriptDraft: result.generatedScenes || [] })
-          const resume = await window.api.workflow.resolveScriptGenerationResume({ board: result.board })
+          await window.api.workspace.saveScriptDraft({
+            projectId,
+            scriptDraft: result.generatedScenes || []
+          })
+          const resume = await window.api.workflow.resolveScriptGenerationResume({
+            board: result.board
+          })
           await window.api.workspace.saveScriptRuntimeState({
             projectId,
             scriptProgressBoard: result.board,
@@ -272,7 +300,10 @@ async function main() {
         { projectId: seededProjectId, targetEpisodes: TARGET_EPISODES }
       ),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`script_evaluate_timeout:${SCRIPT_GEN_TIMEOUT_MS}ms`)), SCRIPT_GEN_TIMEOUT_MS)
+        setTimeout(
+          () => reject(new Error(`script_evaluate_timeout:${SCRIPT_GEN_TIMEOUT_MS}ms`)),
+          SCRIPT_GEN_TIMEOUT_MS
+        )
       )
     ]).catch((err) => {
       console.error(`[${RUN_LABEL}] page.evaluate threw: ${err.message}`)
@@ -281,13 +312,19 @@ async function main() {
 
     if (!scriptResult.ready) {
       if (scriptResult.timeout) {
-        console.error(`[${RUN_LABEL}] API timed out after ${SCRIPT_GEN_TIMEOUT_MS}ms — Electron may have crashed during generation`)
+        console.error(
+          `[${RUN_LABEL}] API timed out after ${SCRIPT_GEN_TIMEOUT_MS}ms — Electron may have crashed during generation`
+        )
         throw new Error(`script_evaluate_timeout:${scriptResult.error || 'unknown'}`)
       }
-      throw new Error(`script_plan_not_ready:${JSON.stringify({ blockedBy: scriptResult.blockedBy, contract: scriptResult.contract })}`)
+      throw new Error(
+        `script_plan_not_ready:${JSON.stringify({ blockedBy: scriptResult.blockedBy, contract: scriptResult.contract })}`
+      )
     }
 
-    console.error(`[${RUN_LABEL}] API returned: generatedScenes=${scriptResult.generatedScenes}, success=${scriptResult.success}`)
+    console.error(
+      `[${RUN_LABEL}] API returned: generatedScenes=${scriptResult.generatedScenes}, success=${scriptResult.success}`
+    )
 
     // Wait for generation to complete (poll projects.json until no generationStatus)
     const finalProject = await waitForProject(
@@ -328,7 +365,9 @@ async function main() {
 
     // Print summary to stdout (JSON for programmatic parsing)
     console.log(JSON.stringify(report, null, 2))
-    console.error(`[${RUN_LABEL}] Done. Pass: ${summary.passRate} (${summary.minChars}-${summary.maxChars} chars, avg ${summary.avgChars})`)
+    console.error(
+      `[${RUN_LABEL}] Done. Pass: ${summary.passRate} (${summary.minChars}-${summary.maxChars} chars, avg ${summary.avgChars})`
+    )
   } finally {
     await app.close()
   }
@@ -338,5 +377,3 @@ main().catch((error) => {
   console.error(`[${RUN_LABEL}] ERROR:`, error.message)
   process.exitCode = 1
 })
-
-

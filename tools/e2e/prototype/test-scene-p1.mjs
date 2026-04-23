@@ -19,18 +19,45 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..')
 
 // ── Dynamic imports (TypeScript files via file:// on Windows) ──────────────────
 
-const scenePromptPath    = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'script-generation', 'prompt', 'create-scene-generation-prompt.ts')
-const generateTextPath   = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'ai', 'generate-text.ts')
-const parseScenePath     = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'script-generation', 'runtime', 'parse-generated-scene.ts')
-const providerConfigPath = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'infrastructure', 'runtime-env', 'provider-config.ts')
+const scenePromptPath =
+  'file://' +
+  path.resolve(
+    REPO_ROOT,
+    'src',
+    'main',
+    'application',
+    'script-generation',
+    'prompt',
+    'create-scene-generation-prompt.ts'
+  )
+const generateTextPath =
+  'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'ai', 'generate-text.ts')
+const parseScenePath =
+  'file://' +
+  path.resolve(
+    REPO_ROOT,
+    'src',
+    'main',
+    'application',
+    'script-generation',
+    'runtime',
+    'parse-generated-scene.ts'
+  )
+const providerConfigPath =
+  'file://' +
+  path.resolve(REPO_ROOT, 'src', 'main', 'infrastructure', 'runtime-env', 'provider-config.ts')
 
-const [{ createSceneGenerationPrompt, assembleScenesForEpisode }, { generateTextWithRuntimeRouter }, { parseGeneratedScene }, { loadRuntimeProviderConfig }] =
-  await Promise.all([
-    import(scenePromptPath),
-    import(generateTextPath),
-    import(parseScenePath),
-    import(providerConfigPath)
-  ])
+const [
+  { createSceneGenerationPrompt, assembleScenesForEpisode },
+  { generateTextWithRuntimeRouter },
+  { parseGeneratedScene },
+  { loadRuntimeProviderConfig }
+] = await Promise.all([
+  import(scenePromptPath),
+  import(generateTextPath),
+  import(parseScenePath),
+  import(providerConfigPath)
+])
 
 const providerConfig = loadRuntimeProviderConfig()
 
@@ -65,23 +92,35 @@ const EP1_SCENES = [
 
 const FORMAT_RULES = {
   hasEpisodeHeading: (text) => /第[一二三四五六七八九十百零\d]+集/.test(text),
-  hasSceneHeading:   (text) => /^\d+\-\d+\s+/.test(text.trim().split('\n')[0]),
-  hasCharacterRoster: (text) => text.trim().split('\n').some(l => /^人物[：:]/.test(l.trim())),
-  hasDialogue:        (text) => text.trim().split('\n').some(l => /^[^\s△：:（）()]{1,16}[：:]/.test(l.trim())),
-  hasAction:          (text) => text.includes('△'),
-  hasADE:             (text) => /Action[:：]|Dialogue[:：]|Emotion[:：]/i.test(text)
+  hasSceneHeading: (text) => /^\d+\-\d+\s+/.test(text.trim().split('\n')[0]),
+  hasCharacterRoster: (text) =>
+    text
+      .trim()
+      .split('\n')
+      .some((l) => /^人物[：:]/.test(l.trim())),
+  hasDialogue: (text) =>
+    text
+      .trim()
+      .split('\n')
+      .some((l) => /^[^\s△：:（）()]{1,16}[：:]/.test(l.trim())),
+  hasAction: (text) => text.includes('△'),
+  hasADE: (text) => /Action[:：]|Dialogue[:：]|Emotion[:：]/i.test(text)
 }
 
 function validateFormat(raw) {
-  const lines = raw.trim().split('\n').map(l => l.trim()).filter(Boolean)
+  const lines = raw
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
   return {
-    noEpisodeHeading:   !FORMAT_RULES.hasEpisodeHeading(raw),
+    noEpisodeHeading: !FORMAT_RULES.hasEpisodeHeading(raw),
     firstLineIsSceneHeading: FORMAT_RULES.hasSceneHeading(raw),
     hasCharacterRoster: FORMAT_RULES.hasCharacterRoster(raw),
-    hasDialogue:        FORMAT_RULES.hasDialogue(raw),
-    hasAction:          FORMAT_RULES.hasAction(raw),
-    noADE:              !FORMAT_RULES.hasADE(raw),
-    firstLine:          lines[0] || '',
+    hasDialogue: FORMAT_RULES.hasDialogue(raw),
+    hasAction: FORMAT_RULES.hasAction(raw),
+    noADE: !FORMAT_RULES.hasADE(raw),
+    firstLine: lines[0] || ''
   }
 }
 
@@ -111,17 +150,26 @@ for (const scene of EP1_SCENES) {
 
   try {
     const result = await generateTextWithRuntimeRouter(
-      { task: 'episode_script', prompt, preferredLane: 'primary', allowFallback: false, temperature: 0.45, timeoutMs: 60000 },
+      {
+        task: 'episode_script',
+        prompt,
+        preferredLane: 'primary',
+        allowFallback: false,
+        temperature: 0.45,
+        timeoutMs: 60000
+      },
       providerConfig
     )
 
-    const raw  = result.text
-    const fmt  = validateFormat(raw)
+    const raw = result.text
+    const fmt = validateFormat(raw)
     const chars = charCount(raw)
     const budget = scene.budgetChars
 
     console.log(`Output: ${chars} chars (budget ${budget}) ${chars > budget ? '⚠️ OVER' : '✅'}`)
-    console.log(`Format: noEpisode=${fmt.noEpisodeHeading} sceneHeading=${fmt.firstLineIsSceneHeading} roster=${fmt.hasCharacterRoster} dialogue=${fmt.hasDialogue} action=${fmt.hasAction} noADE=${fmt.noADE}`)
+    console.log(
+      `Format: noEpisode=${fmt.noEpisodeHeading} sceneHeading=${fmt.firstLineIsSceneHeading} roster=${fmt.hasCharacterRoster} dialogue=${fmt.hasDialogue} action=${fmt.hasAction} noADE=${fmt.noADE}`
+    )
 
     sceneResults.push({ sceneCode: scene.sceneCode, raw, chars, fmt, budget, success: true })
     fs.writeFileSync(path.join(outDir, `ep1-${scene.sceneCode}-raw.txt`), raw, 'utf8')
@@ -134,18 +182,23 @@ for (const scene of EP1_SCENES) {
 // ── Assembly ──────────────────────────────────────────────────────────────────
 
 console.log('\n### Assembly')
-const successful = sceneResults.filter(r => r.success)
+const successful = sceneResults.filter((r) => r.success)
 if (successful.length !== EP1_SCENES.length) {
   console.log('Skipped — not all scenes succeeded')
   process.exit(1)
 }
 
-const assembled = assembleScenesForEpisode(1, successful.map(r => r.raw))
+const assembled = assembleScenesForEpisode(
+  1,
+  successful.map((r) => r.raw)
+)
 const assembledFmt = validateFormat(assembled)
 const assembledChars = charCount(assembled)
 
 console.log(`Assembled: ${assembled.length} raw chars | ${assembledChars} charCount`)
-console.log(`Format: noEpisode=${assembledFmt.noEpisodeHeading} sceneHeading=${assembledFmt.firstLineIsSceneHeading} roster=${assembledFmt.hasCharacterRoster} dialogue=${assembledFmt.hasDialogue} noADE=${assembledFmt.noADE}`)
+console.log(
+  `Format: noEpisode=${assembledFmt.noEpisodeHeading} sceneHeading=${assembledFmt.firstLineIsSceneHeading} roster=${assembledFmt.hasCharacterRoster} dialogue=${assembledFmt.hasDialogue} noADE=${assembledFmt.noADE}`
+)
 console.log(`First line: "${assembledFmt.firstLine}"`)
 
 fs.writeFileSync(path.join(outDir, 'ep1-assembled.txt'), assembled, 'utf8')
@@ -160,7 +213,9 @@ try {
   console.log(`screenplayScenes.length: ${parsed.screenplayScenes?.length ?? 0}`)
   if (parsed.screenplayScenes) {
     for (const s of parsed.screenplayScenes) {
-      console.log(`  ${s.sceneCode}: heading="${s.sceneHeading}" roster=${JSON.stringify(s.characterRoster)} bodyLen=${s.body?.length ?? 'N/A'}`)
+      console.log(
+        `  ${s.sceneCode}: heading="${s.sceneHeading}" roster=${JSON.stringify(s.characterRoster)} bodyLen=${s.body?.length ?? 'N/A'}`
+      )
     }
   }
   fs.writeFileSync(path.join(outDir, 'ep1-parsed.json'), JSON.stringify(parsed, null, 2), 'utf8')
@@ -177,16 +232,19 @@ let qualityReport
 try {
   // Dynamic import to avoid pulling in the entire module graph
   const [{ inspectScreenplayQualityEpisode }] = await Promise.all([
-    import('file://' + path.resolve(REPO_ROOT, 'src', 'shared', 'domain', 'script', 'screenplay-quality.ts'))
+    import(
+      'file://' +
+        path.resolve(REPO_ROOT, 'src', 'shared', 'domain', 'script', 'screenplay-quality.ts')
+    )
   ])
 
   qualityReport = inspectScreenplayQualityEpisode({
-    sceneNo:           parsed.sceneNo,
-    screenplay:        parsed.screenplay,
-    action:            parsed.action,
-    dialogue:          parsed.dialogue,
-    emotion:           parsed.emotion,
-    screenplayScenes:  parsed.screenplayScenes
+    sceneNo: parsed.sceneNo,
+    screenplay: parsed.screenplay,
+    action: parsed.action,
+    dialogue: parsed.dialogue,
+    emotion: parsed.emotion,
+    screenplayScenes: parsed.screenplayScenes
   })
 
   console.log(`problems: ${JSON.stringify(qualityReport.problems)}`)
@@ -199,7 +257,11 @@ try {
     console.log(`  weakEpisodes: ${JSON.stringify(qualityReport.officialQuality.weakEpisodes)}`)
   }
 
-  fs.writeFileSync(path.join(outDir, 'ep1-quality.json'), JSON.stringify(qualityReport, null, 2), 'utf8')
+  fs.writeFileSync(
+    path.join(outDir, 'ep1-quality.json'),
+    JSON.stringify(qualityReport, null, 2),
+    'utf8'
+  )
 } catch (err) {
   console.error(`inspectScreenplayQualityEpisode ERROR: ${err.message}`)
   fs.writeFileSync(path.join(outDir, 'ep1-quality-error.txt'), String(err), 'utf8')
@@ -209,11 +271,12 @@ try {
 // ── Per-scene char count breakdown ───────────────────────────────────────────
 
 console.log('\n### Per-Scene Breakdown')
-const perSceneChars = parsed.screenplayScenes?.map((s, i) => {
-  const raw = successful[i]?.raw ?? ''
-  const bodyLen = s.body?.length ?? charCount(raw)
-  return { sceneCode: s.sceneCode, bodyLen, rawChars: charCount(raw) }
-}) ?? []
+const perSceneChars =
+  parsed.screenplayScenes?.map((s, i) => {
+    const raw = successful[i]?.raw ?? ''
+    const bodyLen = s.body?.length ?? charCount(raw)
+    return { sceneCode: s.sceneCode, bodyLen, rawChars: charCount(raw) }
+  }) ?? []
 for (const sc of perSceneChars) {
   console.log(`  ${sc.sceneCode}: ${sc.bodyLen} body chars (raw: ${sc.rawChars})`)
 }
@@ -224,34 +287,59 @@ console.log('\n' + '═'.repeat(70))
 console.log('SUMMARY')
 console.log('═'.repeat(70))
 
-const allFmtPass = sceneResults.every(r => r.success && r.fmt.noEpisodeHeading && r.fmt.firstLineIsSceneHeading && r.fmt.hasCharacterRoster && r.fmt.hasDialogue && r.fmt.hasAction && r.fmt.noADE)
+const allFmtPass = sceneResults.every(
+  (r) =>
+    r.success &&
+    r.fmt.noEpisodeHeading &&
+    r.fmt.firstLineIsSceneHeading &&
+    r.fmt.hasCharacterRoster &&
+    r.fmt.hasDialogue &&
+    r.fmt.hasAction &&
+    r.fmt.noADE
+)
 
 console.log(`Ep1 scenes generated: ${sceneResults.length}`)
-console.log(`All scenes in budget: ${sceneResults.filter(r => r.success && r.chars <= r.budget).length}/${sceneResults.length}`)
-console.log(`Assembly format OK: ${assembledFmt.noEpisodeHeading && assembledFmt.hasCharacterRoster && assembledFmt.hasDialogue}`)
-console.log(`parseGeneratedScene OK: screenplayScenes.length=${parsed.screenplayScenes?.length ?? 0}`)
+console.log(
+  `All scenes in budget: ${sceneResults.filter((r) => r.success && r.chars <= r.budget).length}/${sceneResults.length}`
+)
+console.log(
+  `Assembly format OK: ${assembledFmt.noEpisodeHeading && assembledFmt.hasCharacterRoster && assembledFmt.hasDialogue}`
+)
+console.log(
+  `parseGeneratedScene OK: screenplayScenes.length=${parsed.screenplayScenes?.length ?? 0}`
+)
 console.log(`quality pass: ${qualityReport.officialQuality?.pass ?? 'N/A'}`)
-console.log(`quality problems: ${qualityReport.problems.length === 0 ? 'none' : qualityReport.problems.join(', ')}`)
+console.log(
+  `quality problems: ${qualityReport.problems.length === 0 ? 'none' : qualityReport.problems.join(', ')}`
+)
 console.log(`total charCount (assembled): ${assembledChars}`)
 
-fs.writeFileSync(path.join(outDir, 'results.json'), JSON.stringify({
-  E2E_CASE_ID,
-  sceneResults,
-  assembledChars,
-  assembledFirstLine: assembledFmt.firstLine,
-  parsed: {
-    sceneNo: parsed.sceneNo,
-    screenplayScenesCount: parsed.screenplayScenes?.length ?? 0,
-    screenplayScenes: parsed.screenplayScenes
-  },
-  qualityReport: {
-    problems: qualityReport.problems,
-    charCount: qualityReport.charCount,
-    sceneCount: qualityReport.sceneCount,
-    officialQuality: qualityReport.officialQuality
-  },
-  perSceneChars,
-  timestamp: new Date().toISOString()
-}, null, 2), 'utf8')
+fs.writeFileSync(
+  path.join(outDir, 'results.json'),
+  JSON.stringify(
+    {
+      E2E_CASE_ID,
+      sceneResults,
+      assembledChars,
+      assembledFirstLine: assembledFmt.firstLine,
+      parsed: {
+        sceneNo: parsed.sceneNo,
+        screenplayScenesCount: parsed.screenplayScenes?.length ?? 0,
+        screenplayScenes: parsed.screenplayScenes
+      },
+      qualityReport: {
+        problems: qualityReport.problems,
+        charCount: qualityReport.charCount,
+        sceneCount: qualityReport.sceneCount,
+        officialQuality: qualityReport.officialQuality
+      },
+      perSceneChars,
+      timestamp: new Date().toISOString()
+    },
+    null,
+    2
+  ),
+  'utf8'
+)
 
 console.log(`\nEvidence: ${outDir}`)

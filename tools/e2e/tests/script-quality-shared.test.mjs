@@ -167,5 +167,3 @@ test('buildCaseResult keeps pre-quality failures out of postflight attribution',
     assert.equal(result.failure_layer, scenario.expectedLayer, scenario.name)
   }
 })
-
-

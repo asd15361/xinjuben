@@ -39,14 +39,14 @@ async function main() {
 
     // Show thinnest 2 episodes
     const sorted = [...scenes].sort((a, b) => {
-      const ca = ((a.action||'')+(a.dialogue||'')+(a.emotion||'')).length
-      const cb = ((b.action||'')+(b.dialogue||'')+(b.emotion||'')).length
+      const ca = ((a.action || '') + (a.dialogue || '') + (a.emotion || '')).length
+      const cb = ((b.action || '') + (b.dialogue || '') + (b.emotion || '')).length
       return ca - cb
     })
 
     console.log('\n-- 2 THINNEST episodes --')
     for (const ep of sorted.slice(0, 2)) {
-      const total = ((ep.action||'')+(ep.dialogue||'')+(ep.emotion||'')).length
+      const total = ((ep.action || '') + (ep.dialogue || '') + (ep.emotion || '')).length
       const sp = ep.screenplay || ''
       console.log(`\n[Ep${ep.sceneNo}] total=${total} chars, screenplayLen=${sp.length}`)
       console.log('--- screenplay (first 600 chars) ---')
@@ -57,7 +57,7 @@ async function main() {
     // Show fattest 2 episodes
     console.log('\n-- 2 FATTEST episodes --')
     for (const ep of sorted.slice(-2).reverse()) {
-      const total = ((ep.action||'')+(ep.dialogue||'')+(ep.emotion||'')).length
+      const total = ((ep.action || '') + (ep.dialogue || '') + (ep.emotion || '')).length
       const sp = ep.screenplay || ''
       console.log(`\n[Ep${ep.sceneNo}] total=${total} chars, screenplayLen=${sp.length}`)
       console.log('--- screenplay (first 800 chars) ---')
@@ -72,7 +72,7 @@ async function main() {
       sceneCounts[cnt] = (sceneCounts[cnt] || 0) + 1
     }
     console.log('\n-- scene count distribution --')
-    for (const [cnt, n] of Object.entries(sceneCounts).sort((a,b) => a[0]-b[0])) {
+    for (const [cnt, n] of Object.entries(sceneCounts).sort((a, b) => a[0] - b[0])) {
       console.log(`  ${cnt} scenes: ${n} episodes`)
     }
   }

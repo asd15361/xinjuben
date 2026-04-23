@@ -10,7 +10,15 @@ const __dirname = path.dirname(__filename)
 const repoRoot = path.resolve(__dirname, '..', '..', '..', '..')
 
 const probePath = __filename
-const recoveryModulePath = path.join(repoRoot, 'src', 'renderer', 'src', 'app', 'utils', 'dynamic-import-recovery.ts')
+const recoveryModulePath = path.join(
+  repoRoot,
+  'src',
+  'renderer',
+  'src',
+  'app',
+  'utils',
+  'dynamic-import-recovery.ts'
+)
 const recoveryTestPath = path.join(
   repoRoot,
   'src',
@@ -41,7 +49,8 @@ const errorBoundaryPath = path.join(
 )
 const rendererRoot = path.join(repoRoot, 'src', 'renderer', 'src')
 
-const command = 'node --no-warnings tools/e2e/runners/official/dynamic-import-recovery-lifecycle-probe.mjs'
+const command =
+  'node --no-warnings tools/e2e/runners/official/dynamic-import-recovery-lifecycle-probe.mjs'
 const reservedEvidencePath = buildEvidencePath('probe-dynamic-import-recovery-lifecycle')
 
 function fail(detail, options = {}) {
@@ -151,12 +160,15 @@ function buildLifecycleSourceTestCheck() {
     )
 
     if (!result.ok || missingTestNames.length > 0) {
-      fail('Source-level lifecycle tests did not prove reload suppression and explicit-success ACK rearm.', {
-        sourceFiles: [toRepoRelative(recoveryTestPath), toRepoRelative(recoveryModulePath)],
-        excerpts: lines.slice(-12).concat(
-          missingTestNames.map((testName) => `missing_test=${testName}`)
-        )
-      })
+      fail(
+        'Source-level lifecycle tests did not prove reload suppression and explicit-success ACK rearm.',
+        {
+          sourceFiles: [toRepoRelative(recoveryTestPath), toRepoRelative(recoveryModulePath)],
+          excerpts: lines
+            .slice(-12)
+            .concat(missingTestNames.map((testName) => `missing_test=${testName}`))
+        }
+      )
     }
 
     return {
@@ -168,7 +180,11 @@ function buildLifecycleSourceTestCheck() {
   })
 }
 
-function buildExplicitSuccessAckAuthorityCheck(recoverySource, appShellSource, stageViewportSource) {
+function buildExplicitSuccessAckAuthorityCheck(
+  recoverySource,
+  appShellSource,
+  stageViewportSource
+) {
   return buildCheck('explicit_success_ack_is_the_only_rearm_path', () => {
     const recoveryUtilityPath = toRepoRelative(recoveryModulePath)
     const expectedAppShellPath = toRepoRelative(appShellPath)
@@ -234,7 +250,8 @@ function buildGlobalListenerAuthorityCheck(recoverySource, mainSource, errorBoun
     const errorListenerHits = findRendererHits(/addEventListener\('error'/)
     const rejectionListenerHits = findRendererHits(/addEventListener\('unhandledrejection'/)
     const installerCallHits = findRendererHits(/installDynamicImportRecoveryLifecycle\(\{/)
-    const recoveryAttemptCount = recoverySource.match(/\battemptDynamicImportRecovery\s*\(/g)?.length ?? 0
+    const recoveryAttemptCount =
+      recoverySource.match(/\battemptDynamicImportRecovery\s*\(/g)?.length ?? 0
 
     if (JSON.stringify(errorListenerHits) !== JSON.stringify([recoveryUtilityPath])) {
       fail('window.error listener registration escaped the recovery lifecycle utility.', {
@@ -244,24 +261,33 @@ function buildGlobalListenerAuthorityCheck(recoverySource, mainSource, errorBoun
     }
 
     if (JSON.stringify(rejectionListenerHits) !== JSON.stringify([recoveryUtilityPath])) {
-      fail('window.unhandledrejection listener registration escaped the recovery lifecycle utility.', {
-        sourceFiles: rejectionListenerHits,
-        excerpts: rejectionListenerHits
-      })
+      fail(
+        'window.unhandledrejection listener registration escaped the recovery lifecycle utility.',
+        {
+          sourceFiles: rejectionListenerHits,
+          excerpts: rejectionListenerHits
+        }
+      )
     }
 
     if (JSON.stringify(installerCallHits) !== JSON.stringify([expectedMainPath])) {
-      fail('main.tsx is no longer the sole non-test installer of the dynamic import recovery lifecycle.', {
-        sourceFiles: installerCallHits,
-        excerpts: installerCallHits
-      })
+      fail(
+        'main.tsx is no longer the sole non-test installer of the dynamic import recovery lifecycle.',
+        {
+          sourceFiles: installerCallHits,
+          excerpts: installerCallHits
+        }
+      )
     }
 
     if (recoveryAttemptCount !== 3) {
-      fail('dynamic-import-recovery.ts should own the three attemptDynamicImportRecovery decision points.', {
-        sourceFiles: [recoveryUtilityPath],
-        excerpts: [`attemptDynamicImportRecovery count=${String(recoveryAttemptCount)}`]
-      })
+      fail(
+        'dynamic-import-recovery.ts should own the three attemptDynamicImportRecovery decision points.',
+        {
+          sourceFiles: [recoveryUtilityPath],
+          excerpts: [`attemptDynamicImportRecovery count=${String(recoveryAttemptCount)}`]
+        }
+      )
     }
 
     if (
@@ -286,7 +312,12 @@ function buildGlobalListenerAuthorityCheck(recoverySource, mainSource, errorBoun
           recoveryUtilityPath,
           2
         ),
-        ...buildLineSnippet(mainSource, /installDynamicImportRecoveryLifecycle\(\{/, expectedMainPath, 3)
+        ...buildLineSnippet(
+          mainSource,
+          /installDynamicImportRecoveryLifecycle\(\{/,
+          expectedMainPath,
+          3
+        )
       ],
       sourceFiles: [recoveryUtilityPath, expectedMainPath]
     }
@@ -299,9 +330,16 @@ function buildErrorBoundaryAuthorityCheck(errorBoundarySource) {
     const lines = errorBoundarySource.split(/\r?\n/)
     const onClickLine = lines.findIndex((line) => line.includes('onClick={() => {'))
     const reloadLine = lines.findIndex((line) => line.includes('reloadCurrentRendererResources()'))
-    const reloadCallCount = lines.filter((line) => line.includes('reloadCurrentRendererResources()')).length
+    const reloadCallCount = lines.filter((line) =>
+      line.includes('reloadCurrentRendererResources()')
+    ).length
 
-    if (reloadCallCount !== 1 || onClickLine === -1 || reloadLine === -1 || reloadLine <= onClickLine) {
+    if (
+      reloadCallCount !== 1 ||
+      onClickLine === -1 ||
+      reloadLine === -1 ||
+      reloadLine <= onClickLine
+    ) {
       fail('ErrorBoundary.tsx should only expose manual reload from its click handler.', {
         sourceFiles: [expectedBoundaryPath]
       })
@@ -335,7 +373,12 @@ function buildErrorBoundaryAuthorityCheck(errorBoundarySource) {
           expectedBoundaryPath,
           2
         ),
-        ...buildLineSnippet(errorBoundarySource, /public componentDidCatch/, expectedBoundaryPath, 2),
+        ...buildLineSnippet(
+          errorBoundarySource,
+          /public componentDidCatch/,
+          expectedBoundaryPath,
+          2
+        ),
         ...buildLineSnippet(errorBoundarySource, /onClick=\{\(\) => \{/, expectedBoundaryPath, 6)
       ],
       sourceFiles: [expectedBoundaryPath]
@@ -388,5 +431,3 @@ function main() {
 }
 
 main()
-
-

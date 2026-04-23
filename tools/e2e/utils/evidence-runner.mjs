@@ -38,7 +38,13 @@ const REPO_ROOT = path.resolve('D:/project/xinjuben')
 // Env bootstrap
 // ─────────────────────────────────────────────
 process.env.XINJUBEN_APP_MODE = 'e2e'
-process.env.E2E_USER_DATA_DIR = path.join(REPO_ROOT, 'tools', 'e2e', 'out', `e2e-tmp-${Date.now().toString(36)}`)
+process.env.E2E_USER_DATA_DIR = path.join(
+  REPO_ROOT,
+  'tools',
+  'e2e',
+  'out',
+  `e2e-tmp-${Date.now().toString(36)}`
+)
 fsSync.mkdirSync(process.env.E2E_USER_DATA_DIR, { recursive: true })
 
 // ─────────────────────────────────────────────
@@ -49,10 +55,13 @@ fsSync.mkdirSync(process.env.E2E_USER_DATA_DIR, { recursive: true })
 //   debugParsedLength = action + dialogue + emotion              ← debug，不作验收口径
 // ─────────────────────────────────────────────
 function getScreenplay(scene) {
-  const s = String(scene.screenplay || '').replace(/\r\n/g, '\n').trim()
+  const s = String(scene.screenplay || '')
+    .replace(/\r\n/g, '\n')
+    .trim()
   if (s) return s
   return String([scene.action || '', scene.dialogue || '', scene.emotion || ''].join('\n'))
-    .replace(/\r\n/g, '\n').trim()
+    .replace(/\r\n/g, '\n')
+    .trim()
 }
 
 function getQualityCharCount(scene) {
@@ -68,7 +77,12 @@ function hasEpisodeHeading(screenplay) {
 }
 
 function getScreenplayLines(screenplay) {
-  return screenplay.replace(/\r\n/g, '\n').trim().split('\n').map((l) => l.trim()).filter(Boolean)
+  return screenplay
+    .replace(/\r\n/g, '\n')
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
 }
 
 function parseScreenplayScenes(screenplay) {
@@ -93,11 +107,14 @@ function inspectQuality(scene) {
   const screenplay = getScreenplay(scene)
   const scenes = parseScreenplayScenes(screenplay)
   const charCount = getQualityCharCount(scene)
-  const sceneCount = (scene.screenplayScenes?.length && scene.screenplayScenes.length > 0)
-    ? scene.screenplayScenes.length
-    : Math.max(scenes.length, 1)
-  const SCENE_MIN = 2, SCENE_MAX = 4
-  const CHAR_MIN_BASE = 800, CHAR_MAX = 1650
+  const sceneCount =
+    scene.screenplayScenes?.length && scene.screenplayScenes.length > 0
+      ? scene.screenplayScenes.length
+      : Math.max(scenes.length, 1)
+  const SCENE_MIN = 2,
+    SCENE_MAX = 4
+  const CHAR_MIN_BASE = 800,
+    CHAR_MAX = 1650
   const charMin = CHAR_MIN_BASE
   const problems = []
   if (!hasEpisodeHeading(screenplay)) problems.push('缺少第X集标题')
@@ -140,33 +157,139 @@ function buildSummaryEpisodes() {
 
 function buildCharacters() {
   return [
-    { name: '林守钥', biography: '守库少年，替失踪的师父顾玄守着铜钥和镇口旧账。', publicMask: '看起来寡言退让，像个只会守摊的学徒。', hiddenPressure: '一旦交出铜钥，顾玄留下的旧约就会彻底失守。', fear: '怕自己一动手就把顾玄留下的规矩和证词一起毁掉。', protectTarget: '顾玄留下的铜钥与镇口账册。', conflictTrigger: '任何人逼他交出铜钥或抹掉旧账，都会逼出他反击。', advantage: '记得住旧账细节，也能在高压下继续推线索。', weakness: '过度守约，容易错过最佳反击时机。', goal: '守住铜钥和账册，把镇口旧债的真相翻出来。', arc: '从只会守约，走到敢为守住真相主动亮底。' },
-    { name: '沈黑虎', biography: '镇上的地下把头，盯着铜钥和旧账背后的利益。', publicMask: '表面替镇口维持秩序，实则不断收紧搜库和抓人。', hiddenPressure: '旧账一旦翻出来，他这些年的逼压和分赃都会露底。', fear: '怕顾玄留下的证词和账册一起把自己钉死。', protectTarget: '自己控制镇口生意的盘子。', conflictTrigger: '只要铜钥和账册还在林守钥手里，他就不会收手。', advantage: '人多势重，能把威胁和封口同时压下来。', weakness: '一旦急着灭口，就会暴露真正要抢的东西。', goal: '抢到铜钥、毁掉账册，继续把镇口旧债压成死账。', arc: '从暗中围堵，走到公开逼压林守钥交钥匙。' },
-    { name: '顾玄', biography: '失踪前把铜钥和旧账交给林守钥的师父。', publicMask: '只留下规矩，不再亲自出面。', hiddenPressure: '他留下的旧规矩既是保护，也成了林守钥不能乱动的枷锁。', fear: '怕徒弟为了一时救急，直接毁掉整条旧账证词。', protectTarget: '镇口最后一份还能翻案的证词。', conflictTrigger: '只要局面逼到要动武，顾玄的旧话就会反过来压住林守钥。', advantage: '提前把规矩和托付埋进了林守钥的选择里。', weakness: '人不在场，只能靠旧话和旧规矩起作用。', goal: '让林守钥守住铜钥和旧账，不要被沈黑虎逼到乱局。', arc: '从缺席角色，变成持续改写主角动作的隐形控制力。' }
+    {
+      name: '林守钥',
+      biography: '守库少年，替失踪的师父顾玄守着铜钥和镇口旧账。',
+      publicMask: '看起来寡言退让，像个只会守摊的学徒。',
+      hiddenPressure: '一旦交出铜钥，顾玄留下的旧约就会彻底失守。',
+      fear: '怕自己一动手就把顾玄留下的规矩和证词一起毁掉。',
+      protectTarget: '顾玄留下的铜钥与镇口账册。',
+      conflictTrigger: '任何人逼他交出铜钥或抹掉旧账，都会逼出他反击。',
+      advantage: '记得住旧账细节，也能在高压下继续推线索。',
+      weakness: '过度守约，容易错过最佳反击时机。',
+      goal: '守住铜钥和账册，把镇口旧债的真相翻出来。',
+      arc: '从只会守约，走到敢为守住真相主动亮底。'
+    },
+    {
+      name: '沈黑虎',
+      biography: '镇上的地下把头，盯着铜钥和旧账背后的利益。',
+      publicMask: '表面替镇口维持秩序，实则不断收紧搜库和抓人。',
+      hiddenPressure: '旧账一旦翻出来，他这些年的逼压和分赃都会露底。',
+      fear: '怕顾玄留下的证词和账册一起把自己钉死。',
+      protectTarget: '自己控制镇口生意的盘子。',
+      conflictTrigger: '只要铜钥和账册还在林守钥手里，他就不会收手。',
+      advantage: '人多势重，能把威胁和封口同时压下来。',
+      weakness: '一旦急着灭口，就会暴露真正要抢的东西。',
+      goal: '抢到铜钥、毁掉账册，继续把镇口旧债压成死账。',
+      arc: '从暗中围堵，走到公开逼压林守钥交钥匙。'
+    },
+    {
+      name: '顾玄',
+      biography: '失踪前把铜钥和旧账交给林守钥的师父。',
+      publicMask: '只留下规矩，不再亲自出面。',
+      hiddenPressure: '他留下的旧规矩既是保护，也成了林守钥不能乱动的枷锁。',
+      fear: '怕徒弟为了一时救急，直接毁掉整条旧账证词。',
+      protectTarget: '镇口最后一份还能翻案的证词。',
+      conflictTrigger: '只要局面逼到要动武，顾玄的旧话就会反过来压住林守钥。',
+      advantage: '提前把规矩和托付埋进了林守钥的选择里。',
+      weakness: '人不在场，只能靠旧话和旧规矩起作用。',
+      goal: '让林守钥守住铜钥和旧账，不要被沈黑虎逼到乱局。',
+      arc: '从缺席角色，变成持续改写主角动作的隐形控制力。'
+    }
   ]
 }
 
 function buildFormalFacts() {
   return [
-    { id: 'fact_opponent_pressure', label: '对手压力', description: '沈黑虎带人围堵林守钥，逼他交出铜钥并拿镇口账册威胁。', linkedToPlot: true, linkedToTheme: true, authorityType: 'user_declared', status: 'confirmed', level: 'core', declaredBy: 'user', declaredStage: 'outline', createdAt: FIXTURE_TIMESTAMP, updatedAt: FIXTURE_TIMESTAMP },
-    { id: 'fact_master_role', label: '师父角色', description: '师父顾玄留下旧规矩，交代林守钥不到万不得已不能动武。', linkedToPlot: true, linkedToTheme: true, authorityType: 'user_declared', status: 'confirmed', level: 'core', declaredBy: 'user', declaredStage: 'outline', createdAt: FIXTURE_TIMESTAMP, updatedAt: FIXTURE_TIMESTAMP }
+    {
+      id: 'fact_opponent_pressure',
+      label: '对手压力',
+      description: '沈黑虎带人围堵林守钥，逼他交出铜钥并拿镇口账册威胁。',
+      linkedToPlot: true,
+      linkedToTheme: true,
+      authorityType: 'user_declared',
+      status: 'confirmed',
+      level: 'core',
+      declaredBy: 'user',
+      declaredStage: 'outline',
+      createdAt: FIXTURE_TIMESTAMP,
+      updatedAt: FIXTURE_TIMESTAMP
+    },
+    {
+      id: 'fact_master_role',
+      label: '师父角色',
+      description: '师父顾玄留下旧规矩，交代林守钥不到万不得已不能动武。',
+      linkedToPlot: true,
+      linkedToTheme: true,
+      authorityType: 'user_declared',
+      status: 'confirmed',
+      level: 'core',
+      declaredBy: 'user',
+      declaredStage: 'outline',
+      createdAt: FIXTURE_TIMESTAMP,
+      updatedAt: FIXTURE_TIMESTAMP
+    }
   ]
 }
 
 function buildDetailedOutlineSegments() {
   return [
-    { act: 'opening', hookType: 'pressure-arrival', content: '开局先把对手压力落到现场：沈黑虎带人围堵林守钥，逼他交出铜钥并拿镇口账册威胁。师父顾玄留下旧规矩，交代林守钥不到万不得已不能动武。', episodeBeats: [{ episodeNo: 1, summary: '林守钥被迫接下守库旧约，先保住铜钥不被抢走。' }, { episodeNo: 2, summary: '沈黑虎开始试探镇口账册的去向，把威胁推到明面。' }, { episodeNo: 3, summary: '顾玄留下的旧规矩第一次逼林守钥压住出手冲动。' }] },
-    { act: 'midpoint', hookType: 'double-bind', content: '中段继续推进对手压力，沈黑虎把搜库和抓人并线，逼林守钥在铜钥和账册之间做取舍。顾玄留下的旧规矩持续起作用。', episodeBeats: [{ episodeNo: 4, summary: '镇口线人被清洗，林守钥只能用更慢的办法查账。' }, { episodeNo: 5, summary: '沈黑虎把搜库和抓人并线，逼出主角两难选择。' }, { episodeNo: 6, summary: '顾玄留下的第二道禁令曝光，旧约代价开始吞回主角。' }] },
-    { act: 'climax', hookType: 'forced-choice', content: '高潮让两条正式事实一起收紧：沈黑虎公开亮出围堵和灭口，顾玄的规矩逼林守钥先守住证词和账册再决定怎么还手。', episodeBeats: [{ episodeNo: 7, summary: '林守钥发现账册和铜钥指向同一笔旧债。' }, { episodeNo: 8, summary: '沈黑虎抢先拿人质换钥匙，冲突被推到无法回避。' }, { episodeNo: 9, summary: '顾玄真正托付的不是守物，而是守住镇口最后的证词。' }] },
-    { act: 'ending', hookType: 'payoff', content: '终局里，林守钥利用账册翻出旧债，把沈黑虎的围堵反钉回去。', episodeBeats: [{ episodeNo: 10, summary: '林守钥公开翻账、守住铜钥，也把旧约代价一起扛下来。' }] }
+    {
+      act: 'opening',
+      hookType: 'pressure-arrival',
+      content:
+        '开局先把对手压力落到现场：沈黑虎带人围堵林守钥，逼他交出铜钥并拿镇口账册威胁。师父顾玄留下旧规矩，交代林守钥不到万不得已不能动武。',
+      episodeBeats: [
+        { episodeNo: 1, summary: '林守钥被迫接下守库旧约，先保住铜钥不被抢走。' },
+        { episodeNo: 2, summary: '沈黑虎开始试探镇口账册的去向，把威胁推到明面。' },
+        { episodeNo: 3, summary: '顾玄留下的旧规矩第一次逼林守钥压住出手冲动。' }
+      ]
+    },
+    {
+      act: 'midpoint',
+      hookType: 'double-bind',
+      content:
+        '中段继续推进对手压力，沈黑虎把搜库和抓人并线，逼林守钥在铜钥和账册之间做取舍。顾玄留下的旧规矩持续起作用。',
+      episodeBeats: [
+        { episodeNo: 4, summary: '镇口线人被清洗，林守钥只能用更慢的办法查账。' },
+        { episodeNo: 5, summary: '沈黑虎把搜库和抓人并线，逼出主角两难选择。' },
+        { episodeNo: 6, summary: '顾玄留下的第二道禁令曝光，旧约代价开始吞回主角。' }
+      ]
+    },
+    {
+      act: 'climax',
+      hookType: 'forced-choice',
+      content:
+        '高潮让两条正式事实一起收紧：沈黑虎公开亮出围堵和灭口，顾玄的规矩逼林守钥先守住证词和账册再决定怎么还手。',
+      episodeBeats: [
+        { episodeNo: 7, summary: '林守钥发现账册和铜钥指向同一笔旧债。' },
+        { episodeNo: 8, summary: '沈黑虎抢先拿人质换钥匙，冲突被推到无法回避。' },
+        { episodeNo: 9, summary: '顾玄真正托付的不是守物，而是守住镇口最后的证词。' }
+      ]
+    },
+    {
+      act: 'ending',
+      hookType: 'payoff',
+      content: '终局里，林守钥利用账册翻出旧债，把沈黑虎的围堵反钉回去。',
+      episodeBeats: [
+        { episodeNo: 10, summary: '林守钥公开翻账、守住铜钥，也把旧约代价一起扛下来。' }
+      ]
+    }
   ]
 }
 
 // ─────────────────────────────────────────────
 // Import app modules
 // ─────────────────────────────────────────────
-const mod1 = await import(pathToFileURL(path.join(REPO_ROOT, 'src/main/application/script-generation/build-execution-plan.ts')).href)
-const mod2 = await import(pathToFileURL(path.join(REPO_ROOT, 'src/main/application/script-generation/progress-board.ts')).href)
+const mod1 = await import(
+  pathToFileURL(
+    path.join(REPO_ROOT, 'src/main/application/script-generation/build-execution-plan.ts')
+  ).href
+)
+const mod2 = await import(
+  pathToFileURL(path.join(REPO_ROOT, 'src/main/application/script-generation/progress-board.ts'))
+    .href
+)
 const { buildScriptGenerationExecutionPlan } = mod1
 const { createInitialProgressBoard } = mod2
 
@@ -175,13 +298,22 @@ const { createInitialProgressBoard } = mod2
 // ─────────────────────────────────────────────
 function computeBatchSummary(scenes) {
   if (!scenes || scenes.length === 0) {
-    return { passRate: '0/0', min: 0, max: 0, avg: 0, thinEpisodes: [], fatEpisodes: [], episodeStats: [] }
+    return {
+      passRate: '0/0',
+      min: 0,
+      max: 0,
+      avg: 0,
+      thinEpisodes: [],
+      fatEpisodes: [],
+      episodeStats: []
+    }
   }
   const stats = scenes.map((scene) => {
     const qr = inspectQuality(scene)
-    const sceneCount = scene.screenplayScenes?.length && scene.screenplayScenes.length > 0
-      ? scene.screenplayScenes.length
-      : 2
+    const sceneCount =
+      scene.screenplayScenes?.length && scene.screenplayScenes.length > 0
+        ? scene.screenplayScenes.length
+        : 2
     const contract = getCharCountContract(sceneCount)
     return {
       episode: scene.sceneNo,
@@ -196,7 +328,7 @@ function computeBatchSummary(scenes) {
   const passCount = stats.filter((s) => s.pass).length
   return {
     passRate: `${passCount}/${stats.length}`,
-    passRateDecimal: (passCount / stats.length * 100).toFixed(1) + '%',
+    passRateDecimal: ((passCount / stats.length) * 100).toFixed(1) + '%',
     min: Math.min(...charCounts),
     max: Math.max(...charCounts),
     avg: Math.round(charCounts.reduce((a, b) => a + b, 0) / charCounts.length),
@@ -228,12 +360,15 @@ async function main() {
 
   // Build plan
   const storyIntent = {
-    titleHint: '守钥风暴', genre: '古风悬疑', tone: '压迫、克制、逐层逼近',
+    titleHint: '守钥风暴',
+    genre: '古风悬疑',
+    tone: '压迫、克制、逐层逼近',
     audience: '女频剧情向',
     sellingPremise: '守库少年被逼在守约和翻旧账之间做选择。',
     coreDislocation: '师父失踪后，守约反而成了主角最重的枷锁。',
     emotionalPayoff: '主角意识到真正守住的不是钥匙，而是能翻案的证词。',
-    protagonist: '林守钥', antagonist: '沈黑虎',
+    protagonist: '林守钥',
+    antagonist: '沈黑虎',
     coreConflict: '沈黑虎逼林守钥交出铜钥并毁掉账册，林守钥必须守约也必须翻出旧债真相。',
     endingDirection: '林守钥守住铜钥和旧账，把沈黑虎的旧债翻到台前。',
     officialKeyCharacters: ['林守钥', '沈黑虎', '顾玄'],
@@ -245,11 +380,13 @@ async function main() {
     generationBriefText: '【项目】守钥风暴｜10集'
   }
   const outline = {
-    title: '守钥风暴', genre: '古风悬疑',
+    title: '守钥风暴',
+    genre: '古风悬疑',
     theme: '守约不等于退让，真正的守是把真相守到能见光。',
     mainConflict: '沈黑虎逼林守钥交出铜钥并毁掉账册，林守钥必须守约也必须翻出旧债真相。',
     protagonist: '林守钥',
-    summary: '10集古风悬疑链路：林守钥守着师父顾玄留下的铜钥和账册，被沈黑虎持续围堵，必须在守约和翻案之间把每一次威胁接成下一场行动。',
+    summary:
+      '10集古风悬疑链路：林守钥守着师父顾玄留下的铜钥和账册，被沈黑虎持续围堵，必须在守约和翻案之间把每一次威胁接成下一场行动。',
     summaryEpisodes: buildSummaryEpisodes(),
     facts: buildFormalFacts()
   }
@@ -285,8 +422,19 @@ async function main() {
     // 取 screenplay 前 N 个字符作为 action（近似，不影响 qualityCharCount 计算）
     const action = screenplay.substring(0, actionLen)
     const dialogue = screenplay.substring(actionLen, actionLen + dialogueLen)
-    const emotion = screenplay.substring(actionLen + dialogueLen, actionLen + dialogueLen + emotionLen)
-    allScenes.push({ sceneNo: i, episodeNo: i, screenplay, screenplayScenes, action, dialogue, emotion })
+    const emotion = screenplay.substring(
+      actionLen + dialogueLen,
+      actionLen + dialogueLen + emotionLen
+    )
+    allScenes.push({
+      sceneNo: i,
+      episodeNo: i,
+      screenplay,
+      screenplayScenes,
+      action,
+      dialogue,
+      emotion
+    })
   }
 
   if (allScenes.length === 0) throw new Error('no_source_evidence_found')
@@ -294,9 +442,10 @@ async function main() {
   // 写入每集 evidence（含新合同字段）
   for (const scene of allScenes) {
     const qr = inspectQuality(scene)
-    const sceneCount = (scene.screenplayScenes?.length && scene.screenplayScenes.length > 0)
-      ? scene.screenplayScenes.length
-      : qr.sceneCount
+    const sceneCount =
+      scene.screenplayScenes?.length && scene.screenplayScenes.length > 0
+        ? scene.screenplayScenes.length
+        : qr.sceneCount
     const contract = getCharCountContract(sceneCount)
     const debugParsedLen = getDebugParsedLength(scene)
 
@@ -335,9 +484,10 @@ async function main() {
   const summaryFiles = []
   for (const scene of allScenes) {
     const qr = inspectQuality(scene)
-    const sceneCount = (scene.screenplayScenes?.length && scene.screenplayScenes.length > 0)
-      ? scene.screenplayScenes.length
-      : qr.sceneCount
+    const sceneCount =
+      scene.screenplayScenes?.length && scene.screenplayScenes.length > 0
+        ? scene.screenplayScenes.length
+        : qr.sceneCount
     const contract = getCharCountContract(sceneCount)
     const stats = {
       episode: scene.sceneNo,
@@ -348,8 +498,9 @@ async function main() {
       sceneCount,
       problems: qr.problems,
       debugParsedLength: getDebugParsedLength(scene),
-      debugNote: 'qualityCharCount is the ONLY official word-count contract. ' +
-                 'debugParsedLength is A/D/E sum and must NOT be used as a quality metric.'
+      debugNote:
+        'qualityCharCount is the ONLY official word-count contract. ' +
+        'debugParsedLength is A/D/E sum and must NOT be used as a quality metric.'
     }
     const sf = path.join(outDir, `ep${scene.sceneNo}-summary.json`)
     await fs.writeFile(sf, JSON.stringify(stats, null, 2), 'utf8')
@@ -366,7 +517,9 @@ async function main() {
   console.log(`[evidence-runner] outDir: ${outDir}`)
   console.log(`[evidence-runner] batch-summary: ${batchFile}`)
   console.log(`[evidence-runner] passRate: ${batch.passRate} (${batch.passRateDecimal})`)
-  console.log(`[evidence-runner] qualityCharCount: min=${batch.min} max=${batch.max} avg=${batch.avg}`)
+  console.log(
+    `[evidence-runner] qualityCharCount: min=${batch.min} max=${batch.max} avg=${batch.avg}`
+  )
   console.log(`[evidence-runner] thinEpisodes: [${batch.thinEpisodes.join(', ')}]`)
   console.log(`[evidence-runner] fatEpisodes:  [${batch.fatEpisodes.join(', ')}]`)
 
@@ -383,8 +536,12 @@ async function main() {
   console.log(`  debugParsedLength (debug字段): ${ep1Evidence.debugParsedLength}`)
   console.log(`  合同 min=${ep1Evidence.contract.min} max=${ep1Evidence.contract.max}`)
   console.log(`  thin=${ep1Summary.thin}  fat=${ep1Summary.fat}`)
-  console.log(`  ✓ qualityCharCount !== debugParsedLength: ${ep1Evidence.qualityCharCount !== ep1Evidence.debugParsedLength}`)
-  console.log(`  ✓ qualityCharCount === getQualityCharCount(raw screenplay): ${ep1Evidence.qualityCharCount === getQualityCharCount({ screenplay: ep1Evidence.rawText })}`)
+  console.log(
+    `  ✓ qualityCharCount !== debugParsedLength: ${ep1Evidence.qualityCharCount !== ep1Evidence.debugParsedLength}`
+  )
+  console.log(
+    `  ✓ qualityCharCount === getQualityCharCount(raw screenplay): ${ep1Evidence.qualityCharCount === getQualityCharCount({ screenplay: ep1Evidence.rawText })}`
+  )
 
   console.log(`\n集2（fresh-10 第二集）:`)
   console.log(`  qualityCharCount (正式合同): ${ep2Evidence.qualityCharCount}`)
@@ -396,7 +553,9 @@ async function main() {
   for (const sf of summaryFiles) {
     const s = JSON.parse(await fs.readFile(sf.file, 'utf8'))
     const label = s.thin ? 'THIN' : s.fat ? 'FAT ' : 'PASS'
-    console.log(`  [${label}] ep${String(s.episode).padStart(2)}: qualityCharCount=${String(s.qualityCharCount).padStart(4)}  debugParsedLength=${String(s.debugParsedLength).padStart(4)}  (diff=${String(s.qualityCharCount - s.debugParsedLength).padStart(4)})  pass=${s.pass}  thin=${s.thin}  fat=${s.fat}  problems=[${s.problems.length}]`)
+    console.log(
+      `  [${label}] ep${String(s.episode).padStart(2)}: qualityCharCount=${String(s.qualityCharCount).padStart(4)}  debugParsedLength=${String(s.debugParsedLength).padStart(4)}  (diff=${String(s.qualityCharCount - s.debugParsedLength).padStart(4)})  pass=${s.pass}  thin=${s.thin}  fat=${s.fat}  problems=[${s.problems.length}]`
+    )
   }
 
   console.log(`\n[evidence-runner] ✓ All evidence written to: ${outDir}`)
@@ -408,5 +567,3 @@ main().catch((err) => {
   console.error('[evidence-runner] ERROR:', err)
   process.exit(1)
 })
-
-

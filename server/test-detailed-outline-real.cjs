@@ -22,27 +22,30 @@ async function jsonRequest(url, options = {}) {
   const body = options.body ? JSON.stringify(options.body) : undefined
 
   return new Promise((resolve, reject) => {
-    const req = http.request({
-      hostname: urlObj.hostname,
-      port: urlObj.port || 80,
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
+    const req = http.request(
+      {
+        hostname: urlObj.hostname,
+        port: urlObj.port || 80,
+        path: urlObj.pathname + urlObj.search,
+        method: options.method || 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        },
+        timeout: options.timeout || 180000
       },
-      timeout: options.timeout || 180000
-    }, res => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, data: JSON.parse(data) })
-        } catch (e) {
-          resolve({ status: res.statusCode, data: data || '(empty body)' })
-        }
-      })
-    })
+      (res) => {
+        let data = ''
+        res.on('data', (chunk) => (data += chunk))
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, data: JSON.parse(data) })
+          } catch (e) {
+            resolve({ status: res.statusCode, data: data || '(empty body)' })
+          }
+        })
+      }
+    )
 
     req.on('error', reject)
     req.on('timeout', () => {
@@ -84,10 +87,13 @@ async function main() {
   console.log('\n[Step 2] 查询现有项目及关联数据...')
   let projects, outlines, characters
   try {
-    const projectsRes = await jsonRequest(`${POCKETBASE_URL}/api/collections/projects/records?perPage=50`, {
-      headers: { Authorization: adminToken },
-      timeout: 10000
-    })
+    const projectsRes = await jsonRequest(
+      `${POCKETBASE_URL}/api/collections/projects/records?perPage=50`,
+      {
+        headers: { Authorization: adminToken },
+        timeout: 10000
+      }
+    )
 
     if (projectsRes.status !== 200) {
       console.error('查询项目失败:', projectsRes)
@@ -98,26 +104,34 @@ async function main() {
     console.log('找到项目数:', projects.length)
 
     // 查询 project_outlines
-    const outlinesRes = await jsonRequest(`${POCKETBASE_URL}/api/collections/project_outlines/records?perPage=50`, {
-      headers: { Authorization: adminToken },
-      timeout: 10000
-    })
-    outlines = outlinesRes.status === 200 ? (outlinesRes.data.items || []) : []
+    const outlinesRes = await jsonRequest(
+      `${POCKETBASE_URL}/api/collections/project_outlines/records?perPage=50`,
+      {
+        headers: { Authorization: adminToken },
+        timeout: 10000
+      }
+    )
+    outlines = outlinesRes.status === 200 ? outlinesRes.data.items || [] : []
     console.log('找到 outline 数:', outlines.length)
 
     // 查询 project_characters
-    const charsRes = await jsonRequest(`${POCKETBASE_URL}/api/collections/project_characters/records?perPage=50`, {
-      headers: { Authorization: adminToken },
-      timeout: 10000
-    })
-    characters = charsRes.status === 200 ? (charsRes.data.items || []) : []
+    const charsRes = await jsonRequest(
+      `${POCKETBASE_URL}/api/collections/project_characters/records?perPage=50`,
+      {
+        headers: { Authorization: adminToken },
+        timeout: 10000
+      }
+    )
+    characters = charsRes.status === 200 ? charsRes.data.items || [] : []
     console.log('找到 characters 数:', characters.length)
 
     // 打印项目信息
     for (const p of projects.slice(0, 5)) {
-      const hasOutline = outlines.some(o => o.project === p.id)
-      const hasChars = characters.some(c => c.project === p.id)
-      console.log(`  - ${p.id}: storyIntent=${p.storyIntentJson ? '有' : '无'}, outline=${hasOutline ? '有' : '无'}, chars=${hasChars ? '有' : '无'}`)
+      const hasOutline = outlines.some((o) => o.project === p.id)
+      const hasChars = characters.some((c) => c.project === p.id)
+      console.log(
+        `  - ${p.id}: storyIntent=${p.storyIntentJson ? '有' : '无'}, outline=${hasOutline ? '有' : '无'}, chars=${hasChars ? '有' : '无'}`
+      )
     }
   } catch (e) {
     console.error('查询项目异常:', e.message)
@@ -125,10 +139,11 @@ async function main() {
   }
 
   // 3. 找一个有前置条件的项目
-  const validProject = projects.find(p =>
-    p.storyIntentJson &&
-    outlines.some(o => o.project === p.id) &&
-    characters.some(c => c.project === p.id)
+  const validProject = projects.find(
+    (p) =>
+      p.storyIntentJson &&
+      outlines.some((o) => o.project === p.id) &&
+      characters.some((c) => c.project === p.id)
   )
 
   if (!validProject) {
@@ -146,11 +161,14 @@ async function main() {
 
   try {
     // 尝试登录现有测试用户
-    const loginRes = await jsonRequest(`${POCKETBASE_URL}/api/collections/users/auth-with-password`, {
-      method: 'POST',
-      body: { identity: 'test-phase7@example.com', password: 'TestPhase7Pass123' },
-      timeout: 10000
-    })
+    const loginRes = await jsonRequest(
+      `${POCKETBASE_URL}/api/collections/users/auth-with-password`,
+      {
+        method: 'POST',
+        body: { identity: 'test-phase7@example.com', password: 'TestPhase7Pass123' },
+        timeout: 10000
+      }
+    )
 
     if (loginRes.status === 200) {
       userToken = loginRes.data.token
@@ -180,11 +198,14 @@ async function main() {
       console.log('创建用户成功, userId:', userId)
 
       // 重新登录获取 token
-      const loginRes2 = await jsonRequest(`${POCKETBASE_URL}/api/collections/users/auth-with-password`, {
-        method: 'POST',
-        body: { identity: 'test-phase7@example.com', password: 'TestPhase7Pass123' },
-        timeout: 10000
-      })
+      const loginRes2 = await jsonRequest(
+        `${POCKETBASE_URL}/api/collections/users/auth-with-password`,
+        {
+          method: 'POST',
+          body: { identity: 'test-phase7@example.com', password: 'TestPhase7Pass123' },
+          timeout: 10000
+        }
+      )
 
       if (loginRes2.status !== 200) {
         console.error('新用户登录失败:', loginRes2)
@@ -202,16 +223,19 @@ async function main() {
   // 5. 把项目 owner 改成测试用户，确保权限匹配
   console.log('\n[Step 5] 将项目 owner 切换为测试用户...')
   try {
-    const patchRes = await jsonRequest(`${POCKETBASE_URL}/api/collections/projects/records/${validProject.id}`, {
-      method: 'PATCH',
-      headers: { Authorization: adminToken },
-      body: { user: userId },
-      timeout: 10000
-    })
+    const patchRes = await jsonRequest(
+      `${POCKETBASE_URL}/api/collections/projects/records/${validProject.id}`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: adminToken },
+        body: { user: userId },
+        timeout: 10000
+      }
+    )
     if (patchRes.status === 200) {
       console.log('项目 owner 已切换为测试用户:', userId)
     } else {
-      console.log('切换 owner 失败:', patchRes.status, JSON.stringify(patchRes.data).slice(0,200))
+      console.log('切换 owner 失败:', patchRes.status, JSON.stringify(patchRes.data).slice(0, 200))
     }
   } catch (e) {
     console.error('切换 owner 异常:', e.message)
@@ -275,13 +299,13 @@ async function main() {
       // 检查集数
       if (genRes.data.detailedOutlineSegments) {
         const totalBeats = genRes.data.detailedOutlineSegments.reduce(
-          (sum, seg) => sum + (seg.episodeBeats?.length || 0), 0
+          (sum, seg) => sum + (seg.episodeBeats?.length || 0),
+          0
         )
         console.log('  总 episodeBeats:', totalBeats)
       }
 
       console.log('\n[验收项 4] 落盘: 需查数据库确认')
-
     } else {
       console.log('\n返回数据:', JSON.stringify(genRes.data).slice(0, 500))
 
@@ -292,7 +316,6 @@ async function main() {
         console.log('\n[验收项 3] 门禁: 其他失败')
       }
     }
-
   } catch (e) {
     const elapsedMs = Date.now() - startTime
     console.log('\n=== 实弹验证结果 ===')
@@ -307,10 +330,13 @@ async function main() {
   // 8. 查数据库落盘
   console.log('\n[Step 8] 检查数据库落盘...')
   try {
-    const detailedRes = await jsonRequest(`${POCKETBASE_URL}/api/collections/project_detailed_outlines/records?filter=project='${validProject.id}'&perPage=1`, {
-      headers: { Authorization: adminToken },
-      timeout: 10000
-    })
+    const detailedRes = await jsonRequest(
+      `${POCKETBASE_URL}/api/collections/project_detailed_outlines/records?filter=project='${validProject.id}'&perPage=1`,
+      {
+        headers: { Authorization: adminToken },
+        timeout: 10000
+      }
+    )
 
     if (detailedRes.status === 200) {
       const records = detailedRes.data.items || []

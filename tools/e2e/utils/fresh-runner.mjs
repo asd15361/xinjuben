@@ -179,7 +179,12 @@ const outDir = path.join(REPO_ROOT, 'tools', 'e2e', 'out', `evidence-${runId}`)
 fsSync.mkdirSync(outDir, { recursive: true })
 
 // 写 caseId 到临时文件，传递给子进程（避免两个进程各自 Date.now() 产生不同 ID）
-const caseIdFile = path.join(REPO_ROOT, 'tools', 'e2e', `fresh-caseid-${Date.now().toString(36)}.tmp`)
+const caseIdFile = path.join(
+  REPO_ROOT,
+  'tools',
+  'e2e',
+  `fresh-caseid-${Date.now().toString(36)}.tmp`
+)
 fsSync.writeFileSync(caseIdFile, runId, 'utf8')
 
 // 写临时 tsx 入口
@@ -231,8 +236,12 @@ const exitCode = await new Promise((resolve) => {
 })
 
 // 清理临时文件
-try { fsSync.unlinkSync(caseIdFile) } catch {}
-try { fsSync.unlinkSync(tmpEntry) } catch {}
+try {
+  fsSync.unlinkSync(caseIdFile)
+} catch {}
+try {
+  fsSync.unlinkSync(tmpEntry)
+} catch {}
 
 if (exitCode !== 0) {
   console.error(`[fresh-runner] child exited ${exitCode}`)
@@ -252,32 +261,36 @@ if (!fsSync.existsSync(outDir)) {
 const batchResultFile = path.join(outDir, 'batch-result.json')
 let batchResult = { success: false, episodeCount: 0, failure: null }
 if (fsSync.existsSync(batchResultFile)) {
-  try { batchResult = JSON.parse(fsSync.readFileSync(batchResultFile, 'utf8')) } catch {}
+  try {
+    batchResult = JSON.parse(fsSync.readFileSync(batchResultFile, 'utf8'))
+  } catch {}
 }
 
 const episodeSummaries = []
 for (let i = 1; i <= targetEpisodes; i++) {
   const sf = path.join(outDir, `ep${i}-summary.json`)
   if (fsSync.existsSync(sf)) {
-    try { episodeSummaries.push(JSON.parse(fsSync.readFileSync(sf, 'utf8'))) } catch {}
+    try {
+      episodeSummaries.push(JSON.parse(fsSync.readFileSync(sf, 'utf8')))
+    } catch {}
   }
 }
 
 function computeSummary(summaries) {
   if (!summaries.length) return null
-  const charCounts = summaries.map(s => s.qualityCharCount)
-  const passCount = summaries.filter(s => s.pass).length
+  const charCounts = summaries.map((s) => s.qualityCharCount)
+  const passCount = summaries.filter((s) => s.pass).length
   return {
     passRate: `${passCount}/${summaries.length}`,
-    passRateDecimal: (passCount / summaries.length * 100).toFixed(1) + '%',
+    passRateDecimal: ((passCount / summaries.length) * 100).toFixed(1) + '%',
     min: Math.min(...charCounts),
     max: Math.max(...charCounts),
     avg: Math.round(charCounts.reduce((a, b) => a + b, 0) / charCounts.length),
     total: summaries.length,
-    thinEpisodes: summaries.filter(s => s.thin).map(s => s.episode),
-    fatEpisodes: summaries.filter(s => s.fat).map(s => s.episode),
-    rewriteEpisodes: summaries.filter(s => s.rewrite).map(s => s.episode),
-    maxAttemptCount: Math.max(...summaries.map(s => s.attemptCount)),
+    thinEpisodes: summaries.filter((s) => s.thin).map((s) => s.episode),
+    fatEpisodes: summaries.filter((s) => s.fat).map((s) => s.episode),
+    rewriteEpisodes: summaries.filter((s) => s.rewrite).map((s) => s.episode),
+    maxAttemptCount: Math.max(...summaries.map((s) => s.attemptCount)),
     generatedScenes: summaries.length
   }
 }
@@ -293,7 +306,11 @@ if (batchSummary) {
 // ─────────────────────────────────────────────
 function readJson(p) {
   if (!fsSync.existsSync(p)) return null
-  try { return JSON.parse(fsSync.readFileSync(p, 'utf8')) } catch { return null }
+  try {
+    return JSON.parse(fsSync.readFileSync(p, 'utf8'))
+  } catch {
+    return null
+  }
 }
 
 console.log(`\n${'═'.repeat(60)}`)
@@ -304,15 +321,24 @@ console.log(`${'─'.repeat(60)}`)
 
 if (!batchResult.success) {
   console.error(`[WARN] batch result success=false`)
-  if (batchResult.failure) console.error(`  failure: ${batchResult.failure.message || JSON.stringify(batchResult.failure)}`)
+  if (batchResult.failure)
+    console.error(
+      `  failure: ${batchResult.failure.message || JSON.stringify(batchResult.failure)}`
+    )
 }
 
 console.log(`\n[结果汇总]`)
 if (batchSummary) {
   console.log(`  passRate:       ${batchSummary.passRate} (${batchSummary.passRateDecimal})`)
-  console.log(`  qualityCharCount: min=${batchSummary.min}  max=${batchSummary.max}  avg=${batchSummary.avg}`)
-  console.log(`  thinEpisodes:   [${batchSummary.thinEpisodes.join(', ')}]${batchSummary.thinEpisodes.length === 0 ? ' (无)' : ''}`)
-  console.log(`  fatEpisodes:    [${batchSummary.fatEpisodes.join(', ')}]${batchSummary.fatEpisodes.length === 0 ? ' (无)' : ''}`)
+  console.log(
+    `  qualityCharCount: min=${batchSummary.min}  max=${batchSummary.max}  avg=${batchSummary.avg}`
+  )
+  console.log(
+    `  thinEpisodes:   [${batchSummary.thinEpisodes.join(', ')}]${batchSummary.thinEpisodes.length === 0 ? ' (无)' : ''}`
+  )
+  console.log(
+    `  fatEpisodes:    [${batchSummary.fatEpisodes.join(', ')}]${batchSummary.fatEpisodes.length === 0 ? ' (无)' : ''}`
+  )
   console.log(`  rewriteEpisodes: [${batchSummary.rewriteEpisodes.join(', ')}]`)
   console.log(`  maxAttemptCount: ${batchSummary.maxAttemptCount}`)
   console.log(`  generatedScenes: ${batchSummary.generatedScenes}`)
@@ -323,7 +349,9 @@ if (batchSummary) {
 console.log(`\n[每集明细]`)
 for (const s of episodeSummaries) {
   const label = s.thin ? 'THIN' : s.fat ? 'FAT ' : 'PASS'
-  console.log(`  [${label}] ep${String(s.episode).padStart(2)}: qualityCharCount=${String(s.qualityCharCount).padStart(4)}  pass=${String(s.pass).padStart(5)}  thin=${s.thin}  fat=${s.fat}  rewrite=${s.rewrite}  attemptCount=${s.attemptCount}`)
+  console.log(
+    `  [${label}] ep${String(s.episode).padStart(2)}: qualityCharCount=${String(s.qualityCharCount).padStart(4)}  pass=${String(s.pass).padStart(5)}  thin=${s.thin}  fat=${s.fat}  rewrite=${s.rewrite}  attemptCount=${s.attemptCount}`
+  )
 }
 
 console.log(`\n[口径一致性证明]`)
@@ -338,8 +366,12 @@ if (episodeSummaries.length >= 2) {
     console.log(`    pass             (正式合同): ${ep1Ev.pass}`)
     console.log(`    debugParsedLength (debug字段): ${ep1Ev.debugParsedLength}`)
     console.log(`    thin=${ep1Sm.thin}  fat=${ep1Sm.fat}`)
-    console.log(`    qualityCharCount !== debugParsedLength: ${ep1Ev.qualityCharCount !== ep1Ev.debugParsedLength}`)
-    console.log(`    problems: [${(ep1Ev.failures || []).map(f => f.code || f.detail || '?').join(', ')}]`)
+    console.log(
+      `    qualityCharCount !== debugParsedLength: ${ep1Ev.qualityCharCount !== ep1Ev.debugParsedLength}`
+    )
+    console.log(
+      `    problems: [${(ep1Ev.failures || []).map((f) => f.code || f.detail || '?').join(', ')}]`
+    )
   }
 
   console.log(`\n  集2:`)
@@ -347,7 +379,9 @@ if (episodeSummaries.length >= 2) {
     console.log(`    qualityCharCount (正式合同): ${ep2Ev.qualityCharCount}`)
     console.log(`    pass             (正式合同): ${ep2Ev.pass}`)
     console.log(`    debugParsedLength (debug字段): ${ep2Ev.debugParsedLength}`)
-    console.log(`    qualityCharCount !== debugParsedLength: ${ep2Ev.qualityCharCount !== ep2Ev.debugParsedLength}`)
+    console.log(
+      `    qualityCharCount !== debugParsedLength: ${ep2Ev.qualityCharCount !== ep2Ev.debugParsedLength}`
+    )
   }
 }
 
@@ -357,5 +391,3 @@ console.log(`  批次汇总:     ${batchSummaryFile}`)
 console.log(`${'═'.repeat(60)}`)
 
 if (!batchSummary) process.exit(1)
-
-

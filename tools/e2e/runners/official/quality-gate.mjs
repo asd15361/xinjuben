@@ -187,7 +187,10 @@ function buildProcessCheck(name, command, result, detailBuilder) {
 }
 
 function buildAuthorityProcessCheck() {
-  const result = runCommand('node', ['tools/e2e/runners/official/quality-gate.mjs', 'authority:check'])
+  const result = runCommand('node', [
+    'tools/e2e/runners/official/quality-gate.mjs',
+    'authority:check'
+  ])
   const parsed = parseJsonOutput(result.stdout)
   const summary = summarizeOutput(result.stdout, result.stderr, result.error)
   const pass = result.ok && parsed?.status === 'pass'
@@ -275,5 +278,3 @@ function main() {
 }
 
 main()
-
-

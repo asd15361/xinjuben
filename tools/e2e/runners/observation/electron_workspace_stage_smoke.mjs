@@ -45,7 +45,11 @@ async function main() {
       { name: 'chat', button: /��жԻ�/, mustSee: ['������з���', 'ȥ�ָ�ȷ�Ϲؼ���ʵ'] },
       { name: 'outline', button: /粗略大纲/, mustSee: ['粗略大纲', '分集剧情视窗'] },
       { name: 'character', button: /人物小传/, mustSee: ['人物小传', '添加角色'] },
-      { name: 'detailed_outline', button: /详细大纲/, mustSee: ['详细大纲', '把粗纲变成真正能往下写剧本的推进图'] },
+      {
+        name: 'detailed_outline',
+        button: /详细大纲/,
+        mustSee: ['详细大纲', '把粗纲变成真正能往下写剧本的推进图']
+      },
       { name: 'script', button: /�籾����/, mustSee: ['�籾����', 'һ��ִ������'] }
     ]
 
@@ -88,7 +92,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-
-
-
-

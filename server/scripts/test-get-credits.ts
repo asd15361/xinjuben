@@ -4,7 +4,11 @@
 import dotenv from 'dotenv'
 dotenv.config()
 
-import { authenticateAdmin, getUserCredits, cachedAdminToken } from '../src/infrastructure/pocketbase/client'
+import {
+  authenticateAdmin,
+  getUserCredits,
+  cachedAdminToken
+} from '../src/infrastructure/pocketbase/client'
 
 async function test() {
   console.log('Testing getUserCredits...')

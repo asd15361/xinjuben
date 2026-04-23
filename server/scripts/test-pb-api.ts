@@ -34,7 +34,7 @@ async function main() {
   console.log('URL:', creditsUrl)
 
   const creditsRes = await fetch(creditsUrl, {
-    headers: { 'Authorization': token }
+    headers: { Authorization: token }
   })
 
   console.log('Credits response status:', creditsRes.status)

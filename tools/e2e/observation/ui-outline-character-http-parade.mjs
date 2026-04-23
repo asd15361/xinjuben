@@ -21,11 +21,15 @@ async function killProcessOnPort(port) {
     return
   }
 
-  const killer = spawn('powershell.exe', [
-    '-NoProfile',
-    '-Command',
-    `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force }`
-  ], { stdio: 'ignore' })
+  const killer = spawn(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-Command',
+      `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force }`
+    ],
+    { stdio: 'ignore' }
+  )
 
   await new Promise((resolve) => {
     killer.once('exit', () => resolve())
@@ -49,8 +53,7 @@ async function waitForServer(url, timeoutMs) {
           return
         }
       }
-    } catch {
-    }
+    } catch {}
     await new Promise((resolve) => setTimeout(resolve, 1000))
   }
   throw new Error('server_not_ready')
@@ -91,8 +94,7 @@ async function captureFailure(page, outDir, error) {
     })
     const text = await page.evaluate(() => document.body.innerText || '')
     await fs.writeFile(path.join(outDir, 'failure.txt'), `${String(error)}\n\n${text}\n`, 'utf8')
-  } catch {
-  }
+  } catch {}
 }
 
 async function main() {
@@ -215,7 +217,9 @@ async function main() {
     const totalCharacterCount = fullProfileCount + lightCardCount
 
     if (totalCharacterCount !== EXPECTED_TOTAL_CHARACTER_COUNT) {
-      throw new Error(`unexpected_total_character_count:${totalCharacterCount}:full=${fullProfileCount}:light=${lightCardCount}`)
+      throw new Error(
+        `unexpected_total_character_count:${totalCharacterCount}:full=${fullProfileCount}:light=${lightCardCount}`
+      )
     }
 
     if (factionSeatCount <= 0) {
@@ -269,4 +273,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-

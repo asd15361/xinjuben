@@ -10,7 +10,7 @@ const ADMIN_EMAIL = process.env.PB_ADMIN_EMAIL!
 const ADMIN_PASSWORD = process.env.PB_ADMIN_PASSWORD!
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function main() {
@@ -40,7 +40,7 @@ async function main() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token
+        Authorization: token
       },
       body: JSON.stringify({ name, type: 'base', schema, indexes: [] })
     })
@@ -62,18 +62,35 @@ async function main() {
   // 2. 分步创建表（每步间隔 1 秒）
   try {
     await createCollection('credits', [
-      { name: 'user', type: 'relation', required: true, options: { collectionId: '_pb_users_auth_', cascadeDelete: true } },
+      {
+        name: 'user',
+        type: 'relation',
+        required: true,
+        options: { collectionId: '_pb_users_auth_', cascadeDelete: true }
+      },
       { name: 'balance', type: 'number', required: true },
       { name: 'frozenBalance', type: 'number', required: false }
     ])
-  } catch (e) { console.log('  credits 可能已存在') }
+  } catch (e) {
+    console.log('  credits 可能已存在')
+  }
 
   await delay(2000)
 
   try {
     await createCollection('transactions', [
-      { name: 'user', type: 'relation', required: true, options: { collectionId: '_pb_users_auth_', cascadeDelete: true } },
-      { name: 'type', type: 'select', required: true, options: { values: ['register_bonus', 'api_call', 'payment', 'refund', 'admin_adjust'] } },
+      {
+        name: 'user',
+        type: 'relation',
+        required: true,
+        options: { collectionId: '_pb_users_auth_', cascadeDelete: true }
+      },
+      {
+        name: 'type',
+        type: 'select',
+        required: true,
+        options: { values: ['register_bonus', 'api_call', 'payment', 'refund', 'admin_adjust'] }
+      },
       { name: 'amount', type: 'number', required: true },
       { name: 'balanceBefore', type: 'number', required: true },
       { name: 'balanceAfter', type: 'number', required: true },
@@ -81,13 +98,20 @@ async function main() {
       { name: 'description', type: 'text', required: false },
       { name: 'metadata', type: 'json', required: false }
     ])
-  } catch (e) { console.log('  transactions 可能已存在') }
+  } catch (e) {
+    console.log('  transactions 可能已存在')
+  }
 
   await delay(2000)
 
   try {
     await createCollection('api_call_logs', [
-      { name: 'user', type: 'relation', required: true, options: { collectionId: '_pb_users_auth_', cascadeDelete: true } },
+      {
+        name: 'user',
+        type: 'relation',
+        required: true,
+        options: { collectionId: '_pb_users_auth_', cascadeDelete: true }
+      },
       { name: 'project', type: 'text', required: false },
       { name: 'task', type: 'text', required: true },
       { name: 'lane', type: 'text', required: false },
@@ -99,22 +123,36 @@ async function main() {
       { name: 'success', type: 'bool', required: true },
       { name: 'errorMessage', type: 'text', required: false }
     ])
-  } catch (e) { console.log('  api_call_logs 可能已存在') }
+  } catch (e) {
+    console.log('  api_call_logs 可能已存在')
+  }
 
   await delay(2000)
 
   try {
     await createCollection('payment_orders', [
-      { name: 'user', type: 'relation', required: true, options: { collectionId: '_pb_users_auth_', cascadeDelete: true } },
+      {
+        name: 'user',
+        type: 'relation',
+        required: true,
+        options: { collectionId: '_pb_users_auth_', cascadeDelete: true }
+      },
       { name: 'amount', type: 'number', required: true },
       { name: 'credits', type: 'number', required: true },
-      { name: 'status', type: 'select', required: true, options: { values: ['pending', 'paid', 'failed', 'refunded'] } },
+      {
+        name: 'status',
+        type: 'select',
+        required: true,
+        options: { values: ['pending', 'paid', 'failed', 'refunded'] }
+      },
       { name: 'alipayTradeNo', type: 'text', required: false },
       { name: 'qrcodeUrl', type: 'text', required: false },
       { name: 'paidAt', type: 'datetime', required: false },
       { name: 'expiredAt', type: 'datetime', required: false }
     ])
-  } catch (e) { console.log('  payment_orders 可能已存在') }
+  } catch (e) {
+    console.log('  payment_orders 可能已存在')
+  }
 
   // 3. 验证创建结果
   console.log('')
@@ -123,7 +161,7 @@ async function main() {
   await delay(1000)
 
   const listRes = await fetch(`${PB_URL}/api/collections`, {
-    headers: { 'Authorization': token }
+    headers: { Authorization: token }
   })
   const collections = await listRes.json()
 
@@ -132,7 +170,7 @@ async function main() {
 
   console.log('')
   console.log('已存在的表：')
-  targetTables.forEach(name => {
+  targetTables.forEach((name) => {
     if (existingTables.includes(name)) {
       console.log(`  ✓ ${name}`)
     } else {
@@ -146,7 +184,7 @@ async function main() {
   console.log('========================================')
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('错误:', err.message)
   process.exit(1)
 })

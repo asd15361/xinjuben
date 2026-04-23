@@ -21,27 +21,30 @@ async function jsonRequest(url, options = {}) {
   const body = options.body ? JSON.stringify(options.body) : undefined
 
   return new Promise((resolve, reject) => {
-    const req = http.request({
-      hostname: urlObj.hostname,
-      port: urlObj.port || 80,
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
+    const req = http.request(
+      {
+        hostname: urlObj.hostname,
+        port: urlObj.port || 80,
+        path: urlObj.pathname + urlObj.search,
+        method: options.method || 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(options.headers || {})
+        },
+        timeout: options.timeout || 30000
       },
-      timeout: options.timeout || 30000
-    }, res => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, data: JSON.parse(data) })
-        } catch (e) {
-          resolve({ status: res.statusCode, data: data || '(empty body)' })
-        }
-      })
-    })
+      (res) => {
+        let data = ''
+        res.on('data', (chunk) => (data += chunk))
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, data: JSON.parse(data) })
+          } catch (e) {
+            resolve({ status: res.statusCode, data: data || '(empty body)' })
+          }
+        })
+      }
+    )
 
     req.on('error', reject)
     req.on('timeout', () => {
@@ -75,7 +78,7 @@ async function main() {
   // Step 2: 获取已有项目
   console.log('[2/5] 获取项目列表...')
   const projectsRes = await jsonRequest(`${SERVER_URL}/api/projects`, {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` }
   })
 
   if (projectsRes.status !== 200 || !projectsRes.data.projects?.length) {
@@ -90,7 +93,7 @@ async function main() {
   const startTime = Date.now()
   const startRes = await jsonRequest(`${SERVER_URL}/api/script-generation/start`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}` },
     body: { projectId, targetEpisodes: 5 }
   })
 
@@ -103,7 +106,9 @@ async function main() {
   }
 
   const board = startRes.data.board
-  console.log(`初始进度板: ${board.episodeStatuses.length} 集, batchContext.status=${board.batchContext.status}`)
+  console.log(
+    `初始进度板: ${board.episodeStatuses.length} 集, batchContext.status=${board.batchContext.status}`
+  )
   console.log(`必须在 500ms 内返回（异步标志）\n`)
 
   if (startLatency > 500) {
@@ -117,10 +122,10 @@ async function main() {
   const maxPolls = 10
 
   for (let i = 0; i < maxPolls; i++) {
-    await new Promise(r => setTimeout(r, 3000))
+    await new Promise((r) => setTimeout(r, 3000))
 
     const statusRes = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` }
     })
 
     if (statusRes.status !== 200) {
@@ -150,7 +155,7 @@ async function main() {
     'Start 返回 202': startRes.status === 202,
     'Start 快速返回 (<500ms)': startLatency < 500,
     '进度板有 episodeStatuses': board?.episodeStatuses?.length > 0,
-    '轮询能看到进度递增': lastCompleted > 0,
+    轮询能看到进度递增: lastCompleted > 0,
     '最终完成 (5/5)': lastCompleted >= 5
   }
 
@@ -158,12 +163,14 @@ async function main() {
     console.log(`  ${passed ? '✓' : '✗'} ${check}`)
   }
 
-  const allPassed = Object.values(checks).every(v => v)
-  console.log(`\n${allPassed ? '✓ 全部通过！' : '✗ 存在失败项'} (总耗时 ${((Date.now() - startTime) / 1000).toFixed(1)}s)`)
+  const allPassed = Object.values(checks).every((v) => v)
+  console.log(
+    `\n${allPassed ? '✓ 全部通过！' : '✗ 存在失败项'} (总耗时 ${((Date.now() - startTime) / 1000).toFixed(1)}s)`
+  )
   process.exit(allPassed ? 0 : 1)
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('测试失败:', err)
   process.exit(1)
 })

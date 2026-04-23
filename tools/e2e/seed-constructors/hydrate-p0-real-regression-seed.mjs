@@ -60,4 +60,3 @@ if (import.meta.url === new URL(process.argv[1], 'file:').href) {
     process.exitCode = 1
   })
 }
-

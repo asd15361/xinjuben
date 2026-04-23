@@ -18,23 +18,32 @@ async function jsonRequest(url, options = {}) {
   const body = options.body ? JSON.stringify(options.body) : undefined
 
   return new Promise((resolve, reject) => {
-    const req = http.request({
-      hostname: urlObj.hostname,
-      port: urlObj.port || 80,
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-      timeout: options.timeout || 30000
-    }, res => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }) }
-        catch (e) { resolve({ status: res.statusCode, data: data }) }
-      })
-    })
+    const req = http.request(
+      {
+        hostname: urlObj.hostname,
+        port: urlObj.port || 80,
+        path: urlObj.pathname + urlObj.search,
+        method: options.method || 'GET',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        timeout: options.timeout || 30000
+      },
+      (res) => {
+        let data = ''
+        res.on('data', (chunk) => (data += chunk))
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, data: JSON.parse(data) })
+          } catch (e) {
+            resolve({ status: res.statusCode, data: data })
+          }
+        })
+      }
+    )
     req.on('error', reject)
-    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')) })
+    req.on('timeout', () => {
+      req.destroy()
+      reject(new Error('Timeout'))
+    })
     if (body) req.write(body)
     req.end()
   })
@@ -49,7 +58,7 @@ async function main() {
     body: { email: TEST_USER_EMAIL, password: TEST_USER_PASSWORD }
   })
   const token = loginRes.data.token
-  const headers = { 'Authorization': `Bearer ${token}` }
+  const headers = { Authorization: `Bearer ${token}` }
   console.log('登录成功\n')
 
   const projectId = '4f7sp1or8ysimys'
@@ -57,25 +66,40 @@ async function main() {
   // Step 1: Start（10 集，足够测试暂停）
   console.log('[1/4] 启动 10 集 Dummy Worker...')
   const startRes = await jsonRequest(`${SERVER_URL}/api/script-generation/start`, {
-    method: 'POST', headers, body: { projectId, targetEpisodes: 10 }
+    method: 'POST',
+    headers,
+    body: { projectId, targetEpisodes: 10 }
   })
   console.log(`Start: status=${startRes.status}\n`)
-  if (startRes.status !== 202) { console.error('Start 失败:', startRes); process.exit(1) }
+  if (startRes.status !== 202) {
+    console.error('Start 失败:', startRes)
+    process.exit(1)
+  }
 
   // Step 2: 等 4 秒让进度走一点，然后 Pause
-  await new Promise(r => setTimeout(r, 4000))
-  const beforePause = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, { headers })
+  await new Promise((r) => setTimeout(r, 4000))
+  const beforePause = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, {
+    headers
+  })
   console.log(`[2/4] 暂停前: ${beforePause.data.progress}`)
 
   const pauseRes = await jsonRequest(`${SERVER_URL}/api/script-generation/pause`, {
-    method: 'POST', headers, body: { projectId }
+    method: 'POST',
+    headers,
+    body: { projectId }
   })
-  console.log(`Pause: status=${pauseRes.status}, data=${JSON.stringify({ success: pauseRes.data.success, status: pauseRes.data.status })}\n`)
+  console.log(
+    `Pause: status=${pauseRes.status}, data=${JSON.stringify({ success: pauseRes.data.success, status: pauseRes.data.status })}\n`
+  )
 
   // 等 3 秒确认进度不再递增
-  await new Promise(r => setTimeout(r, 3000))
-  const afterPause = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, { headers })
-  console.log(`暂停后 3 秒: ${afterPause.data.progress} (completedEpisodes=${afterPause.data.completedEpisodes})`)
+  await new Promise((r) => setTimeout(r, 3000))
+  const afterPause = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, {
+    headers
+  })
+  console.log(
+    `暂停后 3 秒: ${afterPause.data.progress} (completedEpisodes=${afterPause.data.completedEpisodes})`
+  )
 
   const pausedOK = afterPause.data.completedEpisodes === beforePause.data.completedEpisodes
   console.log(`${pausedOK ? '✓' : '✗'} 暂停后进度不再递增\n`)
@@ -83,15 +107,19 @@ async function main() {
   // Step 3: Resume
   console.log('[3/4] 恢复...')
   const resumeRes = await jsonRequest(`${SERVER_URL}/api/script-generation/resume`, {
-    method: 'POST', headers, body: { projectId }
+    method: 'POST',
+    headers,
+    body: { projectId }
   })
   console.log(`Resume: status=${resumeRes.status}\n`)
 
   // Step 4: 轮询到完成
   console.log('[4/4] 轮询到完成...')
   for (let i = 0; i < 15; i++) {
-    await new Promise(r => setTimeout(r, 3000))
-    const status = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, { headers })
+    await new Promise((r) => setTimeout(r, 3000))
+    const status = await jsonRequest(`${SERVER_URL}/api/script-generation/status/${projectId}`, {
+      headers
+    })
     console.log(`  轮询 ${i + 1}: ${status.data.progress} (status=${status.data.status})`)
     if (status.data.status === 'completed') {
       console.log(`\n✓ 恢复后最终完成: ${status.data.progress}`)
@@ -102,4 +130,7 @@ async function main() {
   console.log('\n=== 全部通过 ===')
 }
 
-main().catch(err => { console.error('测试失败:', err); process.exit(1) })
+main().catch((err) => {
+  console.error('测试失败:', err)
+  process.exit(1)
+})

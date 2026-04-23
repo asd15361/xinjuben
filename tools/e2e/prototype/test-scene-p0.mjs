@@ -23,9 +23,22 @@ const REPO_ROOT = path.resolve(__dirname, '..', '..')
 
 // ── Load the scene generation module ────────────────────────────────────────────
 
-const scenePromptPath = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'script-generation', 'prompt', 'create-scene-generation-prompt.ts')
-const generateTextPath = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'ai', 'generate-text.ts')
-const providerConfigPath = 'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'infrastructure', 'runtime-env', 'provider-config.ts')
+const scenePromptPath =
+  'file://' +
+  path.resolve(
+    REPO_ROOT,
+    'src',
+    'main',
+    'application',
+    'script-generation',
+    'prompt',
+    'create-scene-generation-prompt.ts'
+  )
+const generateTextPath =
+  'file://' + path.resolve(REPO_ROOT, 'src', 'main', 'application', 'ai', 'generate-text.ts')
+const providerConfigPath =
+  'file://' +
+  path.resolve(REPO_ROOT, 'src', 'main', 'infrastructure', 'runtime-env', 'provider-config.ts')
 
 const { createSceneGenerationPrompt, assembleScenesForEpisode } = await import(scenePromptPath)
 const { generateTextWithRuntimeRouter } = await import(generateTextPath)
@@ -66,14 +79,26 @@ const FORMAT_RULES = {
   hasEpisodeHeading: (text) => /第[一二三四五六七八九十百零\d]+集/.test(text),
   hasSceneHeading: (text) => /^\d+\-\d+\s+/.test(text.trim().split('\n')[0]),
   // Per-line checks: iterate through lines, not anchored to string start
-  hasCharacterRoster: (text) => text.trim().split('\n').some(l => /^人物[：:]/.test(l.trim())),
-  hasDialogue: (text) => text.trim().split('\n').some(l => /^[^\s△：:（）()]{1,16}[：:]/.test(l.trim())),
+  hasCharacterRoster: (text) =>
+    text
+      .trim()
+      .split('\n')
+      .some((l) => /^人物[：:]/.test(l.trim())),
+  hasDialogue: (text) =>
+    text
+      .trim()
+      .split('\n')
+      .some((l) => /^[^\s△：:（）()]{1,16}[：:]/.test(l.trim())),
   hasAction: (text) => text.includes('△'),
   hasADE: (text) => /Action[:：]|Dialogue[:：]|Emotion[:：]/i.test(text)
 }
 
 function validateFormat(raw) {
-  const lines = raw.trim().split('\n').map(l => l.trim()).filter(Boolean)
+  const lines = raw
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
   return {
     noEpisodeHeading: !FORMAT_RULES.hasEpisodeHeading(raw),
     firstLineIsSceneHeading: FORMAT_RULES.hasSceneHeading(raw),
@@ -81,7 +106,7 @@ function validateFormat(raw) {
     hasDialogue: FORMAT_RULES.hasDialogue(raw),
     hasAction: FORMAT_RULES.hasAction(raw),
     noADE: !FORMAT_RULES.hasADE(raw),
-    firstLine: lines[0] || '',
+    firstLine: lines[0] || ''
   }
 }
 
@@ -112,11 +137,7 @@ for (const scene of EP1_SCENES) {
   console.log(`Prompt length: ${prompt.length} chars`)
 
   // Write prompt evidence
-  fs.writeFileSync(
-    path.join(outDir, `ep1-${scene.sceneCode}-prompt.txt`),
-    prompt,
-    'utf8'
-  )
+  fs.writeFileSync(path.join(outDir, `ep1-${scene.sceneCode}-prompt.txt`), prompt, 'utf8')
 
   try {
     const result = await generateTextWithRuntimeRouter(
@@ -136,7 +157,9 @@ for (const scene of EP1_SCENES) {
     const chars = charCount(raw)
 
     console.log(`Output length: ${raw.length} chars | charCount: ${chars}`)
-    console.log(`Format: episodeHeading=${fmt.noEpisodeHeading} sceneHeading=${fmt.firstLineIsSceneHeading} roster=${fmt.hasCharacterRoster} dialogue=${fmt.hasDialogue} action=${fmt.hasAction} noADE=${fmt.noADE}`)
+    console.log(
+      `Format: episodeHeading=${fmt.noEpisodeHeading} sceneHeading=${fmt.firstLineIsSceneHeading} roster=${fmt.hasCharacterRoster} dialogue=${fmt.hasDialogue} action=${fmt.hasAction} noADE=${fmt.noADE}`
+    )
     console.log(`First line: "${fmt.firstLine}"`)
 
     results.push({
@@ -147,12 +170,7 @@ for (const scene of EP1_SCENES) {
       success: true
     })
 
-    fs.writeFileSync(
-      path.join(outDir, `ep1-${scene.sceneCode}-raw.txt`),
-      raw,
-      'utf8'
-    )
-
+    fs.writeFileSync(path.join(outDir, `ep1-${scene.sceneCode}-raw.txt`), raw, 'utf8')
   } catch (err) {
     console.error(`ERROR: ${err.message}`)
     results.push({ sceneCode: scene.sceneCode, error: err.message, success: false })
@@ -162,9 +180,12 @@ for (const scene of EP1_SCENES) {
 // ── Assembly test ────────────────────────────────────────────────────────────────
 
 console.log('\n### Assembly Test')
-const successful = results.filter(r => r.success)
+const successful = results.filter((r) => r.success)
 if (successful.length === 2) {
-  const assembled = assembleScenesForEpisode(1, successful.map(r => r.raw))
+  const assembled = assembleScenesForEpisode(
+    1,
+    successful.map((r) => r.raw)
+  )
   const fmtAll = validateFormat(assembled)
   console.log(`Assembled length: ${assembled.length} chars`)
   console.log(`Format check: noEpisode=${fmtAll.noEpisodeHeading} firstLine="${fmtAll.firstLine}"`)
@@ -180,12 +201,12 @@ console.log('SUMMARY')
 console.log('═'.repeat(70))
 for (const r of results) {
   if (r.success) {
-    const budget = EP1_SCENES.find(s => s.sceneCode === r.sceneCode)?.budgetChars
+    const budget = EP1_SCENES.find((s) => s.sceneCode === r.sceneCode)?.budgetChars
     const overBudget = r.chars > budget
     console.log(
       `${r.sceneCode}: ${r.chars} chars (budget ${budget}) ${overBudget ? '⚠️ OVER' : '✅'} | ` +
-      `noEpisode=${r.fmt.noEpisodeHeading} sceneHeading=${r.fmt.firstLineIsSceneHeading} ` +
-      `roster=${r.fmt.hasCharacterRoster} dialogue=${r.fmt.hasDialogue} noADE=${r.fmt.noADE}`
+        `noEpisode=${r.fmt.noEpisodeHeading} sceneHeading=${r.fmt.firstLineIsSceneHeading} ` +
+        `roster=${r.fmt.hasCharacterRoster} dialogue=${r.fmt.hasDialogue} noADE=${r.fmt.noADE}`
     )
   } else {
     console.log(`${r.sceneCode}: ERROR - ${r.error}`)

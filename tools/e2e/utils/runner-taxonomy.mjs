@@ -72,5 +72,3 @@ export function getRunnerByLayer(layer) {
 export function getRunnerByName(name) {
   return RUNNER_TAXONOMY.find((runner) => runner.name === name)
 }
-
-

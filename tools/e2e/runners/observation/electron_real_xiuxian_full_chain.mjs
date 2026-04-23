@@ -132,12 +132,12 @@ function renderDetailedOutlineMarkdown(project) {
         '',
         normalizeText(beat.summary) || '无',
         '',
-        ...((beat.sceneByScene || []).flatMap((scene) => [
+        ...(beat.sceneByScene || []).flatMap((scene) => [
           `- 场 ${scene.sceneNo || 1}｜地点：${scene.location || '未填'}｜时间：${scene.timeOfDay || '未填'}`,
           `  - 起手：${scene.setup || '未填'}`,
           `  - 拉扯：${scene.tension || '未填'}`,
           `  - 尾钩：${scene.hookEnd || '未填'}`
-        ])),
+        ]),
         ''
       ])
     ])
@@ -145,7 +145,9 @@ function renderDetailedOutlineMarkdown(project) {
 }
 
 function renderScriptMarkdown(project) {
-  const scenes = [...(project?.scriptDraft || [])].sort((a, b) => (a.sceneNo || 0) - (b.sceneNo || 0))
+  const scenes = [...(project?.scriptDraft || [])].sort(
+    (a, b) => (a.sceneNo || 0) - (b.sceneNo || 0)
+  )
   return [
     `# ${project?.name || '未命名项目'}｜剧本`,
     '',
@@ -225,74 +227,88 @@ async function main() {
     await page.setViewportSize({ width: 1440, height: 960 })
     await page.waitForTimeout(1500)
 
-    const bootstrap = await page.evaluate(async ({ name, genre, storyIntent }) => {
-      const created = await window.api.workspace.createProject({
-        name,
-        workflowType: 'ai_write',
-        genre
-      })
-      const projectId = created.project.id
-      const saved = await window.api.workspace.saveStoryIntent({
-        projectId,
-        storyIntent
-      })
-      return {
-        projectId,
-        projectName: created.project.name,
-        storyIntentSaved: Boolean(saved?.storyIntent?.generationBriefText)
+    const bootstrap = await page.evaluate(
+      async ({ name, genre, storyIntent }) => {
+        const created = await window.api.workspace.createProject({
+          name,
+          workflowType: 'ai_write',
+          genre
+        })
+        const projectId = created.project.id
+        const saved = await window.api.workspace.saveStoryIntent({
+          projectId,
+          storyIntent
+        })
+        return {
+          projectId,
+          projectName: created.project.name,
+          storyIntentSaved: Boolean(saved?.storyIntent?.generationBriefText)
+        }
+      },
+      {
+        name: `修仙传真实全链验收-${targetEpisodes}集-${nowTag()}`,
+        genre: seedProject.genre || seedProject.storyIntent?.genre || '玄幻修仙',
+        storyIntent: confirmedStoryIntent
       }
-    }, {
-      name: `修仙传真实全链验收-${targetEpisodes}集-${nowTag()}`,
-      genre: seedProject.genre || seedProject.storyIntent?.genre || '玄幻修仙',
-      storyIntent: confirmedStoryIntent
-    })
+    )
 
     const projectId = bootstrap.projectId
     await writeJson(path.join(evidenceDir, '01-bootstrap.json'), bootstrap)
 
-    const sevenQuestionsDraft = await page.evaluate(async ({ projectId }) => {
-      const result = await window.api.workspace.generateSevenQuestionsDraft({ projectId })
-      return {
-        projectPresent: Boolean(result.project),
-        hasSevenQuestions: Boolean(result.sevenQuestions),
-        blockCount: result.sevenQuestions?.blocks?.length || 0,
-        sevenQuestions: result.sevenQuestions || null
-      }
-    }, { projectId })
+    const sevenQuestionsDraft = await page.evaluate(
+      async ({ projectId }) => {
+        const result = await window.api.workspace.generateSevenQuestionsDraft({ projectId })
+        return {
+          projectPresent: Boolean(result.project),
+          hasSevenQuestions: Boolean(result.sevenQuestions),
+          blockCount: result.sevenQuestions?.blocks?.length || 0,
+          sevenQuestions: result.sevenQuestions || null
+        }
+      },
+      { projectId }
+    )
     await writeJson(path.join(evidenceDir, '02-seven-questions-draft.json'), sevenQuestionsDraft)
 
-    const confirmedSevenQuestions = await page.evaluate(async ({ projectId, sevenQuestions }) => {
-      const result = await window.api.workspace.saveConfirmedSevenQuestions({
+    const confirmedSevenQuestions = await page.evaluate(
+      async ({ projectId, sevenQuestions }) => {
+        const result = await window.api.workspace.saveConfirmedSevenQuestions({
+          projectId,
+          sevenQuestions
+        })
+        return {
+          projectPresent: Boolean(result.project),
+          outlineBlocks: result.outlineDraft?.outlineBlocks?.length || 0,
+          sevenQuestionsConfirmed:
+            (result.outlineDraft?.outlineBlocks || []).every((block) =>
+              Boolean(block.sevenQuestions)
+            ) || false
+        }
+      },
+      {
         projectId,
-        sevenQuestions
-      })
-      return {
-        projectPresent: Boolean(result.project),
-        outlineBlocks: result.outlineDraft?.outlineBlocks?.length || 0,
-        sevenQuestionsConfirmed:
-          (result.outlineDraft?.outlineBlocks || []).every((block) => Boolean(block.sevenQuestions)) || false
+        sevenQuestions: sevenQuestionsDraft.sevenQuestions
       }
-    }, {
-      projectId,
-      sevenQuestions: sevenQuestionsDraft.sevenQuestions
-    })
+    )
     await writeJson(
       path.join(evidenceDir, '03-seven-questions-confirmed.json'),
       confirmedSevenQuestions
     )
 
-    const outlineResult = await page.evaluate(async ({ projectId }) => {
-      const result =
-        await window.api.workspace.generateOutlineAndCharactersFromConfirmedSevenQuestions({
-          projectId
-        })
-      return {
-        outlineEpisodes: result.outlineDraft?.summaryEpisodes?.length || 0,
-        characters: result.characterDrafts?.length || 0,
-        title: result.outlineDraft?.title || '',
-        protagonist: result.outlineDraft?.protagonist || ''
-      }
-    }, { projectId })
+    const outlineResult = await page.evaluate(
+      async ({ projectId }) => {
+        const result =
+          await window.api.workspace.generateOutlineAndCharactersFromConfirmedSevenQuestions({
+            projectId
+          })
+        return {
+          outlineEpisodes: result.outlineDraft?.summaryEpisodes?.length || 0,
+          characters: result.characterDrafts?.length || 0,
+          title: result.outlineDraft?.title || '',
+          protagonist: result.outlineDraft?.protagonist || ''
+        }
+      },
+      { projectId }
+    )
 
     let project = await readProjectFromStore(userDataDir, projectId)
     await writeJson(path.join(evidenceDir, '04-outline-result.json'), outlineResult)
@@ -306,105 +322,120 @@ async function main() {
     await writeJson(path.join(evidenceDir, '06-outline-fact-status.json'), {
       totalFacts: project?.outlineDraft?.facts?.length || 0,
       unconfirmedFacts: factIds.length,
-      confirmedFacts:
-        (project?.outlineDraft?.facts || []).filter((fact) => fact.status === 'confirmed').length
+      confirmedFacts: (project?.outlineDraft?.facts || []).filter(
+        (fact) => fact.status === 'confirmed'
+      ).length
     })
     if (factIds.length > 0) {
-      await page.evaluate(async ({ projectId, factIds }) => {
-        for (const factId of factIds) {
-          await window.api.workflow.confirmFormalFact({
-            projectId,
-            confirmation: { factId }
-          })
-        }
-      }, { projectId, factIds })
+      await page.evaluate(
+        async ({ projectId, factIds }) => {
+          for (const factId of factIds) {
+            await window.api.workflow.confirmFormalFact({
+              projectId,
+              confirmation: { factId }
+            })
+          }
+        },
+        { projectId, factIds }
+      )
     }
 
-    const detailedResult = await page.evaluate(async ({ projectId }) => {
-      const result = await window.api.workspace.generateDetailedOutline({ projectId })
-      return {
-        source: result.source,
-        segments: result.detailedOutlineSegments?.length || 0,
-        beats:
-          (result.detailedOutlineSegments || []).reduce(
+    const detailedResult = await page.evaluate(
+      async ({ projectId }) => {
+        const result = await window.api.workspace.generateDetailedOutline({ projectId })
+        return {
+          source: result.source,
+          segments: result.detailedOutlineSegments?.length || 0,
+          beats: (result.detailedOutlineSegments || []).reduce(
             (total, segment) => total + (segment.episodeBeats?.length || 0),
             0
           )
-      }
-    }, { projectId })
+        }
+      },
+      { projectId }
+    )
 
     project = await readProjectFromStore(userDataDir, projectId)
     await writeJson(path.join(evidenceDir, '07-detailed-outline-result.json'), detailedResult)
     await writeJson(path.join(evidenceDir, '07-detailed-outline-project.json'), project)
-    await writeText(path.join(evidenceDir, '07-detailed-outline.md'), renderDetailedOutlineMarkdown(project))
+    await writeText(
+      path.join(evidenceDir, '07-detailed-outline.md'),
+      renderDetailedOutlineMarkdown(project)
+    )
 
-    const scriptRun = await page.evaluate(async ({ projectId, targetEpisodes }) => {
-      const currentProject = await window.api.workspace.getProject(projectId)
-      if (!currentProject) {
-        throw new Error('project_missing_before_script')
-      }
-
-      const plan = await window.api.workflow.buildScriptGenerationPlan({
-        plan: {
-          mode: 'fresh_start',
-          targetEpisodes,
-          runtimeFailureHistory: []
-        },
-        storyIntent: currentProject.storyIntent,
-        outline: currentProject.outlineDraft,
-        characters: currentProject.characterDrafts,
-        segments: currentProject.detailedOutlineSegments,
-        script: currentProject.scriptDraft || []
-      })
-
-      if (!plan.ready) {
-        return {
-          ready: false,
-          blockedBy: plan.blockedBy || [],
-          contract: plan.contract || null
+    const scriptRun = await page.evaluate(
+      async ({ projectId, targetEpisodes }) => {
+        const currentProject = await window.api.workspace.getProject(projectId)
+        if (!currentProject) {
+          throw new Error('project_missing_before_script')
         }
-      }
 
-      const result = await window.api.workflow.startScriptGeneration({
-        projectId,
-        plan,
-        outlineTitle: currentProject.outlineDraft.title,
-        theme: currentProject.outlineDraft.theme,
-        mainConflict: currentProject.outlineDraft.mainConflict,
-        charactersSummary: currentProject.characterDrafts.map(
-          (item) => `${item.name}:${item.goal || item.protectTarget || item.fear || item.biography || ''}`
-        ),
-        storyIntent: currentProject.storyIntent,
-        outline: currentProject.outlineDraft,
-        characters: currentProject.characterDrafts,
-        segments: currentProject.detailedOutlineSegments,
-        existingScript: currentProject.scriptDraft || []
-      })
+        const plan = await window.api.workflow.buildScriptGenerationPlan({
+          plan: {
+            mode: 'fresh_start',
+            targetEpisodes,
+            runtimeFailureHistory: []
+          },
+          storyIntent: currentProject.storyIntent,
+          outline: currentProject.outlineDraft,
+          characters: currentProject.characterDrafts,
+          segments: currentProject.detailedOutlineSegments,
+          script: currentProject.scriptDraft || []
+        })
 
-      const nextScript = [...(currentProject.scriptDraft || []), ...result.generatedScenes]
-      await window.api.workspace.saveScriptDraft({
-        projectId,
-        scriptDraft: nextScript
-      })
-      const resume = await window.api.workflow.resolveScriptGenerationResume({ board: result.board })
-      await window.api.workspace.saveScriptRuntimeState({
-        projectId,
-        scriptProgressBoard: result.board,
-        scriptFailureResolution: result.failure,
-        scriptStateLedger: result.ledger,
-        scriptRuntimeFailureHistory: [],
-        scriptResumeResolution: resume
-      })
+        if (!plan.ready) {
+          return {
+            ready: false,
+            blockedBy: plan.blockedBy || [],
+            contract: plan.contract || null
+          }
+        }
 
-      return {
-        ready: true,
-        success: result.success,
-        generatedScenes: result.generatedScenes.length,
-        issues: result.ledger?.postflight?.issues || [],
-        pass: result.ledger?.postflight?.pass ?? null,
-        failure: result.failure || null
-      }
-    }, { projectId, targetEpisodes })
+        const result = await window.api.workflow.startScriptGeneration({
+          projectId,
+          plan,
+          outlineTitle: currentProject.outlineDraft.title,
+          theme: currentProject.outlineDraft.theme,
+          mainConflict: currentProject.outlineDraft.mainConflict,
+          charactersSummary: currentProject.characterDrafts.map(
+            (item) =>
+              `${item.name}:${item.goal || item.protectTarget || item.fear || item.biography || ''}`
+          ),
+          storyIntent: currentProject.storyIntent,
+          outline: currentProject.outlineDraft,
+          characters: currentProject.characterDrafts,
+          segments: currentProject.detailedOutlineSegments,
+          existingScript: currentProject.scriptDraft || []
+        })
+
+        const nextScript = [...(currentProject.scriptDraft || []), ...result.generatedScenes]
+        await window.api.workspace.saveScriptDraft({
+          projectId,
+          scriptDraft: nextScript
+        })
+        const resume = await window.api.workflow.resolveScriptGenerationResume({
+          board: result.board
+        })
+        await window.api.workspace.saveScriptRuntimeState({
+          projectId,
+          scriptProgressBoard: result.board,
+          scriptFailureResolution: result.failure,
+          scriptStateLedger: result.ledger,
+          scriptRuntimeFailureHistory: [],
+          scriptResumeResolution: resume
+        })
+
+        return {
+          ready: true,
+          success: result.success,
+          generatedScenes: result.generatedScenes.length,
+          issues: result.ledger?.postflight?.issues || [],
+          pass: result.ledger?.postflight?.pass ?? null,
+          failure: result.failure || null
+        }
+      },
+      { projectId, targetEpisodes }
+    )
 
     project = await readProjectFromStore(userDataDir, projectId)
     await writeJson(path.join(evidenceDir, '08-script-result.json'), scriptRun)
@@ -439,4 +470,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-

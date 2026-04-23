@@ -73,7 +73,9 @@ async function main() {
   const timeoutMs = Number.parseInt(env('E2E_TIMEOUT_MS', '600000'), 10)
 
   console.log(`[scene-heading-verify] caseId=${caseId}`)
-  console.log(`[scene-heading-verify] project=${targetProjectName} slice=${targetScriptSlice} batch=${genBatchSize}`)
+  console.log(
+    `[scene-heading-verify] project=${targetProjectName} slice=${targetScriptSlice} batch=${genBatchSize}`
+  )
 
   await fs.access(sourceUserdata)
   const { userDataDir } = await prepareE2EOutDir(repoRoot, `evidence-${caseId}`, {
@@ -135,7 +137,9 @@ async function main() {
     await page.waitForTimeout(2000)
 
     // Verify renderer API is available
-    const apiAvailable = await page.evaluate(() => typeof window.api !== 'undefined' && typeof window.api.workflow !== 'undefined')
+    const apiAvailable = await page.evaluate(
+      () => typeof window.api !== 'undefined' && typeof window.api.workflow !== 'undefined'
+    )
     if (!apiAvailable) throw new Error('renderer_api_not_available')
     console.log('[scene-heading-verify] renderer API available')
 
@@ -153,12 +157,14 @@ async function main() {
       ...project,
       outline: project.outlineDraft || project.outline,
       characters: project.characterDrafts || project.characters || [],
-      segments: (project.detailedOutlineSegments || project.segments || []).map(seg => ({
-        ...seg,
+      segments: (project.detailedOutlineSegments || project.segments || []).map((seg) => ({
+        ...seg
         // episodeBeats may have sceneByScene — keep it intact for prompt
       }))
     }
-    console.log(`[scene-heading-verify] mapped: outline.facts=${apiProject.outline?.facts?.length} characters=${apiProject.characters?.length} segments=${apiProject.segments?.length}`)
+    console.log(
+      `[scene-heading-verify] mapped: outline.facts=${apiProject.outline?.facts?.length} characters=${apiProject.characters?.length} segments=${apiProject.segments?.length}`
+    )
 
     // Determine the correct plan mode based on existing script state
     // fresh_start: no existing script episodes
@@ -172,20 +178,27 @@ async function main() {
     // If it succeeds, use the real plan; if it fails, fall back to inline plan
     let plan = null
     try {
-      plan = await page.evaluate(async (proj) => {
-        return await window.api.workflow.buildScriptGenerationPlan({
-          plan: { mode: proj._mode, targetEpisodes: proj._target },
-          storyIntent: proj.storyIntent || null,
-          outline: proj.outline,
-          characters: proj.characters || [],
-          segments: proj.segments || [],
-          script: proj.scriptDraft || []
-        })
-      }, { ...apiProject, _mode: planMode, _target: targetEpisodes })
-      console.log(`[scene-heading-verify] buildScriptGenerationPlan succeeded: mode=${plan.mode} targetEpisodes=${plan.targetEpisodes} runtimeProfile=${plan.runtimeProfile?.profileLabel}`)
+      plan = await page.evaluate(
+        async (proj) => {
+          return await window.api.workflow.buildScriptGenerationPlan({
+            plan: { mode: proj._mode, targetEpisodes: proj._target },
+            storyIntent: proj.storyIntent || null,
+            outline: proj.outline,
+            characters: proj.characters || [],
+            segments: proj.segments || [],
+            script: proj.scriptDraft || []
+          })
+        },
+        { ...apiProject, _mode: planMode, _target: targetEpisodes }
+      )
+      console.log(
+        `[scene-heading-verify] buildScriptGenerationPlan succeeded: mode=${plan.mode} targetEpisodes=${plan.targetEpisodes} runtimeProfile=${plan.runtimeProfile?.profileLabel}`
+      )
     } catch (planError) {
-      console.log(`[scene-heading-verify] buildScriptGenerationPlan failed: ${planError.message} — falling back to inline plan`)
-      const segmentText = (apiProject.segments || []).map(s => s.content).join('\n')
+      console.log(
+        `[scene-heading-verify] buildScriptGenerationPlan failed: ${planError.message} — falling back to inline plan`
+      )
+      const segmentText = (apiProject.segments || []).map((s) => s.content).join('\n')
       const contextPressureScore = Math.min(10, Math.floor(segmentText.length / 900))
       const shouldCompact = contextPressureScore >= 6
       plan = {
@@ -209,28 +222,38 @@ async function main() {
         }
       }
     }
-    console.log(`[scene-heading-verify] plan: mode=${plan.mode} compact=${plan.runtimeProfile?.shouldCompactContextFirst} pressure=${plan.runtimeProfile?.contextPressureScore}`)
+    console.log(
+      `[scene-heading-verify] plan: mode=${plan.mode} compact=${plan.runtimeProfile?.shouldCompactContextFirst} pressure=${plan.runtimeProfile?.contextPressureScore}`
+    )
 
     // Start generation — directly call the workflow API, bypassing UI
     console.log('[scene-heading-verify] starting script generation...')
-    const result = await page.evaluate(async (proj) => {
-      return await window.api.workflow.startScriptGeneration({
-        projectId: proj.id,
-        plan: proj._plan,
-        outlineTitle: proj.outline?.title || proj.outlineDraft?.title || '未命名项目',
-        theme: proj.outline?.theme || proj.outlineDraft?.theme || '待补主题',
-        mainConflict: proj.outline?.mainConflict || proj.outlineDraft?.mainConflict || '待补主线冲突',
-        charactersSummary: (proj.characters || []).map(c => c.name || c.biography || '').filter(Boolean),
-        storyIntent: proj.storyIntent || null,
-        outline: proj.outline,
-        characters: proj.characters || [],
-        activeCharacterBlocks: [],
-        segments: proj.segments || [],
-        existingScript: proj.scriptDraft || []
-      })
-    }, { ...apiProject, _plan: plan })
+    const result = await page.evaluate(
+      async (proj) => {
+        return await window.api.workflow.startScriptGeneration({
+          projectId: proj.id,
+          plan: proj._plan,
+          outlineTitle: proj.outline?.title || proj.outlineDraft?.title || '未命名项目',
+          theme: proj.outline?.theme || proj.outlineDraft?.theme || '待补主题',
+          mainConflict:
+            proj.outline?.mainConflict || proj.outlineDraft?.mainConflict || '待补主线冲突',
+          charactersSummary: (proj.characters || [])
+            .map((c) => c.name || c.biography || '')
+            .filter(Boolean),
+          storyIntent: proj.storyIntent || null,
+          outline: proj.outline,
+          characters: proj.characters || [],
+          activeCharacterBlocks: [],
+          segments: proj.segments || [],
+          existingScript: proj.scriptDraft || []
+        })
+      },
+      { ...apiProject, _plan: plan }
+    )
 
-    console.log(`[scene-heading-verify] generation result: success=${result.success} generatedScenes=${result.generatedScenes?.length} boardStatus=${result.board?.currentBatchContext?.status}`)
+    console.log(
+      `[scene-heading-verify] generation result: success=${result.success} generatedScenes=${result.generatedScenes?.length} boardStatus=${result.board?.currentBatchContext?.status}`
+    )
 
     if (!result.success) {
       console.error('[scene-heading-verify] generation failed:', result.failure?.reason)
@@ -238,35 +261,52 @@ async function main() {
 
     // Read evidence files
     const evidenceDir = path.join(repoRoot, 'tools', 'e2e', 'out', `evidence-${caseId}`)
-    const evidenceFiles = (await fs.readdir(evidenceDir)).filter(f => f.endsWith('-evidence.json'))
+    const evidenceFiles = (await fs.readdir(evidenceDir)).filter((f) =>
+      f.endsWith('-evidence.json')
+    )
     console.log(`[scene-heading-verify] evidence files written: ${evidenceFiles.length}`)
     for (const file of evidenceFiles.sort()) {
       const content = await fs.readFile(path.join(evidenceDir, file), 'utf8')
       const evidence = JSON.parse(content)
       console.log(`\n=== ${file} ===`)
-      console.log(`  rawTextLength: ${evidence.rawTextLength}${evidence.truncated ? ' (TRUNCATED — headings may be incomplete)' : ''}`)
+      console.log(
+        `  rawTextLength: ${evidence.rawTextLength}${evidence.truncated ? ' (TRUNCATED — headings may be incomplete)' : ''}`
+      )
       console.log(`  rawText preview (first 200): ${(evidence.rawText || '').substring(0, 200)}`)
       console.log(`  parsed.sceneNo: ${evidence.parsed?.sceneNo}`)
       // Note: parsed.sceneCount reflects FULL generation output (not truncated), but screenplayScenes count
       // in the quality gate comes from the stored screenplay, which is rebuilt from A/D/E sections and may differ.
       // Use postflight-summary.sceneCount as authoritative.
-      console.log(`  parsed.sceneCount: ${evidence.parsed?.screenplayScenes?.length} (see postflight for quality gate result)`)
+      console.log(
+        `  parsed.sceneCount: ${evidence.parsed?.screenplayScenes?.length} (see postflight for quality gate result)`
+      )
       // Count scene headings in raw text
-      const headingMatches = (evidence.rawText || '').match(/\d+-\d+[\s　]+[日夜晨午暮黄昏夜半凌晨]/g)
+      const headingMatches = (evidence.rawText || '').match(
+        /\d+-\d+[\s　]+[日夜晨午暮黄昏夜半凌晨]/g
+      )
       console.log(`  scene headings in rawText: ${headingMatches?.length || 0}`)
       if (headingMatches) console.log(`    headings: ${headingMatches.join(', ')}`)
     }
 
     // Read postflight if exists
     const postflightPath = path.join(repoRoot, 'tools', 'e2e', 'out', 'postflight-summary.json')
-    if (await fs.access(postflightPath).then(() => true).catch(() => false)) {
+    if (
+      await fs
+        .access(postflightPath)
+        .then(() => true)
+        .catch(() => false)
+    ) {
       const postflight = JSON.parse(await fs.readFile(postflightPath, 'utf8'))
       console.log(`\n=== postflight-summary ===`)
       console.log(`  pass: ${postflight.officialQuality?.pass}`)
-      console.log(`  weakEpisodeCount: ${postflight.officialQuality?.weakEpisodeCount}/${postflight.officialQuality?.episodeCount}`)
+      console.log(
+        `  weakEpisodeCount: ${postflight.officialQuality?.weakEpisodeCount}/${postflight.officialQuality?.episodeCount}`
+      )
       if (postflight.officialQuality?.weakEpisodes) {
         for (const ep of postflight.officialQuality.weakEpisodes.slice(0, 3)) {
-          console.log(`    ep${ep.sceneNo}: sceneCount=${ep.sceneCount} problems=${ep.problems.join(', ')}`)
+          console.log(
+            `    ep${ep.sceneNo}: sceneCount=${ep.sceneCount} problems=${ep.problems.join(', ')}`
+          )
         }
       }
     }
@@ -281,4 +321,3 @@ main().catch((e) => {
   console.error('[scene-heading-verify] ERROR:', e.message)
   process.exitCode = 1
 })
-

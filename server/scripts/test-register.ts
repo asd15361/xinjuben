@@ -52,7 +52,7 @@ async function testRegister() {
   console.log('2. 查询积分余额...')
 
   const balanceRes = await fetch(`${SERVER_URL}/api/credits/balance`, {
-    headers: { 'Authorization': `Bearer ${registerData.token}` }
+    headers: { Authorization: `Bearer ${registerData.token}` }
   })
 
   if (!balanceRes.ok) {
@@ -70,7 +70,7 @@ async function testRegister() {
   console.log('3. 查询交易记录...')
 
   const transactionsRes = await fetch(`${SERVER_URL}/api/credits/transactions`, {
-    headers: { 'Authorization': `Bearer ${registerData.token}` }
+    headers: { Authorization: `Bearer ${registerData.token}` }
   })
 
   if (!transactionsRes.ok) {
@@ -90,7 +90,7 @@ async function testRegister() {
   console.log('4. 获取用户信息...')
 
   const meRes = await fetch(`${SERVER_URL}/api/auth/me`, {
-    headers: { 'Authorization': `Bearer ${registerData.token}` }
+    headers: { Authorization: `Bearer ${registerData.token}` }
   })
 
   if (!meRes.ok) {

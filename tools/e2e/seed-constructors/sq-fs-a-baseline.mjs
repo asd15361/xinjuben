@@ -324,7 +324,8 @@ export function buildDetailedOutlineSegments() {
               timeOfDay: '黄昏',
               setup: '沈黑虎派人去私塾抓林守诺做人质，却发现人早被沈云转移了。',
               tension: '沈黑虎的最后一招落空，而林守钥的账册已在县衙备案。',
-              hookEnd: '林守钥收到沈云的消息，知道弟弟安全了——这是师父那句话最后的重量：不到万不得已。'
+              hookEnd:
+                '林守钥收到沈云的消息，知道弟弟安全了——这是师父那句话最后的重量：不到万不得已。'
             }
           ]
         }
@@ -354,7 +355,8 @@ export function buildDetailedOutlineSegments() {
               timeOfDay: '黄昏',
               setup: '林守钥回到旧库，铜钥已经沉在井里，但师父的真相守住了。',
               tension: '旧约已破，但真相见光了。师父的话还在耳边。',
-              hookEnd: '林守钥在库门口站了很久，然后转身，朝着弟弟的方向走去——这一次，是他自己选的路。'
+              hookEnd:
+                '林守钥在库门口站了很久，然后转身，朝着弟弟的方向走去——这一次，是他自己选的路。'
             }
           ]
         }

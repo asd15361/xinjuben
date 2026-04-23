@@ -27,7 +27,10 @@ function parseJsonOutput(result) {
 
 test('verify:quality emits a real structured verdict based on official non-E2E checks', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'))
-  assert.equal(packageJson.scripts['verify:quality'], 'node tools/e2e/runners/official/quality-gate.mjs')
+  assert.equal(
+    packageJson.scripts['verify:quality'],
+    'node tools/e2e/runners/official/quality-gate.mjs'
+  )
 
   const result = runNodeScript('tools/e2e/runners/official/quality-gate.mjs')
   const verdict = parseJsonOutput(result)
@@ -59,5 +62,3 @@ test('foundation verdicts consumes the real quality verdict instead of hard-code
   assert.equal(Array.isArray(quality.checks), true)
   assert.equal(summary.overall.quality, quality.status)
 })
-
-

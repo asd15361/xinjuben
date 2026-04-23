@@ -1,41 +1,42 @@
-import path from 'node:path';
-import process from 'node:process';
-import { fileURLToPath } from 'node:url';
-import { _electron as electron } from 'playwright';
-import { prepareE2EOutDir } from '../../utils/e2e-output.mjs';
-import fs from 'node:fs/promises';
+import path from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+import { _electron as electron } from 'playwright'
+import { prepareE2EOutDir } from '../../utils/e2e-output.mjs'
+import fs from 'node:fs/promises'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 async function main() {
-  const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
-  const mainEntry = path.join(repoRoot, 'out', 'main', 'index.js');
-  const { userDataDir } = await prepareE2EOutDir(repoRoot, 'smoke');
-  console.log(`launch:${mainEntry}`);
+  const repoRoot = path.resolve(__dirname, '..', '..', '..', '..')
+  const mainEntry = path.join(repoRoot, 'out', 'main', 'index.js')
+  const { userDataDir } = await prepareE2EOutDir(repoRoot, 'smoke')
+  console.log(`launch:${mainEntry}`)
 
   const app = await electron.launch({
     args: [mainEntry],
-    env: { ...process.env,
-      XINJUBEN_APP_MODE: 'e2e', MOCK_AI_ENABLE: '1', E2E_USER_DATA_DIR: userDataDir }
-  });
+    env: {
+      ...process.env,
+      XINJUBEN_APP_MODE: 'e2e',
+      MOCK_AI_ENABLE: '1',
+      E2E_USER_DATA_DIR: userDataDir
+    }
+  })
 
-  console.log('launched');
+  console.log('launched')
   try {
-    const win = await app.firstWindow();
-    console.log('first_window');
-    await win.waitForLoadState('domcontentloaded', { timeout: 15000 });
-    console.log('loaded');
+    const win = await app.firstWindow()
+    console.log('first_window')
+    await win.waitForLoadState('domcontentloaded', { timeout: 15000 })
+    console.log('loaded')
   } finally {
-    await app.close();
-    console.log('closed');
+    await app.close()
+    console.log('closed')
   }
 }
 
 main().catch((e) => {
-  console.error(e);
-  process.exitCode = 1;
-});
-
-
-
+  console.error(e)
+  process.exitCode = 1
+})
