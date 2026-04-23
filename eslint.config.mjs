@@ -41,6 +41,7 @@ export default defineConfig(
       '.codex/**',
       'archive/**',
       'docs/归档/**',
+      'docs/archive/**',
       'scripts/archive/**',
       'graphify-out/**',
       'server/pb_data/types.d.ts',

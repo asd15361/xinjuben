@@ -26,6 +26,7 @@ export type AiTaskKind =
   | 'seven_questions'
   | 'episode_script'
   | 'episode_rewrite'
+  | 'scene_repair'
   | 'quality_audit'
   | 'general'
 
