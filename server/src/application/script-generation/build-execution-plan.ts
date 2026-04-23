@@ -59,11 +59,7 @@ export function buildScriptGenerationExecutionPlan(
     targetEpisodes,
     runtimeFailureHistory: input.runtimeFailureHistory
   })
-  const lanes = resolveLaneStrategy({
-    mode,
-    targetEpisodes,
-    hasDenseStructure
-  })
+  const lanes = resolveLaneStrategy()
   const resumeStartEpisode =
     mode === 'resume' && existingSceneCount > 0 ? existingSceneCount + 1 : 1
   const episodePlans = buildEpisodePlans({

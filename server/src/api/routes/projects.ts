@@ -12,7 +12,7 @@ import type {
   SaveOutlineDraftInputDto,
   SaveStoryIntentInputDto
 } from '@shared/contracts/workspace'
-import type { CreateProjectInputDto } from '@shared/contracts/project'
+import type { CreateProjectInputDto, ProjectSnapshotDto } from '@shared/contracts/project'
 import type { OutlineDraftDto } from '@shared/contracts/workflow'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import { writeConfirmedSevenQuestionsToOutlineBlocks } from '@shared/domain/workflow/seven-questions-authority'
@@ -78,7 +78,7 @@ async function requireProjectSnapshot(
   userId: string,
   projectId: string,
   res: Response
-): Promise<unknown> {
+): Promise<ProjectSnapshotDto | null> {
   const project = await projectRepository.getProject(userId, projectId)
   if (!project) {
     res.status(404).json({
