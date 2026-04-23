@@ -7,21 +7,35 @@ import type {
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { ProjectEntityStoreDto } from '@shared/contracts/entities'
 import type { ChatMessageDto } from '@shared/contracts/chat'
-import type { OutlineDraftDto, CharacterDraftDto, DetailedOutlineSegmentDto, DetailedOutlineBlockDto, CharacterBlockDto, ScriptSegmentDto } from '@shared/contracts/workflow'
+import type {
+  OutlineDraftDto,
+  CharacterDraftDto,
+  DetailedOutlineSegmentDto,
+  DetailedOutlineBlockDto,
+  CharacterBlockDto,
+  ScriptSegmentDto
+} from '@shared/contracts/workflow'
 import type { ProjectGenerationStatusDto } from '@shared/contracts/generation'
 import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto
 } from '@shared/contracts/script-generation'
-import type { FormalReleaseState, VisibleResultState } from '@shared/contracts/visible-release-state'
+import type {
+  FormalReleaseState,
+  VisibleResultState
+} from '@shared/contracts/visible-release-state'
 import {
   guardianEnforceCharacterSave,
   guardianEnforceDetailedOutlineSave,
   guardianEnforceOutlineSave
 } from '@shared/domain/workflow/stage-guardians'
 import { authenticateAdmin, pb, TABLES } from './client'
-import { mapProjectSnapshot, mapProjectSummary, type ProjectRecordShape } from './project-snapshot-mapper'
+import {
+  mapProjectSnapshot,
+  mapProjectSummary,
+  type ProjectRecordShape
+} from './project-snapshot-mapper'
 
 type PbRecord = {
   id: string
@@ -99,17 +113,45 @@ async function upsertVersionedByProject(input: {
     try {
       return input.pocketbase.collection(input.collection).create<PbRecord>(data)
     } catch (createError: unknown) {
-      console.error(`[ProjectRepository] Create failed for ${input.collection}:`, createError)
-      throw createError
+      const errorInfo = extractPocketBaseErrorDetails(createError, input.payload)
+      console.error(`[ProjectRepository] Create failed for ${input.collection}: ${errorInfo}`)
+      throw new Error(`pocketbase_create_failed:${input.collection}:${errorInfo}`)
     }
   }
 
   try {
     return input.pocketbase.collection(input.collection).update<PbRecord>(current.id, data)
   } catch (updateError: unknown) {
-    console.error(`[ProjectRepository] Update failed for ${input.collection}:`, updateError)
-    throw updateError
+    const errorInfo = extractPocketBaseErrorDetails(updateError, input.payload)
+    console.error(`[ProjectRepository] Update failed for ${input.collection}: ${errorInfo}`)
+    throw new Error(`pocketbase_update_failed:${input.collection}:${errorInfo}`)
   }
+}
+
+function extractPocketBaseErrorDetails(error: unknown, payload: Record<string, unknown>): string {
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>
+    const data = err.data as Record<string, unknown> | undefined
+    if (data) {
+      const fieldErrors: string[] = []
+      for (const [fieldName, fieldError] of Object.entries(data)) {
+        if (fieldError && typeof fieldError === 'object') {
+          const fe = fieldError as Record<string, unknown>
+          const code = fe.code || 'unknown'
+          const message = fe.message || ''
+          fieldErrors.push(`${fieldName}:${code}:${message}`)
+        }
+      }
+      if (fieldErrors.length > 0) {
+        const payloadSizes = Object.entries(payload)
+          .map(([k, v]) => `${k}.len=${typeof v === 'string' ? v.length : JSON.stringify(v).length}`)
+          .join(',')
+        return `fields=[${fieldErrors.join(';')}] payload_sizes={${payloadSizes}}`
+      }
+    }
+    return err.message || String(error)
+  }
+  return String(error)
 }
 
 export class ProjectRepository {
@@ -140,7 +182,13 @@ export class ProjectRepository {
       genre: input.genre?.trim() || '',
       generationStatusJson: stringifyJson(null),
       storyIntentJson: stringifyJson(null),
-      entityStoreJson: stringifyJson({ characters: [], factions: [], locations: [], items: [], relations: [] }),
+      entityStoreJson: stringifyJson({
+        characters: [],
+        factions: [],
+        locations: [],
+        items: [],
+        relations: []
+      }),
       visibleResultJson: stringifyJson({
         status: 'pending',
         description: '当前还没有可见结果。',
@@ -151,7 +199,9 @@ export class ProjectRepository {
       formalReleaseJson: stringifyJson({
         status: 'blocked',
         description: '当前还没有正式放行结果。',
-        blockedBy: [{ code: 'UNKNOWN_BLOCKED', message: '当前还没有正式放行结果。', category: 'process' }],
+        blockedBy: [
+          { code: 'UNKNOWN_BLOCKED', message: '当前还没有正式放行结果。', category: 'process' }
+        ],
         evaluatedAt: now
       } satisfies FormalReleaseState),
       projectVersion: 1
@@ -197,7 +247,9 @@ export class ProjectRepository {
             scriptDraftJson: script.scriptDraftJson as string,
             scriptProgressBoardJson: script.scriptProgressBoardJson as string | null,
             scriptFailureResolutionJson: script.scriptFailureResolutionJson as string | null,
-            scriptRuntimeFailureHistoryJson: script.scriptRuntimeFailureHistoryJson as string | null,
+            scriptRuntimeFailureHistoryJson: script.scriptRuntimeFailureHistoryJson as
+              | string
+              | null,
             scriptStateLedgerJson: script.scriptStateLedgerJson as string | null
           }
         : undefined
@@ -362,12 +414,15 @@ export class ProjectRepository {
       userId: input.userId,
       projectId: input.projectId,
       payload: {
-        detailedOutlineBlocksJson: input.detailedOutlineBlocks,
-        detailedOutlineSegmentsJson: input.detailedOutlineSegments
+        detailedOutlineBlocksJson: stringifyJson(input.detailedOutlineBlocks),
+        detailedOutlineSegmentsJson: stringifyJson(input.detailedOutlineSegments)
       },
       expectedVersion: input.expectedVersion
     })
-    console.log('[ProjectRepository] Detailed outline saved successfully for project:', input.projectId)
+    console.log(
+      '[ProjectRepository] Detailed outline saved successfully for project:',
+      input.projectId
+    )
     return this.getProject(input.userId, input.projectId)
   }
 
@@ -389,10 +444,16 @@ export class ProjectRepository {
       projectId: input.projectId,
       payload: {
         scriptDraftJson: stringifyJson(input.scriptDraft),
-        scriptProgressBoardJson: input.scriptProgressBoard ? stringifyJson(input.scriptProgressBoard) : null,
-        scriptFailureResolutionJson: input.scriptFailureResolution ? stringifyJson(input.scriptFailureResolution) : null,
+        scriptProgressBoardJson: input.scriptProgressBoard
+          ? stringifyJson(input.scriptProgressBoard)
+          : null,
+        scriptFailureResolutionJson: input.scriptFailureResolution
+          ? stringifyJson(input.scriptFailureResolution)
+          : null,
         scriptRuntimeFailureHistoryJson: stringifyJson(input.scriptRuntimeFailureHistory ?? []),
-        scriptStateLedgerJson: input.scriptStateLedger ? stringifyJson(input.scriptStateLedger) : null
+        scriptStateLedgerJson: input.scriptStateLedger
+          ? stringifyJson(input.scriptStateLedger)
+          : null
       },
       expectedVersion: input.expectedVersion
     })
