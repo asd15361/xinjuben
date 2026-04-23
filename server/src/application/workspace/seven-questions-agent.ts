@@ -56,7 +56,9 @@ export function buildSevenQuestionsPrompt(
 
   const lines: string[] = []
 
-  lines.push('你是七问专家（seven-questions-agent）。你的任务是根据创作真源，判断剧本是否需要分篇章，并为每个篇章填写七问答案。')
+  lines.push(
+    '你是七问专家（seven-questions-agent）。你的任务是根据创作真源，判断剧本是否需要分篇章，并为每个篇章填写七问答案。'
+  )
   lines.push('')
   lines.push('【基本原则】')
   lines.push('- 七问是篇章级叙事骨架，不是集级填充')
@@ -71,7 +73,9 @@ export function buildSevenQuestionsPrompt(
   lines.push('2. 发生超过1年以上的时间跳跃')
   lines.push('3. 主角的核心目标（Goal）发生阶段性逆转（例如：从"寻找秘宝"变为"毁灭秘宝"）')
   lines.push('')
-  lines.push('如果以上条件均不满足，必须填 needsSections = false，整个剧只共用一个篇章。严禁强行制造割裂。')
+  lines.push(
+    '如果以上条件均不满足，必须填 needsSections = false，整个剧只共用一个篇章。严禁强行制造割裂。'
+  )
   lines.push('')
 
   // 真源信息
@@ -180,7 +184,7 @@ export function parseSevenQuestionsResponse(rawText: string): SevenQuestionsResu
       needsSections: Boolean(parsed.needsSections),
       sectionCount: Number(parsed.sectionCount) || 0,
       sectionCountReason: String(parsed.sectionCountReason || ''),
-      sections: parsed.sections.map((s: any) => ({
+      sections: parsed.sections.map((s: Record<string, unknown>) => ({
         sectionNo: Number(s.sectionNo) || 1,
         sectionTitle: String(s.sectionTitle || ''),
         startEpisode: Number(s.startEpisode) || 1,

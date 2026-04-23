@@ -11,7 +11,10 @@ import type { ScriptSegmentDto } from '@shared/contracts/workflow'
 const ADERESIDUE = /^[ \t]*(?:Action|action|Dialogue|dialogue|Emotion|emotion)[：:][ \t]*$/gmu
 
 function stripADEResidue(text: string): string {
-  return text.replace(ADERESIDUE, '').replace(/\n{3,}/g, '\n\n').trim()
+  return text
+    .replace(ADERESIDUE, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 function extractCharacterNamesFromDialogue(dialogue: string): string[] {
@@ -50,7 +53,7 @@ export function parseGeneratedScene(text: string, sceneNo: number): ScriptSegmen
 
   // Route 1: ≥2 scene headings → screenplay path directly (bypasses hasPollutedContent gate)
   // Real model output has headings + A/D/E markers but no 第X集 → hasPollutedContent rejects it
-  const headingMatches = normalizedText.match(/(?:^|\n)\d+\-\d+\s+/g) || []
+  const headingMatches = normalizedText.match(/(?:^|\n)\d+-\d+\s+/g) || []
   if (headingMatches.length >= 2) {
     return {
       sceneNo,

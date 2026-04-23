@@ -28,7 +28,8 @@ function isFuzzyNameMatch(characterName: string, anchorName: string): boolean {
   // 完全匹配
   if (normalizedChar === normalizedAnchor) return true
   // 子串包含匹配
-  if (normalizedChar.includes(normalizedAnchor) || normalizedAnchor.includes(normalizedChar)) return true
+  if (normalizedChar.includes(normalizedAnchor) || normalizedAnchor.includes(normalizedChar))
+    return true
   // 原始名称子串匹配（兼容未清洗的情况）
   if (characterName.includes(anchorName) || anchorName.includes(characterName)) return true
 
@@ -57,7 +58,9 @@ type CharacterContractCandidate = CharacterDraftDto &
     >
   >
 
-function isLegacyCharacterDraftStructurallyComplete(character: CharacterContractCandidate): boolean {
+function isLegacyCharacterDraftStructurallyComplete(
+  character: CharacterContractCandidate
+): boolean {
   return (
     hasText(character.name) &&
     hasText(character.biography) &&
@@ -75,7 +78,7 @@ function isCharacterProfileV2StructurallyComplete(character: CharacterContractCa
     !hasText(character.personality) ||
     !hasText(character.identity) ||
     !hasText(character.values) ||
-      !hasText(character.plotFunction)
+    !hasText(character.plotFunction)
   ) {
     return false
   }
@@ -110,7 +113,9 @@ function collectMissingV2Fields(character: CharacterContractCandidate): string[]
   return missing
 }
 
-export function getCharacterContractIssues(character: CharacterDraftDto): CharacterContractIssueDto | null {
+export function getCharacterContractIssues(
+  character: CharacterDraftDto
+): CharacterContractIssueDto | null {
   const candidate = character as CharacterContractCandidate
   const missingLegacyFields = collectMissingLegacyFields(candidate)
   const missingV2Fields = collectMissingV2Fields(candidate)
@@ -125,14 +130,19 @@ export function getCharacterContractIssues(character: CharacterDraftDto): Charac
 }
 
 export function isCharacterDraftStructurallyComplete(character: CharacterDraftDto): boolean {
-  return getCharacterContractIssues(character) === null
+  const candidate = character as CharacterContractCandidate
+  return (
+    isLegacyCharacterDraftStructurallyComplete(candidate) &&
+    isCharacterProfileV2StructurallyComplete(candidate)
+  )
 }
 
 export function resolveCharacterContractAnchors(input: {
   storyIntent?: StoryIntentPackageDto | null
   outline?: Pick<OutlineDraftDto, 'protagonist'> | null
 }): { protagonist?: string; antagonist?: string } {
-  const protagonist = input.storyIntent?.protagonist?.trim() || input.outline?.protagonist?.trim() || ''
+  const protagonist =
+    input.storyIntent?.protagonist?.trim() || input.outline?.protagonist?.trim() || ''
   const antagonist = input.storyIntent?.antagonist?.trim() || ''
 
   return {
@@ -210,4 +220,3 @@ export function isCharacterStageReady(input: {
     antagonist: anchors.antagonist
   })
 }
-

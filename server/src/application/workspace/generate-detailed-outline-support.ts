@@ -343,12 +343,10 @@ async function invokeDetailedOutlineAct(input: {
     responseHead = normalizedResponse.slice(0, 240)
     responseTail = normalizedResponse.slice(-240)
 
-    let payload: DetailedOutlineActPayload
     const parsedPayload = parseDetailedOutlinePayload(result.text)
     if (!parsedPayload) {
       throw new Error(`detailed_outline_parse_failed:${input.plan.act}`)
     }
-    payload = parsedPayload
 
     const segment: DetailedOutlineSegmentDto = {
       act: input.plan.act,
@@ -384,18 +382,21 @@ async function invokeDetailedOutlineAct(input: {
   }
 }
 
-export async function generateDetailedOutlineFromContext(input: {
-  outline: OutlineDraftDto
-  characters: CharacterDraftDto[]
-  entityStore?: ProjectEntityStoreDto | null
-  storyIntent?: StoryIntentPackageDto | null
-  runtimeConfig: RuntimeProviderConfig
-  diagnosticLogger?: DetailedOutlineDiagnosticLogger
-  signal?: AbortSignal
-}, deps: {
-  invokeAct?: InvokeDetailedOutlineActFn
-  decorateSegmentWithEpisodeControlCards?: DecorateSegmentWithEpisodeControlCardsFn
-} = {}): Promise<{
+export async function generateDetailedOutlineFromContext(
+  input: {
+    outline: OutlineDraftDto
+    characters: CharacterDraftDto[]
+    entityStore?: ProjectEntityStoreDto | null
+    storyIntent?: StoryIntentPackageDto | null
+    runtimeConfig: RuntimeProviderConfig
+    diagnosticLogger?: DetailedOutlineDiagnosticLogger
+    signal?: AbortSignal
+  },
+  deps: {
+    invokeAct?: InvokeDetailedOutlineActFn
+    decorateSegmentWithEpisodeControlCards?: DecorateSegmentWithEpisodeControlCardsFn
+  } = {}
+): Promise<{
   segments: DetailedOutlineSegmentDto[]
   source: DetailedOutlineSource
   diagnostic: string

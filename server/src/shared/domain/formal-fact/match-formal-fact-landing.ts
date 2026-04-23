@@ -33,7 +33,7 @@ const GENERIC_ANCHORS = new Set([
 function normalizeText(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[，。、“”‘’：；！？（）()【】\[\],.!?;:'"`~\-_/\\]/g, ' ')
+    .replace(/[,、"':;!?() [\],.!?;:'"`~\-_/\\]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -48,11 +48,11 @@ function pushAnchor(target: Set<string>, token: string): void {
 function extractAnchors(value: string): string[] {
   const normalized = normalizeText(value)
   const anchors = new Set<string>()
-  const chunks = normalized.match(/[\u4e00-\u9fff]{2,12}|[a-z0-9]{2,}/g) || []
+  const chunks = normalized.match(/[一-鿿]{2,12}|[a-z0-9]{2,}/g) || []
 
   for (const chunk of chunks) {
     pushAnchor(anchors, chunk)
-    if (/^[\u4e00-\u9fff]+$/.test(chunk)) {
+    if (/^[一-鿿]+$/.test(chunk)) {
       const maxLength = Math.min(chunk.length, 6)
       for (let size = 2; size <= maxLength; size += 1) {
         for (let index = 0; index <= chunk.length - size; index += 1) {

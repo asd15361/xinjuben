@@ -46,10 +46,7 @@ export function resolveMasterEntityId(
   return matched?.id ?? null
 }
 
-export function fromMasterEntity(
-  entity: CharacterEntityDto,
-  _options?: FromMasterEntityOptions
-): CharacterDraftDto {
+export function fromMasterEntity(entity: CharacterEntityDto): CharacterDraftDto {
   return {
     masterEntityId: entity.id,
     name: entity.name,
@@ -79,7 +76,7 @@ export function toMasterEntity(
   if (resolvedId) {
     const existing = entityStore.characters.find((e) => e.id === resolvedId)
     if (existing) {
-      return updateMasterEntityFromDraft(existing, draft, projectId)
+      return updateMasterEntityFromDraft(existing, draft)
     }
   }
 
@@ -93,8 +90,7 @@ export function toMasterEntity(
 
 function updateMasterEntityFromDraft(
   entity: CharacterEntityDto,
-  draft: CharacterDraftDto,
-  _projectId: string
+  draft: CharacterDraftDto
 ): CharacterEntityDto {
   const now = new Date().toISOString()
 
@@ -165,9 +161,6 @@ export function draftsToMasterEntities(
   return drafts.map((draft) => toMasterEntity(draft, options))
 }
 
-export function masterEntitiesToDrafts(
-  entities: CharacterEntityDto[],
-  _options?: FromMasterEntityOptions
-): CharacterDraftDto[] {
-  return entities.map((entity) => fromMasterEntity(entity, _options))
+export function masterEntitiesToDrafts(entities: CharacterEntityDto[]): CharacterDraftDto[] {
+  return entities.map((entity) => fromMasterEntity(entity))
 }

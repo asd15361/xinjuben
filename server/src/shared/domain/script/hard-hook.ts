@@ -249,8 +249,8 @@ function normalize(line: string): string {
 function isSceneHeading(line: string): boolean {
   const trimmed = line.trim()
   return (
-    /^(\d+\-\d+)\s*(日|夜)\s*(内|外|内外)?\s*.+$/.test(trimmed) ||
-    /^(\d+\-\d+)\s+.+?[·•・]\s*(日|夜)\s*(内|外|内外)?\s*$/.test(trimmed)
+    /^(\d+-\d+)\s*(日|夜)\s*(内|外|内外)?\s*.+$/.test(trimmed) ||
+    /^(\d+-\d+)\s+.+?[·•・]\s*(日|夜)\s*(内|外|内外)?\s*$/.test(trimmed)
   )
 }
 

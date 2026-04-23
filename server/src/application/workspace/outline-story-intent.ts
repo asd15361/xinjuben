@@ -18,10 +18,7 @@ function toAnchorName(value: unknown): string {
   return normalizeAnchorName(toStringOrEmpty(value))
 }
 
-export function normalizeOutlineStoryIntent(
-  input: unknown,
-  _fallback?: StoryIntentPackageDto
-): StoryIntentPackageDto {
+export function normalizeOutlineStoryIntent(input: unknown): StoryIntentPackageDto {
   const obj = (
     input && typeof input === 'object' ? (input as Record<string, unknown>) : {}
   ) as Record<string, unknown>
@@ -59,4 +56,3 @@ export function normalizeOutlineStoryIntent(
     shortDramaConstitution: buildShortDramaConstitutionFromStoryIntent(baseStoryIntent)
   }
 }
-

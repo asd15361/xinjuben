@@ -19,6 +19,7 @@ const DETAILED_OUTLINE_TIMEOUT_MS = readTimeoutOverride('AI_TIMEOUT_DETAILED_OUT
 const EPISODE_CONTROL_TIMEOUT_MS = readTimeoutOverride('AI_TIMEOUT_EPISODE_CONTROL_MS', 90_000)
 const EPISODE_SCRIPT_TIMEOUT_MS = readTimeoutOverride('AI_TIMEOUT_EPISODE_SCRIPT_MS', 120_000)
 const EPISODE_REWRITE_TIMEOUT_MS = readTimeoutOverride('AI_TIMEOUT_EPISODE_REWRITE_MS', 120_000)
+const SCENE_REPAIR_TIMEOUT_MS = readTimeoutOverride('AI_TIMEOUT_SCENE_REPAIR_MS', 60_000)
 
 export function resolveAiStageTimeoutMs(
   task: AiGenerateRequestDto['task'],
@@ -60,6 +61,10 @@ export function resolveAiStageTimeoutMs(
 
   if (task === 'episode_control') {
     return EPISODE_CONTROL_TIMEOUT_MS
+  }
+
+  if (task === 'scene_repair') {
+    return SCENE_REPAIR_TIMEOUT_MS
   }
 
   return DEFAULT_AI_TIMEOUT_MS

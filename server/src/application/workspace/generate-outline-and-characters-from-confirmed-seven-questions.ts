@@ -39,7 +39,6 @@ import { normalizeCharacterDrafts } from '@shared/domain/workflow/character-draf
 import {
   getCharacterBundleContractIssues,
   isCharacterBundleStructurallyComplete,
-  isCharacterDraftStructurallyComplete,
   resolveCharacterContractAnchors
 } from '@shared/domain/workflow/character-contract'
 import { mapV2ToLegacyCharacterDraft } from '@shared/contracts/character-profile-v2'
@@ -95,9 +94,7 @@ interface ConfirmedSevenQuestionsGenerationDeps {
 
 function resolveCharacterCardAuthorityNames(generationBriefText: string): string[] {
   const structured = parseStructuredGenerationBrief(generationBriefText)
-  const cards = Array.isArray(structured?.characterCards)
-    ? structured.characterCards
-    : []
+  const cards = Array.isArray(structured?.characterCards) ? structured.characterCards : []
 
   const seen = new Set<string>()
   const names: string[] = []
@@ -124,7 +121,9 @@ function clampCharacterDraftsToVisibleRoster(input: {
   }
 
   const visibleNameSet = new Set(
-    input.entityStore.characters.map((character) => normalizeCharacterName(character.name)).filter(Boolean)
+    input.entityStore.characters
+      .map((character) => normalizeCharacterName(character.name))
+      .filter(Boolean)
   )
 
   return [...input.characterDrafts]
@@ -143,9 +142,8 @@ function clampCharacterDraftsToVisibleRoster(input: {
 }
 
 async function appendConfirmedSevenQuestionsDiagnosticLog(message: string): Promise<void> {
-  const { appendRuntimeDiagnosticLog } = await import(
-    '../../infrastructure/diagnostics/runtime-diagnostic-log.js'
-  )
+  const { appendRuntimeDiagnosticLog } =
+    await import('../../infrastructure/diagnostics/runtime-diagnostic-log.js')
   await appendRuntimeDiagnosticLog('rough_outline', message)
 }
 
@@ -155,7 +153,8 @@ function buildConfirmedSevenQuestionsHandshakeSummary(
   return confirmedSevenQuestions.sections
     .map((section, index) => {
       const questions = section.sevenQuestions
-      const hasValue = (value: unknown) => typeof value === 'string' && value.trim().length > 0
+      const hasValue = (value: unknown): boolean =>
+        typeof value === 'string' && value.trim().length > 0
       return [
         `section=${index + 1}`,
         `episodes=${section.startEpisode}-${section.endEpisode}`,
@@ -226,7 +225,11 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   characterProfiles: { characters: CharacterDraftDto[] }
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
-}) {
+}): Promise<{
+  characters: CharacterDraftDto[]
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
+}> {
   const { generateOutlineBundle } = await import('./generate-outline-and-characters-support.js')
   return generateOutlineBundle(input)
 }
@@ -240,13 +243,16 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
  * @param input.signal - 中断信号
  * @returns 粗纲、人物、七问
  */
-export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(input: {
-  projectId: string
-  storyIntent: StoryIntentPackageDto
-  outlineDraft: OutlineDraftDto | null
-  runtimeConfig: RuntimeProviderConfig
-  signal?: AbortSignal
-}, deps: ConfirmedSevenQuestionsGenerationDeps = {}): Promise<{
+export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
+  input: {
+    projectId: string
+    storyIntent: StoryIntentPackageDto
+    outlineDraft: OutlineDraftDto | null
+    runtimeConfig: RuntimeProviderConfig
+    signal?: AbortSignal
+  },
+  deps: ConfirmedSevenQuestionsGenerationDeps = {}
+): Promise<{
   storyIntent: StoryIntentPackageDto
   outlineDraft: OutlineDraftDto
   characterDrafts: CharacterDraftDto[]
@@ -254,8 +260,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
   sevenQuestions: SevenQuestionsResultDto
 }> {
   const generationBriefText = input.storyIntent.generationBriefText?.trim()
-  const appendDiagnosticLog =
-    deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
+  const appendDiagnosticLog = deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
   if (!generationBriefText) {
     throw new Error('confirmed_story_intent_missing')
   }
@@ -321,7 +326,9 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     await appendDiagnosticLog(
       `rough_outline_final_validation_failed code=${outlineValidation.code || 'unknown'} actualEpisodeCount=${outlineValidation.actualEpisodeCount} missing=[${outlineValidation.missingEpisodeNos.join(',')}] duplicate=[${outlineValidation.duplicateEpisodeNos.join(',')}] empty=[${outlineValidation.emptyEpisodeNos.join(',')}]`
     )
-    throw new Error(`rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`)
+    throw new Error(
+      `rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`
+    )
   }
 
   const validatedOutline = outlinePayload
@@ -380,8 +387,9 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     })
   }
 
-  const rawCharacters = (characterProfilesResult.characters || [])
-    .filter((c) => Boolean(c.name?.trim()))
+  const rawCharacters = (characterProfilesResult.characters || []).filter((c) =>
+    Boolean(c.name?.trim())
+  )
 
   const normalizedCharacters = normalizeCharacterDrafts(rawCharacters)
   const characterCardAuthorityNames = resolveCharacterCardAuthorityNames(generationBriefText)
@@ -434,14 +442,20 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
       antagonist: anchors.antagonist
     })
     const incompleteSummary = bundleIssues.incompleteCharacters
-      .map((item) => `${item.name}{legacy:${item.missingLegacyFields.join('|') || '-'};v2:${item.missingV2Fields.join('|') || '-'}}`)
+      .map(
+        (item) =>
+          `${item.name}{legacy:${item.missingLegacyFields.join('|') || '-'};v2:${item.missingV2Fields.join('|') || '-'}}`
+      )
       .join(',')
     await appendDiagnosticLog(
       `character_bundle_incomplete_after_enrichment protagonist=${anchors.protagonist || 'missing'} antagonist=${anchors.antagonist || 'missing'} protagonistCovered=${bundleIssues.protagonistCovered ? 1 : 0} antagonistCovered=${bundleIssues.antagonistCovered ? 1 : 0} characters=${filteredCharacters.length} incomplete=[${incompleteSummary}] names=[${normalizedNames.join(',')}]`
     )
   }
 
-  if (characterCardAuthorityNames.length > 0 && filteredCharacters.length !== normalizedCharacters.length) {
+  if (
+    characterCardAuthorityNames.length > 0 &&
+    filteredCharacters.length !== normalizedCharacters.length
+  ) {
     await appendDiagnosticLog(
       `character_bundle_filtered_to_role_cards cards=${characterCardAuthorityNames.length} before=${normalizedCharacters.length} after=${filteredCharacters.length}`
     )
@@ -480,4 +494,3 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(in
     sevenQuestions: confirmedSevenQuestions
   }
 }
-
