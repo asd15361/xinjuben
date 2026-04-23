@@ -678,7 +678,15 @@ import type { ExecuteScriptRepairInputDto } from '../../../shared/contracts/scri
  */
 export async function apiExecuteScriptRepair(
   input: ExecuteScriptRepairInputDto
-): Promise<{ success: boolean; message: string; projectId: string; suggestionCount: number }> {
+): Promise<{
+  success: boolean
+  message: string
+  projectId: string
+  repairedCount: number
+  durationMs: number
+  repairedScript: ScriptSegmentDto[]
+  ledger: ScriptStateLedgerDto | null
+}> {
   return apiRequest('/api/script-audit/execute-repair', {
     method: 'POST',
     body: input
