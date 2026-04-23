@@ -166,6 +166,10 @@ export function buildSevenQuestionsPrompt(
   return lines.join('\n')
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 /**
  * 解析七问 Agent 返回的 JSON
  */
@@ -184,21 +188,24 @@ export function parseSevenQuestionsResponse(rawText: string): SevenQuestionsResu
       needsSections: Boolean(parsed.needsSections),
       sectionCount: Number(parsed.sectionCount) || 0,
       sectionCountReason: String(parsed.sectionCountReason || ''),
-      sections: parsed.sections.map((s: Record<string, unknown>) => ({
-        sectionNo: Number(s.sectionNo) || 1,
-        sectionTitle: String(s.sectionTitle || ''),
-        startEpisode: Number(s.startEpisode) || 1,
-        endEpisode: Number(s.endEpisode) || 10,
-        sevenQuestions: {
-          goal: String(s.sevenQuestions?.goal || ''),
-          obstacle: String(s.sevenQuestions?.obstacle || ''),
-          effort: String(s.sevenQuestions?.effort || ''),
-          result: String(s.sevenQuestions?.result || ''),
-          twist: String(s.sevenQuestions?.twist || ''),
-          turnaround: String(s.sevenQuestions?.turnaround || ''),
-          ending: String(s.sevenQuestions?.ending || '')
+      sections: parsed.sections.map((s: Record<string, unknown>) => {
+        const sevenQuestions = isRecord(s.sevenQuestions) ? s.sevenQuestions : {}
+        return {
+          sectionNo: Number(s.sectionNo) || 1,
+          sectionTitle: String(s.sectionTitle || ''),
+          startEpisode: Number(s.startEpisode) || 1,
+          endEpisode: Number(s.endEpisode) || 10,
+          sevenQuestions: {
+            goal: String(sevenQuestions.goal || ''),
+            obstacle: String(sevenQuestions.obstacle || ''),
+            effort: String(sevenQuestions.effort || ''),
+            result: String(sevenQuestions.result || ''),
+            twist: String(sevenQuestions.twist || ''),
+            turnaround: String(sevenQuestions.turnaround || ''),
+            ending: String(sevenQuestions.ending || '')
+          }
         }
-      }))
+      })
     }
   } catch {
     return null

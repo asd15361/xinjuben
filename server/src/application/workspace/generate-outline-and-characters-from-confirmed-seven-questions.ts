@@ -225,13 +225,22 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   characterProfiles: { characters: CharacterDraftDto[] }
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
-}): Promise<{
-  characters: CharacterDraftDto[]
-  characterProfilesV2?: CharacterProfileV2Dto[]
-  factionMatrix?: FactionMatrixDto
-}> {
+}): Promise<{ outline?: {
+  title?: string
+  genre?: string
+  theme?: string
+  protagonist?: string
+  mainConflict?: string
+  summary?: string
+  episodes?: Array<{ episodeNo?: number; summary?: string }>
+  facts?: OutlineFactCandidate[]
+} | null }> {
   const { generateOutlineBundle } = await import('./generate-outline-and-characters-support.js')
-  return generateOutlineBundle(input)
+  const result = await generateOutlineBundle(input)
+  if (!result) {
+    throw new Error('generate_outline_bundle_failed:null_result')
+  }
+  return result
 }
 
 /**

@@ -149,7 +149,7 @@ function extractPocketBaseErrorDetails(error: unknown, payload: Record<string, u
         return `fields=[${fieldErrors.join(';')}] payload_sizes={${payloadSizes}}`
       }
     }
-    return err.message || String(error)
+    return err instanceof Error ? err.message : String(error)
   }
   return String(error)
 }
