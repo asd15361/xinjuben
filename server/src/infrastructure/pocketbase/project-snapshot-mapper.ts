@@ -9,7 +9,10 @@ import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto
 } from '@shared/contracts/script-generation'
-import type { FormalReleaseState, VisibleResultState } from '@shared/contracts/visible-release-state'
+import type {
+  FormalReleaseState,
+  VisibleResultState
+} from '@shared/contracts/visible-release-state'
 import type {
   CharacterBlockDto,
   CharacterDraftDto,
@@ -140,7 +143,10 @@ export function mapProjectSnapshot(
       project.entityStoreJson,
       createEmptyEntityStore()
     ),
-    outlineDraft: parseJsonOrDefault<OutlineDraftDto | null>(stages.outline?.outlineDraftJson, null),
+    outlineDraft: parseJsonOrDefault<OutlineDraftDto | null>(
+      stages.outline?.outlineDraftJson,
+      null
+    ),
     characterDrafts: parseJsonOrDefault<CharacterDraftDto[]>(
       stages.characters?.characterDraftsJson,
       []

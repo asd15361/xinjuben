@@ -46,7 +46,8 @@ export function loadRuntimeProviderConfig(): RuntimeProviderConfig {
     openrouterGeminiFlashLite: {
       apiKey: process.env.OPENROUTER_API_KEY || '',
       baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-      model: process.env.OPENROUTER_MODEL_GEMINI_FLASH_LITE || 'google/gemini-3.1-flash-lite-preview',
+      model:
+        process.env.OPENROUTER_MODEL_GEMINI_FLASH_LITE || 'google/gemini-3.1-flash-lite-preview',
       systemInstruction: process.env.OPENROUTER_SYSTEM_INSTRUCTION_GEMINI_FLASH_LITE || '',
       timeoutMs: readNumber(process.env.OPENROUTER_TIMEOUT_MS, 45000)
     },
@@ -59,7 +60,10 @@ export function loadRuntimeProviderConfig(): RuntimeProviderConfig {
     },
     lanes: {
       deepseek: readFlag(process.env.MODEL_ROUTER_ENABLE_DEEPSEEK, true),
-      openrouterGeminiFlashLite: readFlag(process.env.MODEL_ROUTER_ENABLE_OPENROUTER_GEMINI_FLASH_LITE, true),
+      openrouterGeminiFlashLite: readFlag(
+        process.env.MODEL_ROUTER_ENABLE_OPENROUTER_GEMINI_FLASH_LITE,
+        true
+      ),
       openrouterQwenFree: readFlag(process.env.MODEL_ROUTER_ENABLE_OPENROUTER_QWEN_FREE, true)
     },
     runtimeFetchTimeoutMs: readNumber(process.env.RUNTIME_FETCH_TIMEOUT_MS, 15000)

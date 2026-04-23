@@ -9,7 +9,10 @@
 import { Router, Request, Response } from 'express'
 import { authMiddleware } from '../middleware/auth'
 import { CreditService } from '../../services/credit-service'
-import { hasValidApiKey, loadRuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
+import {
+  hasValidApiKey,
+  loadRuntimeProviderConfig
+} from '../../infrastructure/runtime-env/provider-config'
 import { generateDetailedOutlineForProject } from '../../application/workspace/detailed-outline-service'
 
 export const detailedOutlineRouter = Router()
@@ -17,7 +20,11 @@ export const detailedOutlineRouter = Router()
 const creditService = new CreditService()
 
 // 积分扣费中间件（扣 5 积分）
-async function deductCreditsMiddleware(req: Request, res: Response, next: Function) {
+async function deductCreditsMiddleware(
+  req: Request,
+  res: Response,
+  next: () => void
+): Promise<void> {
   if (!req.user) {
     res.status(401).json({ error: 'not_authenticated', message: '请先登录' })
     return
@@ -39,20 +46,24 @@ async function deductCreditsMiddleware(req: Request, res: Response, next: Functi
 
     req.creditDeduction = { userId: req.user.id, amount: requiredCredits }
     next()
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'credit_check_failed', message: '积分检查失败' })
   }
 }
 
 // 执行扣费
-async function executeDeduction(req: Request, success: boolean, metadata: {
-  task: string
-  projectId: string
-  lane: string
-  model: string
-  durationMs: number
-  errorMessage?: string
-}) {
+async function executeDeduction(
+  req: Request,
+  success: boolean,
+  metadata: {
+    task: string
+    projectId: string
+    lane: string
+    model: string
+    durationMs: number
+    errorMessage?: string
+  }
+): Promise<void> {
   if (!req.creditDeduction) return
 
   const userId = req.creditDeduction.userId
@@ -67,7 +78,9 @@ async function executeDeduction(req: Request, success: boolean, metadata: {
       durationMs: metadata.durationMs
     })
   } else {
-    console.log(`[DetailedOutline] Failed: userId=${userId} task=${metadata.task} error=${metadata.errorMessage}`)
+    console.log(
+      `[DetailedOutline] Failed: userId=${userId} task=${metadata.task} error=${metadata.errorMessage}`
+    )
   }
 }
 

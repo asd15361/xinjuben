@@ -28,7 +28,7 @@ export const TABLES = {
   projectScripts: `${APP_ID}_project_scripts`,
   transactions: `${APP_ID}_transactions`,
   userApps: 'user_apps',
-  userWallets: 'user_wallets',
+  userWallets: 'user_wallets'
 } as const
 
 // 管理员认证状态缓存
@@ -121,7 +121,7 @@ export async function validateUserToken(token: string): Promise<{
       email: user.record.email,
       name: user.record.name || ''
     }
-  } catch (error) {
+  } catch {
     throw new Error('token_expired')
   }
 }
@@ -141,7 +141,7 @@ export async function getUserCredits(userId: string): Promise<{
   console.log('[PocketBase] Fetching credits:', url)
 
   const res = await fetch(url, {
-    headers: { 'Authorization': cachedAdminToken }
+    headers: { Authorization: cachedAdminToken }
   })
 
   if (!res.ok) {
@@ -168,20 +168,28 @@ export async function getUserCredits(userId: string): Promise<{
 /**
  * 获取用户交易记录（最近 N 条）
  */
-export async function getUserTransactions(userId: string, limit: number = 20): Promise<Array<{
-  id: string
-  type: string
-  amount: number
-  balanceBefore: number
-  balanceAfter: number
-  description: string
-  createdAt: string
-}>> {
+export async function getUserTransactions(
+  userId: string,
+  limit: number = 20
+): Promise<
+  Array<{
+    id: string
+    type: string
+    amount: number
+    balanceBefore: number
+    balanceAfter: number
+    description: string
+    createdAt: string
+  }>
+> {
   await authenticateAdmin()
 
-  const res = await fetch(`${PB_URL}/api/collections/${TABLES.transactions}/records?filter=user.id='${userId}'&sort=-created&perPage=${limit}`, {
-    headers: { 'Authorization': cachedAdminToken }
-  })
+  const res = await fetch(
+    `${PB_URL}/api/collections/${TABLES.transactions}/records?filter=user.id='${userId}'&sort=-created&perPage=${limit}`,
+    {
+      headers: { Authorization: cachedAdminToken }
+    }
+  )
 
   if (!res.ok) {
     return []
@@ -189,7 +197,7 @@ export async function getUserTransactions(userId: string, limit: number = 20): P
 
   const data = await res.json()
 
-  return (data.items || []).map((record: any) => ({
+  return (data.items || []).map((record: Record<string, unknown>) => ({
     id: record.id,
     type: record.type,
     amount: record.amount,
@@ -208,9 +216,12 @@ export async function ensureUserAppBinding(userId: string): Promise<void> {
   await authenticateAdmin()
 
   // 查询是否已有绑定
-  const res = await fetch(`${PB_URL}/api/collections/${TABLES.userApps}/records?filter=user.id='${userId}' && appId='${APP_ID}'`, {
-    headers: { 'Authorization': cachedAdminToken }
-  })
+  const res = await fetch(
+    `${PB_URL}/api/collections/${TABLES.userApps}/records?filter=user.id='${userId}' && appId='${APP_ID}'`,
+    {
+      headers: { Authorization: cachedAdminToken }
+    }
+  )
 
   if (!res.ok) {
     console.error('[PocketBase] Failed to query user_apps')
@@ -247,13 +258,19 @@ export async function ensureUserAppBinding(userId: string): Promise<void> {
  * 静默开户：检查并创建 user_wallets 钱包
  * 注册或首次登录时调用，确保用户有当前项目的积分账户
  */
-export async function ensureUserWallet(userId: string, initialBalance: number = 100): Promise<number> {
+export async function ensureUserWallet(
+  userId: string,
+  initialBalance: number = 100
+): Promise<number> {
   await authenticateAdmin()
 
   // 查询是否已有钱包
-  const res = await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`, {
-    headers: { 'Authorization': cachedAdminToken }
-  })
+  const res = await fetch(
+    `${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`,
+    {
+      headers: { Authorization: cachedAdminToken }
+    }
+  )
 
   if (!res.ok) {
     console.error('[PocketBase] Failed to query user_wallets')
@@ -283,9 +300,12 @@ export async function ensureUserWallet(userId: string, initialBalance: number = 
 export async function getUserWalletBalance(userId: string): Promise<number> {
   await authenticateAdmin()
 
-  const res = await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`, {
-    headers: { 'Authorization': cachedAdminToken }
-  })
+  const res = await fetch(
+    `${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`,
+    {
+      headers: { Authorization: cachedAdminToken }
+    }
+  )
 
   if (!res.ok) {
     return 0

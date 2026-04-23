@@ -6,27 +6,28 @@
 import { Router, Request, Response } from 'express'
 import { authMiddleware } from '../middleware/auth'
 import { CreditService } from '../../services/credit-service'
-import { loadRuntimeProviderConfig, hasValidApiKey } from '../../infrastructure/runtime-env/provider-config'
+import {
+  loadRuntimeProviderConfig,
+  hasValidApiKey
+} from '../../infrastructure/runtime-env/provider-config'
 import { generateTextWithRouter } from '../../application/ai/generate-text'
-import { buildSevenQuestionsPrompt, parseSevenQuestionsResponse } from '../../application/workspace/seven-questions-agent'
-import { authenticateAdmin, cachedAdminToken, PB_URL } from '../../infrastructure/pocketbase/client'
+import {
+  buildSevenQuestionsPrompt,
+  parseSevenQuestionsResponse
+} from '../../application/workspace/seven-questions-agent'
+import { authenticateAdmin, PB_URL, cachedAdminToken } from '../../infrastructure/pocketbase/client'
 
 export const generateRouter = Router()
 
 const creditService = new CreditService()
 const runtimeConfig = loadRuntimeProviderConfig()
 
-// 扩展 Request 类型
-declare global {
-  namespace Express {
-    interface Request {
-      creditDeduction?: { userId: string; amount: number }
-    }
-  }
-}
-
 // 积分扣费中间件
-async function deductCreditsMiddleware(req: Request, res: Response, next: Function) {
+async function deductCreditsMiddleware(
+  req: Request,
+  res: Response,
+  next: () => void
+): Promise<void> {
   if (!req.user) {
     res.status(401).json({ error: 'not_authenticated', message: '请先登录' })
     return
@@ -47,21 +48,25 @@ async function deductCreditsMiddleware(req: Request, res: Response, next: Functi
     // 标记需要扣费
     req.creditDeduction = { userId: req.user.id, amount: 1 }
     next()
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'credit_check_failed', message: '积分检查失败' })
   }
 }
 
 // 执行扣费（调用成功后）
-async function executeDeduction(req: Request, success: boolean, metadata: {
-  task: string
-  lane: string
-  model: string
-  durationMs: number
-  inputTokens?: number
-  outputTokens?: number
-  errorMessage?: string
-}) {
+async function executeDeduction(
+  req: Request,
+  success: boolean,
+  metadata: {
+    task: string
+    lane: string
+    model: string
+    durationMs: number
+    inputTokens?: number
+    outputTokens?: number
+    errorMessage?: string
+  }
+): Promise<void> {
   if (!req.creditDeduction) return
 
   const userId = req.creditDeduction.userId
@@ -85,7 +90,7 @@ async function executeDeduction(req: Request, success: boolean, metadata: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
+        Authorization: cachedAdminToken
       },
       body: JSON.stringify({
         user: userId,
