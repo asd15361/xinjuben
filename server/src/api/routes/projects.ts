@@ -1,14 +1,15 @@
 import { Router, type Request, type Response } from 'express'
 import { authMiddleware } from '../middleware/auth'
-import { ProjectRepository, ProjectRepositoryConcurrencyError } from '../../infrastructure/pocketbase/project-repository'
+import {
+  ProjectRepository,
+  ProjectRepositoryConcurrencyError
+} from '../../infrastructure/pocketbase/project-repository'
 import type {
   SaveChatMessagesInputDto,
   SaveCharacterDraftsInputDto,
   SaveConfirmedSevenQuestionsInputDto,
   SaveDetailedOutlineSegmentsInputDto,
   SaveOutlineDraftInputDto,
-  SaveScriptDraftInputDto,
-  SaveScriptRuntimeStateInputDto,
   SaveStoryIntentInputDto
 } from '@shared/contracts/workspace'
 import type { CreateProjectInputDto } from '@shared/contracts/project'
@@ -17,13 +18,19 @@ import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import { writeConfirmedSevenQuestionsToOutlineBlocks } from '@shared/domain/workflow/seven-questions-authority'
 import { buildConfirmedStoryIntent } from '@shared/domain/workflow/confirmed-story-intent'
 import { generateTextWithRouter } from '../../application/ai/generate-text'
-import { loadRuntimeProviderConfig, hasValidApiKey } from '../../infrastructure/runtime-env/provider-config'
+import {
+  loadRuntimeProviderConfig,
+  hasValidApiKey
+} from '../../infrastructure/runtime-env/provider-config'
 
 export const projectsRouter = Router()
 
 const projectRepository = new ProjectRepository()
 
-function requireUser(req: Request, res: Response): { id: string; email: string; name: string } | null {
+function requireUser(
+  req: Request,
+  res: Response
+): { id: string; email: string; name: string } | null {
   if (!req.user) {
     res.status(401).json({
       error: 'not_authenticated',
@@ -38,10 +45,7 @@ function isConcurrencyError(error: unknown): error is ProjectRepositoryConcurren
   return error instanceof ProjectRepositoryConcurrencyError
 }
 
-async function withProjectResult(
-  res: Response,
-  runner: () => Promise<unknown>
-): Promise<void> {
+async function withProjectResult(res: Response, runner: () => Promise<unknown>): Promise<void> {
   try {
     const result = await runner()
     if (result == null) {
@@ -74,7 +78,7 @@ async function requireProjectSnapshot(
   userId: string,
   projectId: string,
   res: Response
-) {
+): Promise<unknown> {
   const project = await projectRepository.getProject(userId, projectId)
   if (!project) {
     res.status(404).json({
@@ -336,7 +340,8 @@ projectsRouter.post('/:projectId/seven-questions/confirm', async (req, res) => {
   const existingProject = await requireProjectSnapshot(user.id, req.params.projectId, res)
   if (!existingProject) return
 
-  const outlineBase = existingProject.outlineDraft ?? buildSevenQuestionsBaseOutline(existingProject)
+  const outlineBase =
+    existingProject.outlineDraft ?? buildSevenQuestionsBaseOutline(existingProject)
   const nextOutlineDraft = writeConfirmedSevenQuestionsToOutlineBlocks(
     outlineBase,
     input.sevenQuestions.sections
@@ -383,37 +388,3 @@ projectsRouter.post('/:projectId/detailed-outline', async (req, res) => {
   }))
 })
 
-projectsRouter.post('/:projectId/script', async (req, res) => {
-  const user = requireUser(req, res)
-  if (!user) return
-
-  const input = req.body as SaveScriptDraftInputDto
-  await withProjectResult(res, async () => ({
-    project: await projectRepository.saveScriptState({
-      userId: user.id,
-      projectId: req.params.projectId,
-      scriptDraft: input.scriptDraft
-    })
-  }))
-})
-
-projectsRouter.post('/:projectId/runtime-state', async (req, res) => {
-  const user = requireUser(req, res)
-  if (!user) return
-
-  const input = req.body as SaveScriptRuntimeStateInputDto
-  const existingProject = await requireProjectSnapshot(user.id, req.params.projectId, res)
-  if (!existingProject) return
-
-  await withProjectResult(res, async () => ({
-    project: await projectRepository.saveScriptState({
-      userId: user.id,
-      projectId: req.params.projectId,
-      scriptDraft: existingProject.scriptDraft ?? [],
-      scriptProgressBoard: input.scriptProgressBoard,
-      scriptFailureResolution: input.scriptFailureResolution,
-      scriptRuntimeFailureHistory: input.scriptRuntimeFailureHistory,
-      scriptStateLedger: input.scriptStateLedger
-    })
-  }))
-})

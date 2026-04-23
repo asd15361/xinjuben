@@ -20,10 +20,9 @@ import {
   apiSaveCharacterDrafts,
   apiSaveDetailedOutlineSegments,
   apiSaveOutlineDraft,
-  apiSaveScriptDraft,
-  apiSaveScriptRuntimeState,
   apiSaveStoryIntent
 } from '../../services/api-client.ts'
+import { useAuthStore } from '../store/useAuthStore.ts'
 import { createOutlineSeed } from '../../services/create-outline-seed.ts'
 
 interface WorkspaceProjectsState {
@@ -104,19 +103,40 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
   async function saveScriptDraft(
     input: SaveScriptDraftInputDto
   ): Promise<ProjectSnapshotDto | null> {
-    const result = await apiSaveScriptDraft(input)
-    setActiveProject(result.project)
-    await reload()
-    return result.project
+    const userId = useAuthStore.getState().user?.id
+    if (!userId) throw new Error('未登录')
+    await window.api.workspace.saveScriptDraft(userId, input.projectId, input.scriptDraft)
+    setActiveProject((prev) =>
+      prev && prev.id === input.projectId
+        ? { ...prev, scriptDraft: input.scriptDraft }
+        : prev
+    )
+    return activeProject
   }
 
   async function saveScriptRuntimeState(
     input: SaveScriptRuntimeStateInputDto
   ): Promise<ProjectSnapshotDto | null> {
-    const result = await apiSaveScriptRuntimeState(input)
-    setActiveProject(result.project)
-    await reload()
-    return result.project
+    const userId = useAuthStore.getState().user?.id
+    if (!userId) throw new Error('未登录')
+    await window.api.workspace.saveRuntimeState(userId, input.projectId, {
+      scriptProgressBoard: input.scriptProgressBoard ?? null,
+      scriptFailureResolution: input.scriptFailureResolution ?? null,
+      scriptStateLedger: input.scriptStateLedger ?? null,
+      scriptRuntimeFailureHistory: input.scriptRuntimeFailureHistory
+    })
+    setActiveProject((prev) =>
+      prev && prev.id === input.projectId
+        ? {
+            ...prev,
+            scriptProgressBoard: input.scriptProgressBoard ?? null,
+            scriptFailureResolution: input.scriptFailureResolution ?? null,
+            scriptStateLedger: input.scriptStateLedger ?? null,
+            scriptRuntimeFailureHistory: input.scriptRuntimeFailureHistory ?? []
+          }
+        : prev
+    )
+    return activeProject
   }
 
   async function createOutlineSeedFromProject(projectId: string): Promise<OutlineSeedDto | null> {

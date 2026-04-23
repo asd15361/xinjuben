@@ -6,9 +6,9 @@ import {
   apiSaveChatMessages,
   apiSaveOutlineDraft,
   apiSaveCharacterDrafts,
-  apiSaveDetailedOutlineSegments,
-  apiSaveScriptDraft
+  apiSaveDetailedOutlineSegments
 } from '../../services/api-client.ts'
+import { useAuthStore } from '../store/useAuthStore.ts'
 
 export function useProjectStagePersistence(): void {
   const projectId = useWorkflowStore((s) => s.projectId)
@@ -114,7 +114,9 @@ export function useProjectStagePersistence(): void {
 
     const timer = window.setTimeout(() => {
       lastScriptRef.current = payload
-      void apiSaveScriptDraft({ projectId, scriptDraft: script })
+      const userId = useAuthStore.getState().user?.id
+      if (!userId) return
+      void window.api.workspace.saveScriptDraft(userId, projectId, script)
     }, 400)
 
     return () => window.clearTimeout(timer)

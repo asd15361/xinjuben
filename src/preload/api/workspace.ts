@@ -80,5 +80,39 @@ export const workspaceApi = {
     scriptStateLedger: ScriptStateLedgerDto | null
   } | null> {
     return ipcRenderer.invoke('workspace:read-local-content', { userId, projectId })
+  },
+
+  /**
+   * 保存剧本草稿到本地内容存储（不写 PB）
+   */
+  saveScriptDraft(
+    userId: string,
+    projectId: string,
+    scriptDraft: ScriptSegmentDto[]
+  ): Promise<{ success: boolean }> {
+    return ipcRenderer.invoke('workspace:save-script-draft', { userId, projectId, scriptDraft })
+  },
+
+  /**
+   * 保存运行时状态到本地内容存储（不写 PB）
+   */
+  saveRuntimeState(
+    userId: string,
+    projectId: string,
+    state: {
+      scriptProgressBoard: ScriptGenerationProgressBoardDto | null
+      scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
+      scriptStateLedger: ScriptStateLedgerDto | null
+      scriptRuntimeFailureHistory?: string[]
+    }
+  ): Promise<{ success: boolean }> {
+    return ipcRenderer.invoke('workspace:save-runtime-state', {
+      userId,
+      projectId,
+      scriptProgressBoard: state.scriptProgressBoard,
+      scriptFailureResolution: state.scriptFailureResolution,
+      scriptStateLedger: state.scriptStateLedger,
+      scriptRuntimeFailureHistory: state.scriptRuntimeFailureHistory
+    })
   }
 }

@@ -3,10 +3,13 @@ import { writeFile } from 'node:fs/promises'
 import { getProject } from '../infrastructure/storage/project-store.ts'
 import {
   saveScriptGenerationResult,
-  readLocalContent
+  readLocalContent,
+  saveScriptDraft,
+  saveRuntimeState
 } from '../infrastructure/storage/local-content-store.ts'
 import { buildProjectStageExportDraft } from '../application/workspace/export-project-stage-markdown.ts'
 import type { ExportProjectStageMarkdownInputDto, SaveScriptGenerationResultInputDto } from '../../shared/contracts/workspace.ts'
+import type { ScriptSegmentDto } from '../../shared/contracts/workflow.ts'
 
 /**
  * workspace IPC handlers - 桌面壳能力 + 本地内容存储
@@ -87,6 +90,36 @@ export function registerWorkspaceProjectHandlers(): void {
         scriptFailureResolution: content.scriptFailureResolution,
         scriptStateLedger: content.scriptStateLedger
       }
+    }
+  )
+
+  // 本地内容真相源：保存剧本草稿（不写 PB）
+  ipcMain.handle(
+    'workspace:save-script-draft',
+    async (_event, input: { userId: string; projectId: string; scriptDraft: ScriptSegmentDto[] }) => {
+      await saveScriptDraft(input.userId, input.projectId, input.scriptDraft)
+      return { success: true }
+    }
+  )
+
+  // 本地内容真相源：保存运行时状态（不写 PB）
+  ipcMain.handle(
+    'workspace:save-runtime-state',
+    async (_event, input: {
+      userId: string
+      projectId: string
+      scriptProgressBoard: unknown
+      scriptFailureResolution: unknown
+      scriptStateLedger: unknown
+      scriptRuntimeFailureHistory?: string[]
+    }) => {
+      await saveRuntimeState(input.userId, input.projectId, {
+        scriptProgressBoard: input.scriptProgressBoard ?? null,
+        scriptFailureResolution: input.scriptFailureResolution ?? null,
+        scriptStateLedger: input.scriptStateLedger ?? null,
+        scriptRuntimeFailureHistory: input.scriptRuntimeFailureHistory
+      })
+      return { success: true }
     }
   )
 }

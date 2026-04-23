@@ -320,24 +320,6 @@ export async function apiSaveDetailedOutlineSegments(
   })
 }
 
-export async function apiSaveScriptDraft(
-  input: SaveScriptDraftInputDto
-): Promise<{ project: ProjectSnapshotDto | null }> {
-  return apiRequest(`/api/projects/${input.projectId}/script`, {
-    method: 'POST',
-    body: input
-  })
-}
-
-export async function apiSaveScriptRuntimeState(
-  input: SaveScriptRuntimeStateInputDto
-): Promise<{ project: ProjectSnapshotDto | null }> {
-  return apiRequest(`/api/projects/${input.projectId}/runtime-state`, {
-    method: 'POST',
-    body: input
-  })
-}
-
 // ========== 生成接口 ==========
 
 export interface StoryIntent {
