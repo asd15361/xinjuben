@@ -163,12 +163,11 @@ export class ProjectRepository {
 
   async listProjects(userId: string): Promise<ProjectSummaryDto[]> {
     await this.ensureAdminReady()
-    const result = await this.pocketbase.collection(TABLES.projects).getFullList<PbRecord>({
+    const result = await this.pocketbase.collection(TABLES.projects).getList<PbRecord>(1, 1000, {
       filter: `user="${userId}"`,
-      sort: '-updated',
       requestKey: null
     })
-    return result.map((record) => mapProjectSummary(toProjectRecordShape(record)))
+    return result.items.map((record) => mapProjectSummary(toProjectRecordShape(record)))
   }
 
   async createProject(userId: string, input: CreateProjectInputDto): Promise<ProjectSnapshotDto> {
