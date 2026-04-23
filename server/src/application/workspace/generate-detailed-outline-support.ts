@@ -352,9 +352,9 @@ async function invokeDetailedOutlineAct(input: {
       act: input.plan.act,
       startEpisode: input.plan.startEpisode,
       endEpisode: input.plan.endEpisode,
-      content: extractActSummary(payload, ''),
+      content: extractActSummary(parsedPayload, ''),
       hookType: DETAILED_OUTLINE_ACT_HOOK_TYPE[input.plan.act],
-      episodeBeats: extractActEpisodes(payload, [])
+      episodeBeats: extractActEpisodes(parsedPayload, [])
     }
 
     if (

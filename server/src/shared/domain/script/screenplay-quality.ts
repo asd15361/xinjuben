@@ -74,10 +74,7 @@ function resolveSceneCountContract(): { min: number; max: number; label: string 
 }
 
 function resolveCharCountContract(sceneCount: number): { min: number; max: number } {
-  const min =
-    typeof EPISODE_CHAR_COUNT.min === 'function'
-      ? EPISODE_CHAR_COUNT.min(sceneCount)
-      : EPISODE_CHAR_COUNT.min
+  const min = EPISODE_CHAR_COUNT.min()
   return { min, max: EPISODE_CHAR_COUNT.max }
 }
 

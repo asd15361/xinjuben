@@ -1,3 +1,5 @@
+import type { ModelRouteLane } from '@shared/contracts/ai'
+
 export function resolveLaneStrategy(): {
   primary: ModelRouteLane
   fallback: ModelRouteLane

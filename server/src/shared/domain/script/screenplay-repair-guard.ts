@@ -239,7 +239,7 @@ export function collectEpisodeGuardFailures(scene: ScriptSegmentDto): EpisodeGua
 
   const sceneCount = scene.screenplayScenes?.length || 2
   const charCount = quality.charCount ?? 0
-  const min = EPISODE_CHAR_COUNT.min(sceneCount)
+  const min = EPISODE_CHAR_COUNT.min()
   const max = EPISODE_CHAR_COUNT_MAX
   if (charCount > 0 && (charCount < min || charCount > max)) {
     const direction = charCount < min ? '偏瘦' : '偏胖'
