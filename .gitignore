@@ -14,3 +14,25 @@ tmp-home.png
 .DS_Store
 .eslintcache
 *.log*
+
+# Build artifacts
+*.tsbuildinfo
+tsconfig.node.tsbuildinfo
+
+# Tool caches
+graphify-out/cache/
+.codex/tmp-hook-check/
+
+# Temporary output files
+lint-output.json
+lint-stderr.txt
+worktree-audit.txt
+
+# Local tooling / deploy dirs
+.omc/
+.deploy/
+.graphify_python
+
+# PocketBase runtime files
+server/pb_data/*.db-wal
+server/pb_data/*.db-shm
