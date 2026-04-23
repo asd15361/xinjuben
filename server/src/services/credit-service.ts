@@ -3,7 +3,14 @@
  *
  * 使用 user_wallets 表存余额，xinjuben_transactions 表存流水
  */
-import { authenticateAdmin, cachedAdminToken, PB_URL, APP_ID, TABLES, getUserWalletBalance } from '../infrastructure/pocketbase/client'
+import {
+  authenticateAdmin,
+  cachedAdminToken,
+  PB_URL,
+  APP_ID,
+  TABLES,
+  getUserWalletBalance
+} from '../infrastructure/pocketbase/client'
 
 export interface CreditBalance {
   balance: number
@@ -32,7 +39,7 @@ async function getWalletRecord(userId: string): Promise<{ id: string; balance: n
 
   const res = await fetch(
     `${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`,
-    { headers: { 'Authorization': cachedAdminToken } }
+    { headers: { Authorization: cachedAdminToken } }
   )
 
   if (!res.ok) return null
@@ -64,26 +71,39 @@ export class CreditService {
     const balanceBefore = wallet.balance
 
     if (balanceBefore < amount) {
-      return { success: false, newBalance: balanceBefore, transactionId: '', error: 'insufficient_credits' }
+      return {
+        success: false,
+        newBalance: balanceBefore,
+        transactionId: '',
+        error: 'insufficient_credits'
+      }
     }
 
     const balanceAfter = balanceBefore - amount
 
     // 更新钱包余额
-    const updateRes = await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
-      body: JSON.stringify({ balance: balanceAfter })
-    })
+    const updateRes = await fetch(
+      `${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: cachedAdminToken },
+        body: JSON.stringify({ balance: balanceAfter })
+      }
+    )
 
     if (!updateRes.ok) {
-      return { success: false, newBalance: balanceBefore, transactionId: '', error: 'update_failed' }
+      return {
+        success: false,
+        newBalance: balanceBefore,
+        transactionId: '',
+        error: 'update_failed'
+      }
     }
 
     // 记录流水
     const transRes = await fetch(`${PB_URL}/api/collections/${TABLES.transactions}/records`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      headers: { 'Content-Type': 'application/json', Authorization: cachedAdminToken },
       body: JSON.stringify({
         user: userId,
         type: 'api_call',
@@ -130,14 +150,14 @@ export class CreditService {
     // 更新钱包
     await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      headers: { 'Content-Type': 'application/json', Authorization: cachedAdminToken },
       body: JSON.stringify({ balance: balanceAfter })
     })
 
     // 记录流水
     await fetch(`${PB_URL}/api/collections/${TABLES.transactions}/records`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      headers: { 'Content-Type': 'application/json', Authorization: cachedAdminToken },
       body: JSON.stringify({ user: userId, type, amount, balanceBefore, balanceAfter, description })
     })
 
@@ -151,7 +171,7 @@ export class CreditService {
 
     await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      headers: { 'Content-Type': 'application/json', Authorization: cachedAdminToken },
       body: JSON.stringify({ balance: wallet.balance - amount })
     })
 
@@ -165,7 +185,7 @@ export class CreditService {
 
     await fetch(`${PB_URL}/api/collections/${TABLES.userWallets}/records/${wallet.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': cachedAdminToken },
+      headers: { 'Content-Type': 'application/json', Authorization: cachedAdminToken },
       body: JSON.stringify({ balance: wallet.balance + amount })
     })
   }

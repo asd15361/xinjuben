@@ -39,7 +39,7 @@ payRouter.post('/create', authMiddleware, async (req: Request, res: Response) =>
 
   const { packageId } = req.body as { packageId: string }
 
-  if (!packageId || !CREDIT_PACKAGES.find(p => p.id === packageId)) {
+  if (!packageId || !CREDIT_PACKAGES.find((p) => p.id === packageId)) {
     res.status(400).json({ error: 'invalid_package', message: '无效的充值套餐' })
     return
   }

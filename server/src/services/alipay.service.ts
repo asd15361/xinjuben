@@ -11,7 +11,13 @@
  * - 流水使用 <appId>_transactions 表
  */
 import { AlipaySdk } from 'alipay-sdk'
-import { authenticateAdmin, cachedAdminToken, PB_URL, APP_ID, TABLES } from '../infrastructure/pocketbase/client'
+import {
+  authenticateAdmin,
+  cachedAdminToken,
+  PB_URL,
+  APP_ID,
+  TABLES
+} from '../infrastructure/pocketbase/client'
 
 // 支付宝配置
 const ALIPAY_APP_ID = process.env.ALIPAY_APP_ID || ''
@@ -26,10 +32,10 @@ export const CREDIT_PACKAGES = [
   { id: 'basic', amount: 0.01, credits: 1, label: '1 积分（测试）' },
   { id: 'standard', amount: 100, credits: 200, label: '200 积分' },
   { id: 'premium', amount: 300, credits: 700, label: '700 积分' },
-  { id: 'ultimate', amount: 500, credits: 1200, label: '1200 积分' },
+  { id: 'ultimate', amount: 500, credits: 1200, label: '1200 积分' }
 ] as const
 
-export type CreditPackageId = typeof CREDIT_PACKAGES[number]['id']
+export type CreditPackageId = (typeof CREDIT_PACKAGES)[number]['id']
 
 // 初始化支付宝 SDK
 let alipaySdk: AlipaySdk | null = null
@@ -43,7 +49,7 @@ function getAlipaySdk(): AlipaySdk {
       appId: ALIPAY_APP_ID,
       privateKey: ALIPAY_PRIVATE_KEY,
       alipayPublicKey: ALIPAY_PUBLIC_KEY,
-      gateway: ALIPAY_GATEWAY,
+      gateway: ALIPAY_GATEWAY
     })
   }
   return alipaySdk
@@ -83,7 +89,7 @@ export async function createPaymentOrder(
   await authenticateAdmin()
 
   // 查找套餐
-  const pkg = CREDIT_PACKAGES.find(p => p.id === packageId)
+  const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId)
   if (!pkg) {
     return { success: false, error: 'invalid_package' }
   }
@@ -95,7 +101,7 @@ export async function createPaymentOrder(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': cachedAdminToken
+      Authorization: cachedAdminToken
     },
     body: JSON.stringify({
       outTradeNo,
@@ -117,19 +123,16 @@ export async function createPaymentOrder(
   try {
     const sdk = getAlipaySdk()
 
-    const payUrl = sdk.pageExec(
-      'alipay.trade.page.pay',
-      {
-        notifyUrl: ALIPAY_NOTIFY_URL,
-        returnUrl: ALIPAY_RETURN_URL,
-        bizContent: {
-          out_trade_no: outTradeNo,
-          total_amount: pkg.amount.toFixed(2),
-          subject: `剧本本充值 - ${pkg.label}`,
-          product_code: 'FAST_INSTANT_TRADE_PAY',
-        },
+    const payUrl = sdk.pageExec('alipay.trade.page.pay', {
+      notifyUrl: ALIPAY_NOTIFY_URL,
+      returnUrl: ALIPAY_RETURN_URL,
+      bizContent: {
+        out_trade_no: outTradeNo,
+        total_amount: pkg.amount.toFixed(2),
+        subject: `剧本本充值 - ${pkg.label}`,
+        product_code: 'FAST_INSTANT_TRADE_PAY'
       }
-    )
+    })
 
     console.log('[Alipay] Created order:', outTradeNo, 'amount:', pkg.amount)
 
@@ -154,7 +157,9 @@ export async function createPaymentOrder(
  * 4. 增加积分
  * 5. 记录流水
  */
-export async function processAlipayWebhook(params: Record<string, string>): Promise<WebhookProcessResult> {
+export async function processAlipayWebhook(
+  params: Record<string, string>
+): Promise<WebhookProcessResult> {
   await authenticateAdmin()
 
   const sdk = getAlipaySdk()
@@ -188,7 +193,7 @@ export async function processAlipayWebhook(params: Record<string, string>): Prom
   // 2. 查询订单，防重放
   const orderQueryRes = await fetch(
     `${PB_URL}/api/collections/payment_orders/records?filter=outTradeNo='${outTradeNo}'`,
-    { headers: { 'Authorization': cachedAdminToken } }
+    { headers: { Authorization: cachedAdminToken } }
   )
 
   if (!orderQueryRes.ok) {
@@ -214,7 +219,7 @@ export async function processAlipayWebhook(params: Record<string, string>): Prom
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': cachedAdminToken
+      Authorization: cachedAdminToken
     },
     body: JSON.stringify({
       status: 'paid',
@@ -233,7 +238,7 @@ export async function processAlipayWebhook(params: Record<string, string>): Prom
   // 4. 增加积分到 user_wallets
   const walletQueryRes = await fetch(
     `${PB_URL}/api/collections/${TABLES.userWallets}/records?filter=user.id='${userId}' && appId='${APP_ID}'`,
-    { headers: { 'Authorization': cachedAdminToken } }
+    { headers: { Authorization: cachedAdminToken } }
   )
 
   if (!walletQueryRes.ok) {
@@ -258,7 +263,7 @@ export async function processAlipayWebhook(params: Record<string, string>): Prom
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': cachedAdminToken
+        Authorization: cachedAdminToken
       },
       body: JSON.stringify({ balance: balanceAfter })
     }
@@ -274,7 +279,7 @@ export async function processAlipayWebhook(params: Record<string, string>): Prom
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': cachedAdminToken
+      Authorization: cachedAdminToken
     },
     body: JSON.stringify({
       user: userId,
@@ -312,7 +317,7 @@ export async function queryOrderStatus(outTradeNo: string): Promise<{
 
   const res = await fetch(
     `${PB_URL}/api/collections/payment_orders/records?filter=outTradeNo='${outTradeNo}'`,
-    { headers: { 'Authorization': cachedAdminToken } }
+    { headers: { Authorization: cachedAdminToken } }
   )
 
   if (!res.ok) {
