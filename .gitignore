@@ -33,6 +33,9 @@ worktree-audit.txt
 .deploy/
 .graphify_python
 
+# Archived docs (history only, not active)
+docs/archive/
+
 # PocketBase runtime files
 server/pb_data/*.db-wal
 server/pb_data/*.db-shm
