@@ -32,8 +32,8 @@ interface AuthState {
 
   // 操作
   initialize: () => Promise<void>
-  login: (input: LoginInput) => Promise<void>
-  register: (input: RegisterInput) => Promise<void>
+  login: (input: LoginInput & { rememberMe?: boolean }) => Promise<void>
+  register: (input: RegisterInput & { rememberMe?: boolean }) => Promise<void>
   logout: () => void
   refreshCredits: () => Promise<void>
   clearError: () => void
@@ -68,9 +68,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         creditsBalance: result.credits.balance,
         frozenBalance: result.credits.frozenBalance
       })
-    } catch {
-      // Token 无效或过期
-      clearToken()
+    } catch (err) {
+      // 只有 401 Token 无效/过期才清除；网络错误保留 Token，下次再试
+      if (err instanceof Error && err.message.includes('过期')) {
+        clearToken()
+      }
       set({
         isLoggedIn: false,
         isInitializing: false,
@@ -82,11 +84,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // 登录
-  login: async (input: LoginInput) => {
+  login: async (input: LoginInput & { rememberMe?: boolean }) => {
     set({ error: null })
     try {
       const result = await apiLogin(input)
-      storeToken(result.token)
+      storeToken(result.token, input.rememberMe !== false)
       set({
         isLoggedIn: true,
         user: result.user,
@@ -101,11 +103,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // 注册
-  register: async (input: RegisterInput) => {
+  register: async (input: RegisterInput & { rememberMe?: boolean }) => {
     set({ error: null })
     try {
       const result = await apiRegister(input)
-      storeToken(result.token)
+      storeToken(result.token, input.rememberMe !== false)
       set({
         isLoggedIn: true,
         user: result.user,

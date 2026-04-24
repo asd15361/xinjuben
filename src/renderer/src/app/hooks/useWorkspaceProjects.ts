@@ -47,10 +47,15 @@ interface WorkspaceProjectsState {
 export function useWorkspaceProjects(): WorkspaceProjectsState {
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([])
   const [activeProject, setActiveProject] = useState<ProjectSnapshotDto | null>(null)
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
 
   async function reload(): Promise<void> {
-    const result = await apiListProjects()
-    setProjects(result.projects)
+    try {
+      const result = await apiListProjects()
+      setProjects(result.projects)
+    } catch {
+      setProjects([])
+    }
   }
 
   async function createProject(input: CreateProjectInputDto): Promise<void> {
@@ -145,9 +150,14 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     return createOutlineSeed(result.project)
   }
 
+  // 登录状态变化时自动刷新项目列表
   useEffect(() => {
     let cancelled = false
     const load = async (): Promise<void> => {
+      if (!isLoggedIn) {
+        if (!cancelled) setProjects([])
+        return
+      }
       const result = await apiListProjects()
       if (!cancelled) {
         setProjects(result.projects)
@@ -157,7 +167,7 @@ export function useWorkspaceProjects(): WorkspaceProjectsState {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isLoggedIn])
 
   return {
     projects,

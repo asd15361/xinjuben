@@ -43,25 +43,40 @@ const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AP
 
 // ========== Token 管理 ==========
 
+const TOKEN_KEY = 'xinjuben_token'
+const REMEMBER_KEY = 'xinjuben_remember_me'
+
 /**
- * 从 localStorage 获取存储的 JWT Token
+ * 从 localStorage 或 sessionStorage 获取存储的 JWT Token
+ * 优先 localStorage（记住我），其次 sessionStorage（当前会话）
  */
 function getStoredToken(): string | null {
-  return localStorage.getItem('xinjuben_token')
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY)
 }
 
 /**
- * 存储 JWT Token 到 localStorage
+ * 存储 JWT Token
+ * @param rememberMe true 存 localStorage（持久化），false 存 sessionStorage（仅当前会话）
  */
-export function storeToken(token: string): void {
-  localStorage.setItem('xinjuben_token', token)
+export function storeToken(token: string, rememberMe = true): void {
+  if (rememberMe) {
+    localStorage.setItem(TOKEN_KEY, token)
+    localStorage.setItem(REMEMBER_KEY, '1')
+    sessionStorage.removeItem(TOKEN_KEY)
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token)
+    localStorage.removeItem(REMEMBER_KEY)
+    localStorage.removeItem(TOKEN_KEY)
+  }
 }
 
 /**
- * 清除 localStorage 中的 JWT Token
+ * 清除所有存储中的 JWT Token
  */
 export function clearToken(): void {
-  localStorage.removeItem('xinjuben_token')
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REMEMBER_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
 }
 
 // ========== 通用请求封装 ==========
@@ -176,26 +191,30 @@ export interface AuthResult {
  * 用户注册
  * 注册成功自动送 100 积分
  */
-export async function apiRegister(input: RegisterInput): Promise<AuthResult> {
+export async function apiRegister(
+  input: RegisterInput & { rememberMe?: boolean }
+): Promise<AuthResult> {
   const result = await apiRequest<AuthResult>('/api/auth/register', {
     method: 'POST',
     body: input,
     requireAuth: false
   })
-  storeToken(result.token)
+  storeToken(result.token, input.rememberMe !== false)
   return result
 }
 
 /**
  * 用户登录
  */
-export async function apiLogin(input: LoginInput): Promise<AuthResult> {
+export async function apiLogin(
+  input: LoginInput & { rememberMe?: boolean }
+): Promise<AuthResult> {
   const result = await apiRequest<AuthResult>('/api/auth/login', {
     method: 'POST',
     body: input,
     requireAuth: false
   })
-  storeToken(result.token)
+  storeToken(result.token, input.rememberMe !== false)
   return result
 }
 

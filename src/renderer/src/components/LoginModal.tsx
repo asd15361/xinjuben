@@ -25,6 +25,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element | 
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [name, setName] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { login, register, error, clearError } = useAuthStore()
@@ -34,6 +35,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element | 
     setPassword('')
     setPasswordConfirm('')
     setName('')
+    setRememberMe(true)
     clearError()
   }
 
@@ -53,9 +55,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element | 
           setIsSubmitting(false)
           return
         }
-        await register({ email, password, passwordConfirm, name: name || undefined })
+        await register({ email, password, passwordConfirm, name: name || undefined, rememberMe })
       } else {
-        await login({ email, password })
+        await login({ email, password, rememberMe })
       }
       handleClose()
     } catch (err: unknown) {
@@ -194,6 +196,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps): JSX.Element | 
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pl-11 text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none transition-colors"
                   />
                 </div>
+              )}
+
+              {/* 记住我 */}
+              {mode === 'login' && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-orange-500 focus:ring-orange-500/50"
+                  />
+                  <span className="text-sm text-white/40">记住我，下次自动登录</span>
+                </label>
               )}
 
               {/* 错误提示 */}

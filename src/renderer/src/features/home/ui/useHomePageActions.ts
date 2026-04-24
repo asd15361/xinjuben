@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuthStore } from '../../../app/store/useAuthStore.ts'
 import type { AudienceLane, MarketProfileDto, ProjectSummaryDto, Subgenre } from '../../../../../shared/contracts/project.ts'
 import { openProjectSession } from '../../../app/services/stage-session-service.ts'
 import {
@@ -43,10 +44,15 @@ export function useHomePageActions(): {
   const [status, setStatus] = useState(
     '第 1 步：先创建或打开一个项目。进入项目后，默认就是和 AI 聊天。'
   )
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
 
   async function reload(): Promise<void> {
-    const list = await apiListProjects()
-    setProjects(list.projects)
+    try {
+      const list = await apiListProjects()
+      setProjects(list.projects)
+    } catch {
+      setProjects([])
+    }
   }
 
   async function removeProject(projectId: string, name: string): Promise<void> {
@@ -105,9 +111,14 @@ export function useHomePageActions(): {
     }
   }
 
+  // 登录成功后自动刷新项目列表
   useEffect(() => {
-    void reload()
-  }, [])
+    if (isLoggedIn) {
+      void reload()
+    } else {
+      setProjects([])
+    }
+  }, [isLoggedIn])
 
   const canCreate = useMemo(
     () =>
