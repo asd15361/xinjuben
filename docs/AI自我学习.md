@@ -16,6 +16,30 @@
 - **大内容（剧本正文、草稿）优先本地持久化，PB 只存轻量 metadata**——不要把大 JSON 塞进 PB text/json 字段，既超限又拖慢查询。
 - 回答架构问题前先看 `graphify-out/GRAPH_REPORT.md`，能少走很多弯路。
 
+## P4/P5 新发现
+
+- **内容质量检测的启发式方法比关键词匹配靠谱**：`computeInformationDensityScore` 用检查点（冲突载体、道具、潜台词、动作情绪节拍）比堆正则灵活；道具检查匹配宽泛（「钥匙/账册/信物/印章/兵符/令牌/剑/刀/枪」），避免只认死词。
+- **男频/女频维度差异明显，用 `audienceLane` 分支检测很干净**：男频关心底牌、打脸、反派层级递进，女频关心情绪代入、权力借用、女主成长，混在一起检测逻辑会乱。
+- **修稿链的三阶段设计（检测→信号→提示词）有效**：信号结构 (`ContentRepairSignal`) 作为中介，让检测逻辑和提示词解耦，修稿提示词可以独立迭代。
+- **修稿后回退逻辑不能只看总分**：P5 加了 marketQualityScore 下降 5 分以内才接受，避免为了提总体分而牺牲垂类质量。
+- **不修稿时不输出修稿说明很重要**：实测如果不在 prompt 里明确禁止"以下是修稿说明"这类开头，AI 会在正文前加一大段解释。
+
+## P4/P5 snapshot 连续性新发现
+
+- **快照驱动的连续性检测比纯文本匹配更稳定**：`inspectStoryContinuityAgainstSnapshot` 用结构化快照（主角状态、道具、钩子、反派状态、硬约束）作为检测基准，而不是从剧本中再解析一遍，避免双口径。
+- **中文 bigram 匹配解决分词问题**：`extractSearchTokens` 用 2-gram 重叠检测处理中文关键词匹配，比单字或整词匹配更鲁棒（例如"神秘人跟踪"和"跟踪自己"能部分匹配）。
+- **snapshot 三重用途**：同一份 `StoryStateSnapshotDto` 同时用于生成 prompt、质量检测、重写约束，保持语义一致性。
+- **连续性分数独立加权**：`storyContinuityScore` 在 overallScore 中只占 0.05，因为连续性检测是辅助门，不是主评分维度；但它在修稿链中作为独立信号触发。
+- **5 类连续性检测的 severity 设计**：道具连续性（prop_continuity）和钩子接续（hook_continuation）是 high，因为穿帮会直接影响观众体验；主角状态和反派递进是 medium，因为允许创作弹性。
+
+## P6 新发现
+
+- **回归测试脚本必须先用 `buildScriptGenerationExecutionPlan` 检查 `plan.ready`**——事实标签不在分段 content 中会导致 `script_formal_fact_segment_missing` 阻塞，必须把事实标签嵌入分段 content 字符串。
+- **P6 UI 面板的数据流**：`API 响应.ledger` → `useWorkflowStore.scriptStateLedger` → `ScriptQualityReportPanel props`，不新增 store，复用 workflow store。
+- **男频/女频评分差异明显**：男频市场匹配度 27（弱）vs 女频 54（中等），说明男频都市爽点检测维度可能需要调整。
+- **开局冲击两赛道都极低（11/14）**——可能检测算法过严，也可能生成内容确实缺乏冲击性开场。
+- **评分系统的色标（75/60 分界）需要校准**：女频格式 88 完美，男频 73 良好，但 73 也 <75 触黄线。
+
 ## 我最容易再犯的错
 
 - 只看到报错点，不追第一次越界的位置。
