@@ -50,6 +50,7 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
   )
   const setScriptProgressBoard = useWorkflowStore((state) => state.setScriptProgressBoard)
   const setScriptFailureResolution = useWorkflowStore((state) => state.setScriptFailureResolution)
+  const setScriptStateLedger = useWorkflowStore((state) => state.setScriptStateLedger)
   const replaceScript = useStageStore((state) => state.replaceScript)
   const upsertScript = useStageStore((state) => state.upsertScript)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -99,6 +100,9 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
 
     const requestProjectId = projectId
     clearGenerationNotice()
+
+    // Clear previous generation results
+    setScriptStateLedger(null)
 
     // Set generation status to show progress bar
     setGenerationStatus({
@@ -183,6 +187,7 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
               replaceScript(statusResult.generatedScenes)
               setScriptProgressBoard(statusResult.board ?? null)
               setScriptFailureResolution(statusResult.failure ?? null)
+              setScriptStateLedger(statusResult.ledger ?? null)
             }
 
             setGenerationStatus(null)
@@ -344,6 +349,7 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
 
             if (useWorkflowStore.getState().projectId === requestProjectId) {
               replaceScript(updatedScript)
+              setScriptStateLedger(rewriteResult.ledger ?? null)
               setGenerationNotice({
                 kind: 'success',
                 title: `第 ${episodeNo} 集已经改好`,

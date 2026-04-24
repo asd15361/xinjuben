@@ -1,3 +1,5 @@
+import type { MarketProfileDto } from './project'
+
 export type IntakeMode = 'free_chat' | 'onboarding' | 'manual_requirement'
 
 export interface IntakeAnswer {
@@ -77,4 +79,5 @@ export interface StoryIntentPackageDto {
   freeChatFinalSummary?: string
   generationBriefText?: string
   confirmedChatTranscript?: string
+  marketProfile?: MarketProfileDto | null
 }

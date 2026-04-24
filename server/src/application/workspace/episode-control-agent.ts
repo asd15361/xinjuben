@@ -2,6 +2,7 @@ import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/pro
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { MarketProfileDto } from '@shared/contracts/project'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
@@ -13,6 +14,7 @@ import {
   buildEpisodeControlCard
 } from '@shared/domain/short-drama/episode-control-card'
 import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
+import { buildMarketProfilePromptSection } from './build-market-profile-prompt-section'
 
 const EPISODE_CONTROL_MAX_OUTPUT_TOKENS = 3200
 
@@ -83,6 +85,7 @@ export function buildEpisodeControlAgentPrompt(input: {
   segment: DetailedOutlineSegmentDto
   characters: CharacterDraftDto[]
   usedTactics?: string[]
+  marketProfile?: MarketProfileDto | null
 }): string {
   const usedTacticsBlock =
     input.usedTactics && input.usedTactics.length > 0
@@ -94,8 +97,14 @@ export function buildEpisodeControlAgentPrompt(input: {
         ].join('\n')
       : ''
 
+  const marketProfileSection = buildMarketProfilePromptSection({
+    marketProfile: input.marketProfile,
+    stage: 'episodeControl'
+  })
+
   return [
     '【单集控制Agent · 集级调度指令】',
+    ...(marketProfileSection ? [marketProfileSection] : []),
     '输出严格JSON，无文本、无解释。',
     '',
     '【控制卡字段 · 全部必填】',
@@ -115,6 +124,13 @@ export function buildEpisodeControlAgentPrompt(input: {
     '   - "借力打力"：利用对手的攻击/规则/势力反制对手',
     '   - "底牌碾压"：亮出隐藏实力/真相/关键证据，一击制胜',
     '   注意：绝对禁止出现"求饶"、"逃跑"、"示弱超1分钟"等窝囊选项。主角每集必须选择以上五种之一作为核心行动。',
+    '11. viralHookType：本集钩子类型（如：入局钩子/升级钩子/反转钩子/打脸钩子/身份钩子/关系钩子/收束钩子）',
+    '12. signatureLineSeed：金句种子。基于本集核心道具、身份、证据或规则，生成一句15字以内的短钉子句种子（不是最终台词，是给下游的生成方向）。',
+    '13. payoffType：爽点类型（从16种爽点库中选一种，如：证据打脸/身份碾压/羞辱反转/反派自食其果/隐藏大佬撑腰/终极底牌亮出 等）。',
+    '14. payoffLevel：爽点级别。normal=常规爽点；major=每5集一次的大爽点（第5/10/15...集）；final=末集终局爽点。',
+    '15. villainOppressionMode：反派压迫模式。四选一：规则压迫 / 权位压迫 / 利益分化 / 借刀杀人。禁止反派只靠吼叫、骂街。',
+    '16. openingShockEvent：开局冲击事件方向。描述本集第一场必须发生的高损失/高羞辱/高危险/高反转事件之一，必须具体。',
+    '17. retentionCliffhanger：集尾留客钩子。描述集尾必须停在新危机压到眼前的瞬间，最后一句台词扎心。',
     '',
     '【硬约束 · 绝对禁止】',
     '1. 禁止连续3集使用同一种施压手段（必须轮换四类施压）。',
@@ -158,7 +174,14 @@ export function buildEpisodeControlAgentPrompt(input: {
     '      "twistPoint": string,',
     '      "cliffhanger": string,',
     '      "nextEpisodeTeaser": string,',
-    '      "protagonistActionType": "装弱反击" | "冷静对峙" | "主动设局" | "借力打力" | "底牌碾压"',
+    '      "protagonistActionType": "装弱反击" | "冷静对峙" | "主动设局" | "借力打力" | "底牌碾压",',
+    '      "viralHookType": string,',
+    '      "signatureLineSeed": string,',
+    '      "payoffType": string,',
+    '      "payoffLevel": "normal" | "major" | "final",',
+    '      "villainOppressionMode": "规则压迫" | "权位压迫" | "利益分化" | "借刀杀人",',
+    '      "openingShockEvent": string,',
+    '      "retentionCliffhanger": string',
     '    }',
     '  ]',
     '}',
@@ -213,7 +236,8 @@ export async function generateEpisodeControlCardsForSegment(input: {
     storyIntent: input.storyIntent,
     outline: input.outline,
     segment: input.segment,
-    characters: input.characters
+    characters: input.characters,
+    marketProfile: input.storyIntent?.marketProfile
   })
   const timeoutMs = resolveAiStageTimeoutMs('episode_control')
   const startedAt = Date.now()

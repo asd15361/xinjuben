@@ -144,6 +144,21 @@ function normalizeSceneByScene(value: unknown): DetailedOutlineEpisodeBeatDto['s
 function normalizeEpisodeBeats(value: unknown): DetailedOutlineEpisodeBeatDto[] {
   if (!Array.isArray(value)) return []
 
+  const validActionTypes = new Set<string>([
+    '装弱反击',
+    '冷静对峙',
+    '主动设局',
+    '借力打力',
+    '底牌碾压'
+  ])
+  const validPressureTypes = new Set<string>([
+    '武力胁迫',
+    '人质要挟',
+    '规则漏洞',
+    '利益分化'
+  ])
+  const validPayoffLevels = new Set<string>(['normal', 'major', 'final'])
+
   return value
     .map((item, index) => {
       const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
@@ -152,7 +167,59 @@ function normalizeEpisodeBeats(value: unknown): DetailedOutlineEpisodeBeatDto[] 
         Number.isFinite(rawEpisodeNo) && rawEpisodeNo > 0 ? Math.floor(rawEpisodeNo) : index + 1
       const summary = normalizeWhitespace(typeof record.summary === 'string' ? record.summary : '')
       const sceneByScene = normalizeSceneByScene(record.sceneByScene)
-      return { episodeNo, summary, sceneByScene }
+
+      // 解析上游详纲可能携带的创作骨架字段
+      const rawAction = typeof record.protagonistActionType === 'string' ? record.protagonistActionType : ''
+      const rawPressure = typeof record.pressureType === 'string' ? record.pressureType : ''
+      const rawPayoffLevel = typeof record.payoffLevel === 'string' ? record.payoffLevel : ''
+      const episodeControlCard =
+        record.coreGoal ||
+        record.villainPressure ||
+        record.catharsisMoment ||
+        record.twistPoint ||
+        record.cliffhanger ||
+        record.viralHookType ||
+        record.signatureLineSeed ||
+        record.payoffType ||
+        record.payoffLevel ||
+        record.villainOppressionMode ||
+        record.openingShockEvent ||
+        record.retentionCliffhanger
+          ? {
+              episodeMission: '',
+              openingBomb: '',
+              conflictUpgrade: '',
+              arcBeat: '',
+              emotionBeat: '',
+              hookLanding: '',
+              povConstraint: '',
+              forbiddenDrift: [] as string[],
+              episodeIndex: episodeNo,
+              sceneCount: sceneByScene?.length || 3,
+              coreGoal: normalizeWhitespace(String(record.coreGoal || '')),
+              villainPressure: normalizeWhitespace(String(record.villainPressure || '')),
+              pressureType: validPressureTypes.has(rawPressure) ? rawPressure : undefined,
+              catharsisMoment: normalizeWhitespace(String(record.catharsisMoment || '')),
+              twistPoint: normalizeWhitespace(String(record.twistPoint || '')),
+              cliffhanger: normalizeWhitespace(String(record.cliffhanger || '')),
+              nextEpisodeTeaser: normalizeWhitespace(String(record.nextEpisodeTeaser || '')),
+              protagonistActionType: validActionTypes.has(rawAction)
+                ? (rawAction as '装弱反击' | '冷静对峙' | '主动设局' | '借力打力' | '底牌碾压')
+                : undefined,
+              // 爆款规则字段
+              viralHookType: normalizeWhitespace(String(record.viralHookType || '')),
+              signatureLineSeed: normalizeWhitespace(String(record.signatureLineSeed || '')),
+              payoffType: normalizeWhitespace(String(record.payoffType || '')),
+              payoffLevel: validPayoffLevels.has(rawPayoffLevel)
+                ? (rawPayoffLevel as 'normal' | 'major' | 'final')
+                : undefined,
+              villainOppressionMode: normalizeWhitespace(String(record.villainOppressionMode || '')),
+              openingShockEvent: normalizeWhitespace(String(record.openingShockEvent || '')),
+              retentionCliffhanger: normalizeWhitespace(String(record.retentionCliffhanger || ''))
+            }
+          : undefined
+
+      return { episodeNo, summary, sceneByScene, episodeControlCard }
     })
     .filter((item) => item.summary || item.sceneByScene?.length)
     .sort((left, right) => left.episodeNo - right.episodeNo)
@@ -300,7 +367,8 @@ async function invokeDetailedOutlineAct(input: {
     startEpisode: input.plan.startEpisode,
     endEpisode: input.plan.endEpisode,
     episodes: input.plan.episodes,
-    previousActSummary: input.previousActSummary
+    previousActSummary: input.previousActSummary,
+    marketProfile: input.storyIntent?.marketProfile
   })
   const startedAt = Date.now()
   let responseChars = 0

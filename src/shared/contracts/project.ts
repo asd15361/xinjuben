@@ -18,12 +18,31 @@ import type {
 } from './workflow'
 import type { WorkflowStage } from './workflow'
 
+export type AudienceLane = 'male' | 'female'
+
+export type Subgenre =
+  | '男频都市逆袭'
+  | '男频玄幻修仙'
+  | '男频历史军政'
+  | '女频霸总甜宠'
+  | '女频古言宅斗'
+  | '女频现代逆袭'
+
+export interface MarketProfileDto {
+  audienceLane: AudienceLane
+  subgenre: Subgenre
+  audienceSubtype?: string
+  primaryPayoffModel?: string
+  relationshipPowerModel?: string
+}
+
 export interface ProjectSummaryDto {
   id: string
   name: string
   workflowType: 'ai_write' | 'novel_adapt'
   stage: WorkflowStage
   genre: string
+  marketProfile: MarketProfileDto | null
   updatedAt: string
 }
 
@@ -44,6 +63,7 @@ export interface CreateProjectInputDto {
   name: string
   workflowType: 'ai_write' | 'novel_adapt'
   genre?: string
+  marketProfile: MarketProfileDto
 }
 
 export interface ProjectSnapshotDto extends ProjectSummaryDto {

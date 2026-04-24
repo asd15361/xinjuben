@@ -1,6 +1,7 @@
 import type PocketBase from 'pocketbase'
 import type {
   CreateProjectInputDto,
+  MarketProfileDto,
   ProjectSnapshotDto,
   ProjectSummaryDto
 } from '@shared/contracts/project'
@@ -67,7 +68,8 @@ function toProjectRecordShape(record: PbRecord): ProjectRecordShape {
     storyIntentJson: record.storyIntentJson as string | null | undefined,
     entityStoreJson: record.entityStoreJson as string | null | undefined,
     visibleResultJson: record.visibleResultJson as string | null | undefined,
-    formalReleaseJson: record.formalReleaseJson as string | null | undefined
+    formalReleaseJson: record.formalReleaseJson as string | null | undefined,
+    marketProfileJson: record.marketProfileJson as string | null | undefined
   }
 }
 
@@ -179,6 +181,7 @@ export class ProjectRepository {
       workflowType: input.workflowType,
       stage: 'chat',
       genre: input.genre?.trim() || '',
+      marketProfileJson: stringifyJson(input.marketProfile),
       generationStatusJson: stringifyJson(null),
       storyIntentJson: stringifyJson(null),
       entityStoreJson: stringifyJson({
@@ -268,6 +271,7 @@ export class ProjectRepository {
     projectId: string
     stage?: ProjectSnapshotDto['stage']
     genre?: string
+    marketProfile?: MarketProfileDto | null
     storyIntent?: StoryIntentPackageDto | null
     entityStore?: ProjectEntityStoreDto
     generationStatus?: ProjectGenerationStatusDto | null
@@ -290,6 +294,10 @@ export class ProjectRepository {
     await this.pocketbase.collection(TABLES.projects).update(project.id, {
       stage: input.stage ?? project.stage,
       genre: input.genre ?? project.genre ?? '',
+      marketProfileJson:
+        input.marketProfile === undefined
+          ? project.marketProfileJson
+          : stringifyJson(input.marketProfile),
       storyIntentJson:
         input.storyIntent === undefined
           ? project.storyIntentJson

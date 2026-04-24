@@ -19,6 +19,20 @@ export interface ScriptLedgerPostflightDto {
       sceneCount: number
       hookLine: string
     }>
+    /** 商业传播力分数 */
+    openingShockScore?: number
+    punchlineDensityScore?: number
+    catharsisPayoffScore?: number
+    villainOppressionQualityScore?: number
+    hookRetentionScore?: number
+    /** 信息密度分 */
+    informationDensityScore?: number
+    /** 剧本格式分 */
+    screenplayFormatScore?: number
+    /** 故事连续性分 */
+    storyContinuityScore?: number
+    /** 垂类市场质量分（男频/女频平均分） */
+    marketQualityScore?: number
   }
   summary: string
   patch: {

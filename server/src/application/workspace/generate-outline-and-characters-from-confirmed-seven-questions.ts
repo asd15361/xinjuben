@@ -78,6 +78,7 @@ interface ConfirmedSevenQuestionsGenerationDeps {
     characterProfiles: { characters: CharacterDraftDto[] }
     characterProfilesV2?: CharacterProfileV2Dto[]
     factionMatrix?: FactionMatrixDto
+    marketProfile?: import('@shared/contracts/project').MarketProfileDto | null
   }) => Promise<{
     outline?: {
       title?: string
@@ -225,6 +226,7 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   characterProfiles: { characters: CharacterDraftDto[] }
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
+  marketProfile?: import('@shared/contracts/project').MarketProfileDto | null
 }): Promise<{ outline?: {
   title?: string
   genre?: string
@@ -322,7 +324,8 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     sevenQuestions: confirmedSevenQuestions,
     characterProfiles: { characters: characterProfilesResult.characters },
     characterProfilesV2: characterProfilesResult.characterProfilesV2,
-    factionMatrix: characterProfilesResult.factionMatrix
+    factionMatrix: characterProfilesResult.factionMatrix,
+    marketProfile: input.storyIntent.marketProfile
   })
 
   const outlinePayload = outlineBundle?.outline

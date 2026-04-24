@@ -16,6 +16,7 @@ import {
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import type { ScriptSegmentDto } from '../../../../../shared/contracts/workflow.ts'
 import { buildScreenplayFromStructuredScene } from '../../../../../shared/domain/script/screenplay-format.ts'
+import { ScriptQualityReportPanel } from './ScriptQualityReportPanel'
 
 interface ScriptEpisodeCardViewModel {
   episodeNo: number
@@ -65,6 +66,7 @@ export function ScriptStage(): JSX.Element {
   const outline = useStageStore((state) => state.outline)
   const projectId = useWorkflowStore((state) => state.projectId)
   const storyIntent = useWorkflowStore((state) => state.storyIntent)
+  const scriptStateLedger = useWorkflowStore((state) => state.scriptStateLedger)
   const exportStage = useProjectStageExport()
   const targetEpisodes = resolveProjectEpisodeCount({ outline, storyIntent })
   const generationPlan = useScriptGenerationPlan({ targetEpisodes })
@@ -156,6 +158,13 @@ export function ScriptStage(): JSX.Element {
           <div className="mb-6">
             <ProjectGenerationBanner status={generationStatus} />
           </div>
+
+          {!generationStatus && scriptStateLedger?.postflight && (
+            <ScriptQualityReportPanel
+              ledger={scriptStateLedger}
+              marketProfile={storyIntent?.marketProfile ?? null}
+            />
+          )}
 
           <div className="mb-6 rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(255,122,0,0.16),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4">

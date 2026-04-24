@@ -1,4 +1,5 @@
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { MarketProfileDto } from '@shared/contracts/project'
 import type {
   CharacterDraftDto,
   OutlineDraftDto,
@@ -7,6 +8,7 @@ import type {
 import { renderShortDramaConstitutionPromptBlock } from '@shared/domain/short-drama/short-drama-constitution'
 import { renderAnchorBlock, stripNoisyThemeClauses } from './generation-stage-prompt-anchors'
 import { getConfirmedFormalFacts } from '@shared/domain/formal-fact/selectors'
+import { buildMarketProfilePromptSection } from './build-market-profile-prompt-section'
 
 function cleanPromptValue(value: string | undefined): string {
   const trimmed = String(value || '').trim()
@@ -125,8 +127,13 @@ export function buildCharacterGenerationPrompt(input: {
   keyCharacters: string[]
   conflict: string
   outlineSummary: string
+  marketProfile?: MarketProfileDto | null
 }): string {
   const rankIdentityRules = buildCharacterRankIdentityRules(input.generationBriefText)
+  const marketProfileSection = buildMarketProfilePromptSection({
+    marketProfile: input.marketProfile,
+    stage: 'characters'
+  })
   const requiredCharacterAnchors = Array.from(
     new Set(
       [input.protagonist, input.antagonist, ...(input.keyCharacters || [])]
@@ -137,7 +144,8 @@ export function buildCharacterGenerationPrompt(input: {
 
   return [
     '你是短剧编剧助手。',
-    '这一工序只负责“人物小传”，它不是人物百科，而是“详纲可执行说明书”。',
+    ...(marketProfileSection ? [marketProfileSection] : []),
+    '这一工序只负责”人物小传”，它不是人物百科，而是”详纲可执行说明书”。',
     '目标：让下游详纲一眼就知道，这个人想要什么、守什么、怎么施压、被逼到什么点会动、会付什么代价。',
     '人物要写得出戏，但不要替详纲和剧本提前决定最终解法、终局大战或结局答案。',
     '优化方向：人物分层，不冗余。优先保留真正推动主线的人物，不重复扩表。',
@@ -281,6 +289,7 @@ export function buildDetailedOutlineActPrompt(input: {
   endEpisode: number
   episodes: OutlineEpisodeDto[]
   previousActSummary?: string
+  marketProfile?: MarketProfileDto | null
 }): string {
   const characterSummary = formatDetailedOutlineCharacterSummary(input.characters)
   const storyIntentBlock = formatDetailedOutlineStoryIntent(input.storyIntent)
@@ -288,9 +297,14 @@ export function buildDetailedOutlineActPrompt(input: {
   const actLabel = DETAILED_OUTLINE_ACT_LABEL[input.act]
   const rankIdentityRules = buildDetailedOutlineRankIdentityRules(input.outline)
   const monsterFactRules = buildDetailedOutlineMonsterFactRules(input.outline)
+  const marketProfileSection = buildMarketProfilePromptSection({
+    marketProfile: input.marketProfile,
+    stage: 'detailedOutline'
+  })
 
   return [
     '你是短剧总编剧。你现在负责详细大纲的局部展开。',
+    ...(marketProfileSection ? [marketProfileSection] : []),
     '【单集标准结构 · 固定三段式】',
     '每一集必须严格按照以下三幕结构进行规划（反映在 summary 和 sceneByScene 中）：',
     '1. 第一幕：施压 (0-20秒) —— 反派拿把柄/规则压人，把主角逼到无路可退。',
@@ -387,14 +401,49 @@ export function buildDetailedOutlineActPrompt(input: {
     'sceneByScene 也不准预埋“师父说…所以…”“这才是真的…”“她帮他悟道了”这类解释句；只准给下游留动作抓手、实物抓手和下一步后果。',
     '当前批次末集第一场如果还是“侧殿听宣判 / 静室接处罚 / 合议堂落锤”，就算写错；先把上一集遗留的人、物、伤、追兵或残党动作写出来，再把制度结果塞进后面最短一场。',
     '不要把场景写成对本集 summary 的拆条解释；sceneByScene 读起来要像真的有镜头顺序和局面变化。',
-    '所有字段都只写叙述句，不要写对白，不要出现“”、「」或英文双引号里的台词，也不要写 `角色名：台词` 这种格式。',
+    '所有字段都只写叙述句，不要写对白，不要出现””、「」或英文双引号里的台词，也不要写 `角色名：台词` 这种格式。',
     'hookEnd 也只写悬念动作和局面变化，不要直接塞一句台词。',
     '人物推动不能只写态度，要写他们这一集怎么硬撑、嘴硬、失手、让步、反咬。',
+    '每集还必须输出 15 个创作骨架字段（与 summary 同级，直接挂在 episodes 数组的每个对象里）：',
+    '  - coreGoal：本集主角核心目标（必须具体，不是”查明真相”而是”把账册送到刑部”）',
+    '  - villainPressure：反派施加的致命压力（必须是真实生存威胁）',
+    '  - pressureType：施压类型（四选一：武力胁迫 / 人质要挟 / 规则漏洞 / 利益分化）',
+    '  - catharsisMoment：本集打脸爽点——主角利用信息差/隐藏底牌/布局陷阱，让反派当众吃瘪',
+    '  - twistPoint：本集反转点',
+    '  - cliffhanger：结尾钩子',
+    '  - nextEpisodeTeaser：下集预告方向',
+    '  - protagonistActionType：主角核心行动类型（五选一：装弱反击 / 冷静对峙 / 主动设局 / 借力打力 / 底牌碾压）',
+    '  - viralHookType：本集钩子类型。第1集=入局钩子；末集=收束钩子；第5/10/15...集=打脸钩子；第3/6/9...集=身份钩子；其余=升级钩子/反转钩子',
+    '  - signatureLineSeed：金句种子。基于本集核心道具、身份、证据或规则，生成一句15字以内的短钉子句方向（不是最终台词，是给下游的生成种子）。禁止输出空泛模板如”你也配”，必须绑定具体元素。',
+    '  - payoffType：爽点类型。从以下16种中按集数轮换选择：证据打脸、身份碾压、羞辱反转、反派自食其果、反派被背刺、隐藏大佬撑腰、关键证人反水、你不是一个人、假证据被戳穿、反派权力被冻结、反派当众社死、反派下跪道歉、反派被规则反噬、主角一句话全场震动、主角一招秒杀全场、终极底牌亮出。',
+    '  - payoffLevel：爽点级别。normal=常规爽点（大部分集）；major=每5集一次的大爽点（第5/10/15...集必须是major）；final=末集终局爽点（最后一集必须是final）。',
+    '  - villainOppressionMode：反派压迫模式。四选一：规则压迫 / 权位压迫 / 利益分化 / 借刀杀人。禁止反派只靠吼叫、骂街、无脑栽赃。',
+    '  - openingShockEvent：开局冲击事件。描述本集第一场必须发生的高损失/高羞辱/高危险/高反转事件之一，必须具体可见，不能抽象。',
+    '  - retentionCliffhanger：集尾留客钩子。描述集尾必须停在新危机压到眼前的瞬间，最后一句台词扎心，强制观众点开下一集。',
     '输出必须是严格 JSON，不要 markdown，不要解释。',
     'JSON schema:',
     '{',
     '  "summary": string,',
-    '  "episodes": [{"episodeNo": number, "summary": string, "sceneByScene": [{"sceneNo": number, "location": string, "timeOfDay": string, "setup": string, "tension": string, "hookEnd": string}]}]',
+    '  "episodes": [{',
+    '    "episodeNo": number,',
+    '    "summary": string,',
+    '    "sceneByScene": [{"sceneNo": number, "location": string, "timeOfDay": string, "setup": string, "tension": string, "hookEnd": string}],',
+    '    "coreGoal": string,',
+    '    "villainPressure": string,',
+    '    "pressureType": "武力胁迫" | "人质要挟" | "规则漏洞" | "利益分化",',
+    '    "catharsisMoment": string,',
+    '    "twistPoint": string,',
+    '    "cliffhanger": string,',
+    '    "nextEpisodeTeaser": string,',
+    '    "protagonistActionType": "装弱反击" | "冷静对峙" | "主动设局" | "借力打力" | "底牌碾压",',
+    '    "viralHookType": string,',
+    '    "signatureLineSeed": string,',
+    '    "payoffType": string,',
+    '    "payoffLevel": "normal" | "major" | "final",',
+    '    "villainOppressionMode": "规则压迫" | "权位压迫" | "利益分化" | "借刀杀人",',
+    '    "openingShockEvent": string,',
+    '    "retentionCliffhanger": string',
+    '  }]',
     '}',
     `episodes 只能覆盖第${input.startEpisode}-${input.endEpisode}集，而且必须全部覆盖。`,
     '',

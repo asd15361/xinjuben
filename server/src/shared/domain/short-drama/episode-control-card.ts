@@ -10,6 +10,15 @@ import {
   buildShortDramaConstitutionFromStoryIntent,
   normalizeShortDramaConstitution
 } from './short-drama-constitution'
+import {
+  resolveVillainOppressionModeByEpisode,
+  resolvePayoffTypeByEpisode,
+  resolvePayoffLevelByEpisode,
+  buildSignatureLineSeed,
+  buildOpeningShockEventFallback,
+  buildRetentionCliffhangerFallback,
+  resolveViralHookTypeByEpisode
+} from './viral-short-drama-policy'
 
 function cleanText(value: string | undefined, fallback = ''): string {
   const text = String(value || '')
@@ -57,6 +66,7 @@ export function normalizeEpisodeControlCard(
           .map((item) => cleanText(item))
           .filter(Boolean)
       : [],
+    // 新增字段
     episodeIndex:
       typeof card.episodeIndex === 'number' && card.episodeIndex > 0
         ? card.episodeIndex
@@ -70,8 +80,32 @@ export function normalizeEpisodeControlCard(
     twistPoint: cleanText(card.twistPoint),
     cliffhanger: cleanText(card.cliffhanger),
     nextEpisodeTeaser: cleanText(card.nextEpisodeTeaser),
-    protagonistActionType: normalizeProtagonistActionType(card.protagonistActionType)
+    protagonistActionType: normalizeProtagonistActionType(card.protagonistActionType),
+    // 爆款规则字段
+    viralHookType: cleanText(card.viralHookType),
+    signatureLineSeed: cleanText(card.signatureLineSeed),
+    payoffType: cleanText(card.payoffType),
+    payoffLevel: normalizePayoffLevel(card.payoffLevel),
+    villainOppressionMode: cleanText(card.villainOppressionMode),
+    openingShockEvent: cleanText(card.openingShockEvent),
+    retentionCliffhanger: cleanText(card.retentionCliffhanger),
+    requiredProp: cleanText(card.requiredProp),
+    requiredPropSource:
+      card.requiredPropSource === 'extracted' || card.requiredPropSource === 'scheduled'
+        ? card.requiredPropSource
+        : undefined
   }
+}
+
+const PAYOFF_LEVEL_ENUM = ['normal', 'major', 'final'] as const
+
+function normalizePayoffLevel(
+  value: unknown
+): 'normal' | 'major' | 'final' | undefined {
+  if (typeof value === 'string' && PAYOFF_LEVEL_ENUM.includes(value as 'normal')) {
+    return value as 'normal' | 'major' | 'final'
+  }
+  return undefined
 }
 
 const PROTAGONIST_ACTION_ENUM = ['装弱反击', '冷静对峙', '主动设局', '借力打力', '底牌碾压']
@@ -83,6 +117,62 @@ function normalizeProtagonistActionType(
     return value as '装弱反击' | '冷静对峙' | '主动设局' | '借力打力' | '底牌碾压'
   }
   return undefined
+}
+
+export function extractCliffhangerFromSummary(
+  summary: string,
+  episodeNo: number
+): string | null {
+  if (summary.startsWith(`第${episodeNo}集必须继续往前推主线`)) {
+    return null
+  }
+  const sentences = summary.split(/[。！？]/).filter((s) => s.trim().length > 0)
+  if (sentences.length === 0) return null
+  const last = sentences[sentences.length - 1].trim()
+  if (last.length < 5 || last.length > 60) return null
+  if (last.includes('概要')) return null
+  return `${last}（这一集必须停在这个瞬间，最后一句台词必须扎心，不准给出解决方案）`
+}
+
+const PROP_KEYWORDS = [
+  '账本','玉佩','令牌','密信','供词','契约','合同','钥匙','信件','药瓶','录音','照片','证据','数据','资料',
+  '暗账','军饷','账目','书信','地图','剑','刀','锦囊','封印','灵石','铁证','毒药','解药','银针','蜡丸',
+  '密函','印鉴','手谕','遗诏','脉案','药方','血书','地契','房契','借据','欠条','名册','名单','口供',
+  '证词','笔录','卷宗','档案','密档','账册','腰牌','虎符','兵符','诏书','圣旨','密约','盟约','和约'
+]
+
+const PROP_ACTIONS = ['被抢','被换','被出示','被销毁','被藏','被夺','被发现','被截获']
+
+function extractPropFromText(text: string): { prop: string; action: string } | null {
+  for (const keyword of PROP_KEYWORDS) {
+    if (text.includes(keyword)) {
+      return { prop: keyword, action: '' }
+    }
+  }
+  return null
+}
+
+export function buildRequiredProp(input: {
+  summary: string
+  firstSceneSetup?: string | null
+  firstSceneTension?: string | null
+  episodeNo: number
+}): { text: string; source: 'extracted' | 'scheduled' } {
+  const searchText = `${input.summary} ${input.firstSceneSetup || ''} ${input.firstSceneTension || ''}`
+  const found = extractPropFromText(searchText)
+  const action = PROP_ACTIONS[(input.episodeNo - 1) % PROP_ACTIONS.length]
+  if (found) {
+    return {
+      text: `本集道具【${found.prop}】已在剧情中出现，必须在冲突中${action}，不能只提一句就消失。`,
+      source: 'extracted'
+    }
+  }
+  const fallbackProps = ['密信','令牌','账本','玉佩','供词','契约','钥匙','药瓶','证据','血书']
+  const prop = fallbackProps[(input.episodeNo - 1) % fallbackProps.length]
+  return {
+    text: `本集需设置一个可承载信息的道具【${prop}】，请合理植入冲突中，并使其${action}。`,
+    source: 'scheduled'
+  }
 }
 
 export function buildEpisodeControlCard(input: {
@@ -136,6 +226,48 @@ export function buildEpisodeControlCard(input: {
     forbiddenDrift.push('不要临时引入新矛盾接管结局')
   }
 
+  // 爆款规则字段 fallback 生成
+  const viralHookType = resolveViralHookTypeByEpisode(episodeNo, totalEpisodes)
+  const signatureLineSeed = buildSignatureLineSeed({
+    episodeNo,
+    protagonistName: input.outline?.protagonist || input.storyIntent?.protagonist || '主角',
+    antagonistName: input.storyIntent?.antagonist,
+    coreItem: firstScene?.setup || lastScene?.tension || summary,
+    identityAnchor: input.storyIntent?.protagonist,
+    conflictCore: coreConflict || summary
+  })
+  const payoffType = resolvePayoffTypeByEpisode(episodeNo)
+  const payoffLevel = resolvePayoffLevelByEpisode(episodeNo, totalEpisodes)
+  const villainOppressionMode = resolveVillainOppressionModeByEpisode(episodeNo)
+  // Use beat summary to generate specific opening shock event
+  // (more effective than generic fallback when sceneByScene is thin)
+  const summaryFirstSentence = summary.split(/[。！？]/)[0]?.trim() || ''
+  const hasSpecificSceneData =
+    (firstScene?.setup && firstScene.setup.length > 8 && firstScene.setup !== '冲突开场' && firstScene.setup !== '待补') ||
+    (firstScene?.tension && firstScene.tension.length > 6 && firstScene.tension !== '施压' && firstScene.tension !== '待补')
+  const openingShockEvent = hasSpecificSceneData
+    ? pickFirstNonEmpty(firstScene?.setup, firstScene?.tension, buildOpeningShockEventFallback({
+        episodeNo,
+        protagonistName: input.outline?.protagonist || input.storyIntent?.protagonist,
+        antagonistName: input.storyIntent?.antagonist
+      }))
+    : (summaryFirstSentence.length > 8 && !summaryFirstSentence.includes('概要')
+      ? `${summaryFirstSentence}（第一场必须从这一瞬间直接开场，不准铺垫）`
+      : buildOpeningShockEventFallback({
+          episodeNo,
+          protagonistName: input.outline?.protagonist || input.storyIntent?.protagonist,
+          antagonistName: input.storyIntent?.antagonist
+        }))
+  const retentionCliffhanger =
+    extractCliffhangerFromSummary(summary, episodeNo) ??
+    buildRetentionCliffhangerFallback({ episodeNo })
+  const { text: requiredProp, source: requiredPropSource } = buildRequiredProp({
+    summary,
+    firstSceneSetup: firstScene?.setup,
+    firstSceneTension: firstScene?.tension,
+    episodeNo
+  })
+
   return {
     episodeMission,
     openingBomb,
@@ -145,6 +277,7 @@ export function buildEpisodeControlCard(input: {
     hookLanding,
     povConstraint: constitution.povPolicy.restriction,
     forbiddenDrift,
+    // 新增字段 - 默认值
     episodeIndex: episodeNo,
     sceneCount: 3,
     coreGoal: summary,
@@ -154,7 +287,17 @@ export function buildEpisodeControlCard(input: {
     twistPoint: '',
     cliffhanger: hookLanding,
     nextEpisodeTeaser: '',
-    protagonistActionType: undefined
+    protagonistActionType: undefined, // 由控制卡 Agent 生成，默认为空
+    // 爆款规则字段
+    viralHookType,
+    signatureLineSeed,
+    payoffType,
+    payoffLevel,
+    villainOppressionMode,
+    openingShockEvent,
+    retentionCliffhanger,
+    requiredProp,
+    requiredPropSource
   }
 }
 

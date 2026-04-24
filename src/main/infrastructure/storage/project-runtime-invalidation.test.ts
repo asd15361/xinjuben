@@ -15,6 +15,7 @@ function createProject(): ProjectSnapshotDto {
     workflowType: 'ai_write',
     stage: 'script',
     genre: '剧情',
+    marketProfile: null,
     updatedAt: new Date().toISOString(),
     chatMessages: [],
     generationStatus: {

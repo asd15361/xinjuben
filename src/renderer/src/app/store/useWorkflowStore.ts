@@ -13,6 +13,7 @@ import type {
   FormalReleaseState,
   VisibleResultState
 } from '../../../../shared/contracts/visible-release-state.ts'
+import type { ScriptStateLedgerDto } from '../../../../shared/contracts/script-ledger.ts'
 
 export interface GenerationNoticeAction {
   label: string
@@ -42,6 +43,7 @@ interface WorkflowState {
   scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
   visibleResult: VisibleResultState | null
   formalRelease: FormalReleaseState | null
+  scriptStateLedger: ScriptStateLedgerDto | null
   setStage: (stage: WorkflowStage) => void
   setProjectId: (id: string | null) => void
   setProjectName: (name: string) => void
@@ -56,6 +58,7 @@ interface WorkflowState {
   setScriptFailureResolution: (value: ScriptGenerationFailureResolutionDto | null) => void
   setVisibleResult: (value: VisibleResultState | null) => void
   setFormalRelease: (value: FormalReleaseState | null) => void
+  setScriptStateLedger: (value: ScriptStateLedgerDto | null) => void
   reset: () => void
 }
 
@@ -73,6 +76,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   scriptFailureResolution: null,
   visibleResult: null,
   formalRelease: null,
+  scriptStateLedger: null,
   setStage: (stage) => set({ currentStage: stage }),
   setProjectId: (projectId) => set({ projectId }),
   setProjectName: (projectName) => set({ projectName }),
@@ -88,6 +92,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
   setScriptFailureResolution: (scriptFailureResolution) => set({ scriptFailureResolution }),
   setVisibleResult: (visibleResult) => set({ visibleResult }),
   setFormalRelease: (formalRelease) => set({ formalRelease }),
+  setScriptStateLedger: (scriptStateLedger) => set({ scriptStateLedger }),
   reset: () =>
     set(() => ({
       currentStage: 'chat',
@@ -102,6 +107,7 @@ export const useWorkflowStore = create<WorkflowState>((set) => ({
       scriptProgressBoard: null,
       scriptFailureResolution: null,
       visibleResult: null,
-      formalRelease: null
+      formalRelease: null,
+      scriptStateLedger: null
     }))
 }))

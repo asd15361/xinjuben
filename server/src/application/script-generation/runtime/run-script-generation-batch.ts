@@ -24,8 +24,88 @@ import {
   type EpisodeGuardFailure
 } from '@shared/domain/script/screenplay-repair-guard'
 import { inspectScreenplayQualityEpisode } from '@shared/domain/script/screenplay-quality'
+import {
+  inspectContentQualityEpisode,
+  buildContentRepairSignals,
+  type ContentRepairSignal,
+  type ContentQualitySignal
+} from '@shared/domain/script/screenplay-content-quality'
 import { parseScreenplayScenes } from '@shared/domain/script/screenplay-format'
 import { EPISODE_CHAR_COUNT } from '@shared/domain/workflow/contract-thresholds'
+
+/** 内容质量低分项阈值 */
+const CONTENT_REPAIR_THRESHOLD = 50
+
+/** 定向修稿提示：按低分项生成（问题清单式） */
+export function buildContentRepairPrompt(
+  scene: ScriptSegmentDto,
+  signals: ContentRepairSignal[],
+  signal?: ContentQualitySignal
+): string {
+  const lines: string[] = [
+    `你正在修第${scene.sceneNo}集短剧剧本。只输出修完后的纯剧本，不要输出修稿说明。`,
+    '',
+    `【本集市场定位】`
+  ]
+
+  if (signal?.marketQuality) {
+    const laneLabel = signal.marketQuality.audienceLane === 'male' ? '男频' : '女频'
+    lines.push(`${laneLabel}：${signal.marketQuality.subgenre}`)
+    const highDims = signal.marketQuality.dimensions
+      .filter((d) => d.score >= 50)
+      .map((d) => d.label)
+    if (highDims.length > 0) {
+      lines.push(`核心爽点：${highDims.join('、')}`)
+    }
+  } else {
+    lines.push('（无市场定位信息）')
+  }
+  lines.push('')
+
+  lines.push('【必须修复的问题】')
+  for (let i = 0; i < signals.length; i += 1) {
+    const s = signals[i]
+    lines.push(`${i + 1}. 问题：${s.title}`)
+    lines.push(`   - 当前分：${s.score}，低于${CONTENT_REPAIR_THRESHOLD}分线`)
+    if (s.evidence.length > 0) {
+      lines.push(`   - 证据：${s.evidence.slice(0, 2).join('；')}`)
+    }
+    lines.push(`   - 修复要求：${s.repairInstruction}`)
+    lines.push('')
+  }
+
+  lines.push('【不可破坏】')
+  lines.push('- 保留本集原本的剧情事实')
+  lines.push('- 保留已建立的人物关系')
+  lines.push('- 不新增无法承接的设定')
+  if (signal?.marketQuality) {
+    const laneLabel = signal.marketQuality.audienceLane === 'male' ? '男频' : '女频'
+    lines.push(`- 保持${laneLabel}风格，不偏离定位`)
+  }
+  lines.push('- 不输出修稿说明')
+  lines.push('')
+  lines.push('只输出修完后的纯剧本正文。')
+  lines.push('禁止输出"以下是修稿说明""修改点如下"等内容。')
+  lines.push('')
+  lines.push('【当前成稿】')
+  lines.push(scene.screenplay || '')
+
+  return lines.join('\n')
+}
+
+/** 修后回退判断：新质量不下滑才采纳 */
+export function shouldAcceptRepair(
+  original: ContentQualitySignal,
+  repaired: ContentQualitySignal
+): boolean {
+  if (repaired.overallScore < original.overallScore) return false
+
+  if (original.marketQuality && repaired.marketQuality) {
+    if (repaired.marketQuality.score < original.marketQuality.score - 5) return false
+  }
+
+  return true
+}
 
 const MAX_EPISODE_GENERATION_ATTEMPTS = 2
 
@@ -396,12 +476,62 @@ export async function runScriptGenerationBatch(input: {
         throw new Error('script_generation_episode_missing_attempt')
       }
 
-      // Phase 8.2: Skip repair agents (enableImmediateRepair: false)
-      const phaseARepairResult = enableImmediateRepair
-        ? { repairedScene: bestAttempt.parsedScene, appliedAgents: [] as string[] }
-        : { repairedScene: bestAttempt.parsedScene, appliedAgents: [] as string[] }
+      // Phase 8.2: 内容质量定向修稿
+      let finalScene = bestAttempt.parsedScene
+      const appliedAgents: string[] = []
 
-      generatedScenes.push(phaseARepairResult.repairedScene)
+      if (enableImmediateRepair && bestAttempt.failures.length === 0) {
+        const marketProfile = input.generationInput.storyIntent?.marketProfile
+        const contentSignal = inspectContentQualityEpisode(finalScene, {
+          protagonistName: input.outline.protagonist || input.generationInput.storyIntent?.protagonist,
+          antagonistName: input.generationInput.storyIntent?.antagonist,
+          marketProfile
+        })
+        const repairSignals = buildContentRepairSignals(contentSignal, marketProfile)
+
+        if (repairSignals.length > 0) {
+          const repairPrompt = buildContentRepairPrompt(finalScene, repairSignals, contentSignal)
+          try {
+            const repairResult = await generateText(
+              {
+                task: 'episode_rewrite',
+                prompt: repairPrompt,
+                systemInstruction: buildFirstDraftSystemPrompt(),
+                preferredLane: episode.lane,
+                allowFallback: false,
+                temperature: 0.45,
+                timeoutMs: resolveAiStageTimeoutMs('episode_rewrite'),
+                runtimeHints: { ...episode.runtimeHints, recoveryMode: 'retry_runtime', strictness: 'strict', isRewriteMode: true }
+              },
+              input.runtimeConfig
+            )
+            rawTexts.push({
+              episodeNo: episode.episodeNo,
+              text: repairResult.text,
+              promptLength: repairPrompt.length
+            })
+            const repairedScene = parseGeneratedScene(repairResult.text, episode.episodeNo)
+            const repairGuardFailures = collectEpisodeGuardFailures(repairedScene)
+
+            if (repairGuardFailures.length === 0) {
+              const repairedSignal = inspectContentQualityEpisode(repairedScene, {
+                protagonistName: input.outline.protagonist || input.generationInput.storyIntent?.protagonist,
+                antagonistName: input.generationInput.storyIntent?.antagonist,
+                marketProfile
+              })
+              // 修后质量不下滑才采纳
+              if (shouldAcceptRepair(contentSignal, repairedSignal)) {
+                finalScene = repairedScene
+                appliedAgents.push(`content_repair:${repairSignals.map(s => s.title).join(',')}`)
+              }
+            }
+          } catch {
+            // 修稿失败不阻断，保留原稿
+          }
+        }
+      }
+
+      generatedScenes.push(finalScene)
       board = advanceScriptGenerationState(board, {
         type: 'episode_completed',
         episodeNo: episode.episodeNo,

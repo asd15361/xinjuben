@@ -5,7 +5,8 @@ import {
   invokeDeepSeek,
   invokeOpenRouter,
   normalizeProviderInvokeError,
-  resolveRequestTimeoutMs
+  resolveRequestTimeoutMs,
+  resolveTaskDefaultMaxOutputTokens
 } from './ai-provider-invoke.ts'
 
 test('resolveRequestTimeoutMs allows stage-specific timeout to exceed provider default', () => {
@@ -125,4 +126,121 @@ test('invokeOpenRouter posts to chat completions with configured model', async (
   assert.match(requestUrl, /openrouter\.ai\/api\/v1\/chat\/completions/)
   const parsed = JSON.parse(requestBody) as { model?: string }
   assert.equal(parsed.model, 'google/gemini-3.1-flash-lite-preview')
+})
+
+test('invokeDeepSeek request body includes thinking disabled', async () => {
+  const originalFetch = globalThis.fetch
+  let requestBody = '' as string
+  globalThis.fetch = (async (_input, init) => {
+    requestBody = String(init?.body || '')
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: 'ok' } }]
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
+  }) as typeof fetch
+
+  try {
+    await invokeDeepSeek({
+      request: { task: 'story_intake', prompt: 'test' },
+      laneRuntime: {
+        lane: 'deepseek',
+        config: {
+          apiKey: 'test',
+          baseUrl: 'https://example.com',
+          model: 'deepseek-v4-flash',
+          systemInstruction: '',
+          timeoutMs: 45_000,
+          thinkingMode: 'disabled'
+        }
+      }
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+
+  const parsed = JSON.parse(requestBody) as { thinking?: { type?: string } }
+  assert.deepEqual(parsed.thinking, { type: 'disabled' })
+})
+
+test('invokeOpenRouter request body does not include thinking', async () => {
+  const originalFetch = globalThis.fetch
+  let requestBody = '' as string
+  globalThis.fetch = (async (_input, init) => {
+    requestBody = String(init?.body || '')
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: 'ok' } }]
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
+  }) as typeof fetch
+
+  try {
+    await invokeOpenRouter({
+      request: { task: 'story_intake', prompt: 'test' },
+      laneRuntime: {
+        lane: 'openrouter_gemini_flash_lite',
+        config: {
+          apiKey: 'test',
+          baseUrl: 'https://openrouter.ai/api/v1',
+          model: 'google/gemini-3.1-flash-lite-preview',
+          systemInstruction: '',
+          timeoutMs: 45_000
+        }
+      }
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+
+  const parsed = JSON.parse(requestBody) as Record<string, unknown>
+  assert.equal('thinking' in parsed, false)
+})
+
+test('resolveTaskDefaultMaxOutputTokens returns task-specific defaults', () => {
+  assert.equal(resolveTaskDefaultMaxOutputTokens('episode_script'), 20480)
+  assert.equal(resolveTaskDefaultMaxOutputTokens('detailed_outline'), 24576)
+  assert.equal(resolveTaskDefaultMaxOutputTokens('episode_rewrite'), 16384)
+  assert.equal(resolveTaskDefaultMaxOutputTokens('episode_control'), 10240)
+  assert.equal(resolveTaskDefaultMaxOutputTokens('story_intake'), 8192)
+  assert.equal(resolveTaskDefaultMaxOutputTokens('seven_questions'), 8192)
+  assert.equal(resolveTaskDefaultMaxOutputTokens('decision_assist'), undefined)
+})
+
+test('invokeDeepSeek uses task default max_tokens when not explicitly requested', async () => {
+  const originalFetch = globalThis.fetch
+  let requestBody = '' as string
+  globalThis.fetch = (async (_input, init) => {
+    requestBody = String(init?.body || '')
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: 'ok' } }]
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
+  }) as typeof fetch
+
+  try {
+    await invokeDeepSeek({
+      request: { task: 'episode_script', prompt: 'test' },
+      laneRuntime: {
+        lane: 'deepseek',
+        config: {
+          apiKey: 'test',
+          baseUrl: 'https://example.com',
+          model: 'deepseek-v4-flash',
+          systemInstruction: '',
+          timeoutMs: 45_000,
+          thinkingMode: 'disabled'
+        }
+      }
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+
+  const parsed = JSON.parse(requestBody) as { max_tokens?: number }
+  assert.equal(parsed.max_tokens, 20480)
 })

@@ -227,6 +227,7 @@ async function generateOutlineOverview(input: {
   characterProfiles?: RoughOutlineOverviewInput['characterProfiles']
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
+  marketProfile?: RoughOutlineOverviewInput['marketProfile']
 }): Promise<{
   overview: OutlineOverviewPayload
   actPlans: RoughOutlineActPlan[]
@@ -244,7 +245,8 @@ async function generateOutlineOverview(input: {
         sevenQuestions: input.sevenQuestions,
         characterProfiles: input.characterProfiles,
         characterProfilesV2: input.characterProfilesV2,
-        factionMatrix: input.factionMatrix
+        factionMatrix: input.factionMatrix,
+        marketProfile: input.marketProfile
       })
       const overview = await invokeRoughOutlineStage<OutlineOverviewPayload>({
         prompt,
@@ -293,6 +295,7 @@ async function generateOutlineEpisodeBatch(input: {
   characterProfiles?: RoughOutlineEpisodeBatchInput['characterProfiles']
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
+  marketProfile?: RoughOutlineEpisodeBatchInput['marketProfile']
 }): Promise<OutlineEpisodeBatchPayload> {
   return runRoughOutlineStageWithRetries({
     stage: 'rough_outline_batch',
@@ -310,7 +313,8 @@ async function generateOutlineEpisodeBatch(input: {
         sevenQuestions: input.sevenQuestions,
         characterProfiles: input.characterProfiles,
         characterProfilesV2: input.characterProfilesV2,
-        factionMatrix: input.factionMatrix
+        factionMatrix: input.factionMatrix,
+        marketProfile: input.marketProfile
       })
       const batch = await invokeRoughOutlineStage<OutlineEpisodeBatchPayload>({
         prompt,
@@ -360,6 +364,7 @@ export async function generateOutlineBundle(input: {
   characterProfiles?: RoughOutlineOverviewInput['characterProfiles']
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
+  marketProfile?: RoughOutlineOverviewInput['marketProfile']
 }): Promise<OutlineBundlePayload | null> {
   const overviewStage = await generateOutlineOverview({
     generationBriefText: input.generationBriefText,
@@ -369,7 +374,8 @@ export async function generateOutlineBundle(input: {
     sevenQuestions: input.sevenQuestions,
     characterProfiles: input.characterProfiles,
     characterProfilesV2: input.characterProfilesV2,
-    factionMatrix: input.factionMatrix
+    factionMatrix: input.factionMatrix,
+    marketProfile: input.marketProfile
   })
 
   const batchSize = getGovernanceOutlineBlockSize()
@@ -391,7 +397,8 @@ export async function generateOutlineBundle(input: {
       sevenQuestions: input.sevenQuestions,
       characterProfiles: input.characterProfiles,
       characterProfilesV2: input.characterProfilesV2,
-      factionMatrix: input.factionMatrix
+      factionMatrix: input.factionMatrix,
+      marketProfile: input.marketProfile
     })
     batches.push(batch)
     for (const episode of batch.episodes || []) {

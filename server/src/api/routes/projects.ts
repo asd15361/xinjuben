@@ -143,6 +143,30 @@ projectsRouter.post('/', async (req, res) => {
     return
   }
 
+  if (!input.marketProfile?.audienceLane) {
+    res.status(400).json({
+      error: 'missing_audience_lane',
+      message: '请选择男频或女频'
+    })
+    return
+  }
+
+  const validSubgenres: string[] = [
+    '男频都市逆袭',
+    '男频玄幻修仙',
+    '男频历史军政',
+    '女频霸总甜宠',
+    '女频古言宅斗',
+    '女频现代逆袭'
+  ]
+  if (!validSubgenres.includes(input.marketProfile.subgenre)) {
+    res.status(400).json({
+      error: 'invalid_subgenre',
+      message: '请选择有效的垂类'
+    })
+    return
+  }
+
   await withProjectResult(res, async () => ({
     project: await projectRepository.createProject(user.id, input)
   }))

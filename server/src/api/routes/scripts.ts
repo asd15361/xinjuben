@@ -638,7 +638,10 @@ scriptsRouter.post('/rewrite', authMiddleware, async (req: Request, res: Respons
         failures,
         storyIntent: project.storyIntent,
         outline: project.outlineDraft ?? undefined,
-        characters: project.characterDrafts ?? undefined
+        characters: project.characterDrafts ?? undefined,
+        projectId: project.id,
+        outlineTitle: project.name,
+        targetEpisodes: project.outlineDraft?.summaryEpisodes?.length ?? 20
       },
       runtimeConfig
     })

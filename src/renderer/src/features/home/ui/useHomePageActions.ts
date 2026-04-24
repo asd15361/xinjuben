@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ProjectSummaryDto } from '../../../../../shared/contracts/project.ts'
+import type { AudienceLane, MarketProfileDto, ProjectSummaryDto, Subgenre } from '../../../../../shared/contracts/project.ts'
 import { openProjectSession } from '../../../app/services/stage-session-service.ts'
 import {
   apiCreateProject,
@@ -19,11 +19,15 @@ export function useHomePageActions(): {
   busy: boolean
   canCreate: boolean
   projectName: string
+  audienceLane: AudienceLane | ''
+  subgenre: Subgenre | ''
   projects: ProjectSummaryDto[]
   query: string
   status: string
   visibleProjects: ProjectSummaryDto[]
   setProjectName: (value: string) => void
+  setAudienceLane: (value: AudienceLane | '') => void
+  setSubgenre: (value: Subgenre | '') => void
   setQuery: (value: string) => void
   createProject: () => Promise<void>
   openProject: (projectId: string) => Promise<void>
@@ -33,6 +37,8 @@ export function useHomePageActions(): {
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([])
   const [busy, setBusy] = useState(false)
   const [projectName, setProjectName] = useState('')
+  const [audienceLane, setAudienceLane] = useState<AudienceLane | ''>('')
+  const [subgenre, setSubgenre] = useState<Subgenre | ''>('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState(
     '第 1 步：先创建或打开一个项目。进入项目后，默认就是和 AI 聊天。'
@@ -80,11 +86,18 @@ export function useHomePageActions(): {
     if (!canCreate) return
     setBusy(true)
     try {
+      const marketProfile: MarketProfileDto = {
+        audienceLane: audienceLane as AudienceLane,
+        subgenre: subgenre as Subgenre
+      }
       await apiCreateProject({
         name: projectName.trim(),
-        workflowType: 'ai_write'
+        workflowType: 'ai_write',
+        marketProfile
       })
       setProjectName('')
+      setAudienceLane('')
+      setSubgenre('')
       await reload()
       setStatus(`项目「${projectName.trim()}」创建成功，已添加到列表。`)
     } finally {
@@ -96,7 +109,14 @@ export function useHomePageActions(): {
     void reload()
   }, [])
 
-  const canCreate = useMemo(() => projectName.trim().length > 0 && !busy, [projectName, busy])
+  const canCreate = useMemo(
+    () =>
+      projectName.trim().length > 0 &&
+      !!audienceLane &&
+      !!subgenre &&
+      !busy,
+    [projectName, audienceLane, subgenre, busy]
+  )
   const visibleProjects = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return projects
@@ -109,11 +129,15 @@ export function useHomePageActions(): {
     busy,
     canCreate,
     projectName,
+    audienceLane,
+    subgenre,
     projects,
     query,
     status,
     visibleProjects,
     setProjectName,
+    setAudienceLane,
+    setSubgenre,
     setQuery,
     createProject,
     openProject,

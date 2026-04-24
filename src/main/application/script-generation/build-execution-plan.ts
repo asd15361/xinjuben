@@ -85,7 +85,8 @@ export function buildScriptGenerationExecutionPlan(
       storyIntent: context.storyIntent,
       segments: context.segments,
       detailedOutlineBlocks: context.detailedOutlineBlocks,
-      targetEpisodes
+      targetEpisodes,
+      outline: context.outline
     }),
     targetEpisodes,
     existingSceneCount,

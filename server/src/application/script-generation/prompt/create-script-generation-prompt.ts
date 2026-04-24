@@ -21,6 +21,7 @@
  */
 import type {
   CharacterDraftDto,
+  EpisodeControlCardDto,
   OutlineDraftDto,
   ScriptSegmentDto
 } from '@shared/contracts/workflow'
@@ -45,6 +46,11 @@ import {
 import { buildScriptStateLedger } from '../ledger/build-script-ledger'
 import { buildEpisodeSceneDirectives } from './build-episode-scene-directives'
 import { buildSceneProgressionDirectives } from './build-scene-progression-directives'
+import { buildMarketProfilePromptSection } from '../../workspace/build-market-profile-prompt-section'
+import {
+  buildStoryStateSnapshot,
+  buildStoryStateSnapshotPromptBlock
+} from '@shared/domain/short-drama/story-state-snapshot'
 
 // ============================================================================
 // FIRST DRAFT EXECUTION CONSTANTS
@@ -87,6 +93,12 @@ const SCREENPLAY_FINAL_OPENING_RULE =
 
 const SCREENPLAY_NO_NEW_TAKEOVER_RULE =
   '末两集不准临时引入新角色名号接管尾声；余波只能落在已出现人物和旧账上。'
+
+const SCREENPLAY_OPENING_SHOCK_RULE =
+  '【开局冲击规则】每集第一场前 30% 必须出现一个具体的高损失/高羞辱/高危险/高反转事件（泼液体/扇耳光/当众羞辱/被开除/被分手/被夺物/被威胁/被撞见秘密至少一种）；不准先铺背景、先介绍人物关系或先解释设定再出事。第 1 集第一场必须从本集最大冲击点直接开场，不铺垫。'
+
+const SCREENPLAY_INFO_DENSITY_RULE =
+  '【信息密度规则】每集必须出现至少一个在冲突中起关键作用的实物道具（账本/U盘/照片/合同/钥匙/信件/药瓶/录音/转账记录/银行流水/通讯录/证据/数据/资料至少一种），道具必须被抢/被藏/被换/被出示/被销毁，不能只提一句就消失。人物对白不能脱离当场动作和压力，禁止纯信息交换对话。'
 
 const SCREENPLAY_INSTITUTION_PASSING_RULE =
   '程序场必须出现时，只准做过门：收证、定时限、转身离场。做完这一步马上退场，不准围着它来回对质三轮。'
@@ -254,6 +266,45 @@ function buildShortDramaControlPackageLines(
         controlCard.forbiddenDrift.length > 0 ? controlCard.forbiddenDrift.join('；') : '待补'
       }`
     )
+    // 新增：爆款规则字段（只输出当前集选中的，不塞全库）
+    if (controlCard.viralHookType) {
+      lines.push(`- viralHookType（本集钩子类型）：${controlCard.viralHookType}`)
+    }
+    if (controlCard.signatureLineSeed) {
+      lines.push(`- signatureLineSeed（金句种子）：${controlCard.signatureLineSeed}`)
+    }
+    if (controlCard.payoffType) {
+      lines.push(
+        `- payoffType（本集爽点类型）：${controlCard.payoffType}${controlCard.payoffLevel ? `｜级别=${controlCard.payoffLevel}` : ''}`
+      )
+    }
+    if (controlCard.villainOppressionMode) {
+      lines.push(`- villainOppressionMode（反派压迫模式）：${controlCard.villainOppressionMode}`)
+    }
+    if (controlCard.openingShockEvent) {
+      lines.push(`- openingShockEvent（开局冲击方向）：${controlCard.openingShockEvent}`)
+    }
+    if (controlCard.retentionCliffhanger) {
+      lines.push(`- retentionCliffhanger（集尾留客方向）：${controlCard.retentionCliffhanger}`)
+    }
+    if (controlCard.protagonistActionType) {
+      lines.push(`- protagonistActionType（主角核心行动）：${controlCard.protagonistActionType}`)
+    }
+    if (controlCard.coreGoal) {
+      lines.push(`- coreGoal：${controlCard.coreGoal}`)
+    }
+    if (controlCard.villainPressure) {
+      lines.push(`- villainPressure：${controlCard.villainPressure}`)
+    }
+    if (controlCard.catharsisMoment) {
+      lines.push(`- catharsisMoment（爽点时刻）：${controlCard.catharsisMoment}`)
+    }
+    if (controlCard.twistPoint) {
+      lines.push(`- twistPoint：${controlCard.twistPoint}`)
+    }
+    if (controlCard.cliffhanger) {
+      lines.push(`- cliffhanger：${controlCard.cliffhanger}`)
+    }
   }
 
   lines.push('【控制包优先级】')
@@ -375,6 +426,89 @@ function buildDialogueVoiceBlock(input: {
   return lines.join('\n')
 }
 
+function buildViralExecutionLines(controlCard: EpisodeControlCardDto | null, episodeNo: number): string[] {
+  if (!controlCard) {
+    // 兜底：没有控制卡时给出通用爽感规则（但不塞全库）
+    return [
+      '【爽感执行指令】',
+      '- 每集必须有至少一个爽点落地，执行三步骤：①主角打出底牌/反咬/亮证据 ②反派写出实质性身体溃败（后退/铁青/瘫坐/发抖/掉落/脸色一变/僵住/慌了/满头大汗/失态/求饶）③旁观者露出震惊/恐惧/崇拜/重新审视反应。',
+      '- 金句必须基于当前集具体道具/身份/证据/规则生成，15字以内，禁止空泛模板（如"你也配"）。',
+      '- 反派施压必须通过规则/权位/利益/布局，禁止只靠吼叫骂街和无脑栽赃。',
+      '- 集尾必须停在新危机压到眼前的瞬间，最后一句台词必须扎心。',
+      '- 禁止事项：①主角全程挨打/示弱超1分钟 ②反派只靠吼叫骂街 ③无爽点结尾 ④反转无前置伏笔'
+    ]
+  }
+
+  const lines: string[] = ['【当前集爆款执行指令】']
+
+  // 1. 主角行动指令
+  if (controlCard.protagonistActionType) {
+    const actionGuide: Record<string, string> = {
+      装弱反击: '表面退让示弱，暗中布局后手；让观众以为主角真怂了，再突然翻盘。',
+      冷静对峙: '不跪不求，用证据/底牌/规则直接反击；语气稳、句子短、一刀一刀扎。',
+      主动设局: '布局陷阱、设局引敌、制造假象反咬；让反派以为占优，实则踏进圈套。',
+      借力打力: '利用对手的攻击/规则/势力反制对手；不用自己出手，让反派的矛扎回反派。',
+      底牌碾压: '亮出隐藏实力/真相/关键证据，一击制胜；铺垫要够，碾压要狠。'
+    }
+    lines.push(`- 主角核心行动【${controlCard.protagonistActionType}】：${actionGuide[controlCard.protagonistActionType] || '按控制卡执行'}`)
+  }
+
+  // 2. 开局冲击
+  if (controlCard.openingShockEvent) {
+    lines.push(`- 开局冲击：第一场必须出现「${controlCard.openingShockEvent}」，不准先铺背景再出事。`)
+  }
+
+  // 3. 反派压迫
+  if (controlCard.villainOppressionMode) {
+    const modeActionMap: Record<string, string> = {
+      规则压迫: '反派必须用制度/规章/条款卡死主角的合法路径，让主角"有理说不清"，写出主角被规则困住的具体困境（文件被扣/流程被卡/期限被改/资格被取消）。',
+      权位压迫: '反派必须用职位/身份/权力直接压制主角，写出具体的权力动作（下令查封/当众撤职/调离岗位/禁止出入），禁止只说不做。',
+      利益分化: '反派必须用利益引诱主角身边的人背叛或沉默，写出具体筹码（钱/职位/把柄/家人安全）和背叛者的犹豫或转变。',
+      借刀杀人: '反派自己不露面，借他人之手对付主角，写出中间人的具体动作和反派的遥控痕迹（密信/口谕/暗号/第三方势力）。'
+    }
+    const modeHint = modeActionMap[controlCard.villainOppressionMode] || '反派必须通过具体手段施压，禁止只靠辱骂/吼叫/无脑栽赃体现压迫。'
+    lines.push(`- 反派压迫模式【${controlCard.villainOppressionMode}】：${modeHint}`)
+  }
+
+  // 4. 爽点类型与级别
+  if (controlCard.payoffType) {
+    const levelHint = controlCard.payoffLevel === 'major' ? '（本集是大爽点，必须写足反派实质损失+旁观者反应）' : controlCard.payoffLevel === 'final' ? '（终局爽点，必须彻底清算、全面翻盘）' : ''
+    lines.push(`- 本集爽点类型【${controlCard.payoffType}】${levelHint}`)
+  }
+
+  // 5. 金句种子 → 定向金句规则
+  if (controlCard.signatureLineSeed) {
+    lines.push(`- 金句指令：必须基于「${controlCard.signatureLineSeed}」生成一句15字以内的短钉子句。这句话必须绑定当前身份/道具/证据/规则，不是通用模板。`)
+  } else {
+    lines.push('- 金句指令：结合本场核心道具或主角底牌，生成一句15字以内的致命陈述句或反问句。禁止空泛模板（如"你也配"），必须锚定具体物件或底牌。')
+  }
+
+  // 6. 爽点时刻三步
+  if (controlCard.catharsisMoment) {
+    lines.push(`- 爽点时刻：${controlCard.catharsisMoment}`)
+    lines.push('  执行三步：①主角打出底牌/反咬 ②反派写出实质性身体溃败（后退/铁青/瘫坐/掉落/发抖）③旁观者露出震惊/恐惧/崇拜反应')
+  }
+
+  // 7. 集尾留客
+  if (controlCard.retentionCliffhanger) {
+    lines.push(`- 集尾留客：${controlCard.retentionCliffhanger}。最后一句台词必须扎心，停在新危机压到眼前的瞬间。`)
+  }
+
+  // 8. 强制道具
+  if (controlCard.requiredProp) {
+    lines.push(`- ${controlCard.requiredProp}`)
+  }
+
+  // 9. 钩子类型
+  if (controlCard.viralHookType) {
+    lines.push(`- 钩子类型【${controlCard.viralHookType}】：按此类型设计本集吸引点。`)
+  }
+
+  lines.push('- 禁止事项：①主角全程挨打/示弱超1分钟 ②反派只靠吼叫骂街 ③无爽点结尾 ④反转无前置伏笔 ⑤跳情绪线')
+
+  return lines
+}
+
 function buildSeasonFinaleContractLines(episodeNo: number, targetEpisodes: number): string[] {
   if (episodeNo !== targetEpisodes || targetEpisodes < 10) return []
 
@@ -453,6 +587,10 @@ export function createScriptGenerationPrompt(
     includeSceneDetails
   )
   const shortDramaControlPackageLines = buildShortDramaControlPackageLines(input, episodeNo)
+  const controlCard =
+    resolveEpisodeControlCardFromPackage(input.scriptControlPackage, episodeNo) ||
+    currentBeat?.episodeControlCard ||
+    null
   const seasonFinaleContractLines = buildSeasonFinaleContractLines(
     episodeNo,
     input.plan.targetEpisodes
@@ -466,6 +604,29 @@ export function createScriptGenerationPrompt(
     compactMode
   })
   const ledgerConstraintBlock = buildLedgerConstraintBlock(ledger)
+
+  const marketProfileSection = buildMarketProfilePromptSection({
+    marketProfile: input.storyIntent?.marketProfile,
+    stage: 'scriptGeneration'
+  })
+
+  const snapshot = buildStoryStateSnapshot({
+    projectId: input.projectId || input.outlineTitle,
+    outlineTitle: input.outlineTitle,
+    theme: input.theme,
+    mainConflict: input.mainConflict,
+    storyIntent: input.storyIntent,
+    audienceLane: input.storyIntent?.marketProfile?.audienceLane,
+    subgenre: input.storyIntent?.marketProfile?.subgenre,
+    outline,
+    characters: promptCharacters,
+    episodeNo,
+    targetEpisodes: input.plan.targetEpisodes,
+    existingScript: input.existingScript,
+    generatedScenes,
+    ledger
+  })
+  const snapshotBlock = buildStoryStateSnapshotPromptBlock(snapshot)
 
   // Craft rules — identical for both modes after the slimming
   const craftRules = [
@@ -493,6 +654,8 @@ export function createScriptGenerationPrompt(
 沈黑虎：（冷笑）还没到时候。`,
     SCREENPLAY_FIRST_DRAFT_MIN_DRAMA_RULE,
     SCREENPLAY_FIRST_DRAFT_BAN_RULE,
+    SCREENPLAY_OPENING_SHOCK_RULE,
+    SCREENPLAY_INFO_DENSITY_RULE,
     compactMode
       ? [
           '前30%内打出这集最好卖的冲突、反差和代价，不先铺背景。',
@@ -528,10 +691,9 @@ export function createScriptGenerationPrompt(
   return [
     `你正在为短剧《${input.outlineTitle || '未命名项目'}》写第 ${episodeNo} 集剧本。`,
     '【首稿执行要点】（红线规则已写入 System 指令，以下为具体上下文）',
-    '4. 【爽感落地三件套】当控制卡传来 catharsisMoment 时，本场必须严格执行三步：',
-    '   第一步【动态 Punchline】：主角必须结合本场核心道具或主角底牌，说出一句 15 字以内的致命陈述句或反问句。禁止使用空泛金句（如"你也配"），必须锚定当前剧情中的具体物件或底牌。',
-    '   第二步【反派溃败表现】：反派听到/看到主角的底牌或反咬后，必须写出实质性的身体溃败动作——后退半步、脸色铁青、瘫坐在地、手中的东西掉落、嘴角发抖。不只是"愣住"或"沉默"。',
-    '   第三步【旁观者锚点】：必须有一名旁观者或配角露出震惊、恐惧或崇拜的反应，作为观众视角的共鸣锚点。',
+    ...(marketProfileSection ? [marketProfileSection] : []),
+    ...buildViralExecutionLines(controlCard, episodeNo),
+    snapshotBlock,
     '',
     `主题：${input.theme || '待补主题'}`,
     `核心冲突：${input.mainConflict || '待补核心冲突'}`,

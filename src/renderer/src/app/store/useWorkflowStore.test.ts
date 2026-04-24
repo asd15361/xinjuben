@@ -12,6 +12,7 @@ function createProjectSnapshot(stage: ProjectSnapshotDto['stage']): ProjectSnaps
     workflowType: 'ai_write',
     stage,
     genre: '悬疑',
+    marketProfile: null,
     updatedAt: '2026-03-24T00:00:00.000Z',
     chatMessages: [{ role: 'user', text: 'hello', createdAt: Date.now() }],
     generationStatus: {

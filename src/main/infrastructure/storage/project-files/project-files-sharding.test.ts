@@ -16,6 +16,7 @@ function createLegacyProject(overrides: Partial<ProjectSnapshotDto> = {}): Proje
     workflowType: 'ai_write',
     stage: 'script',
     genre: '悬疑',
+    marketProfile: null,
     updatedAt: '2026-03-24T10:00:00.000Z',
     chatMessages: [
       { id: 'msg-1', role: 'user', content: 'hello', createdAt: '2026-03-24T09:00:00Z' } as never
@@ -122,6 +123,7 @@ test('readProjectShards reads only shards required for requested stage and defau
             workflowType: 'ai_write',
             stage: 'chat',
             genre: '都市',
+            marketProfile: null,
             updatedAt: '2026-03-24T10:00:00.000Z',
             counts: {
               chatMessages: 1,
@@ -148,6 +150,7 @@ test('readProjectShards reads only shards required for requested stage and defau
         workflowType: 'ai_write',
         stage: 'chat',
         genre: '都市',
+        marketProfile: null,
         updatedAt: '2026-03-24T10:00:00.000Z'
       },
       null,

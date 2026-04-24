@@ -93,6 +93,7 @@ function createProjectSnapshot(overrides = {}) {
     workflowType: 'ai_write',
     stage: 'script',
     genre: '仙侠',
+    marketProfile: null,
     updatedAt: '2026-03-24T00:00:00.000Z',
     chatMessages: [{ role: 'user', text: '测试消息', createdAt: 1 }],
     generationStatus: {

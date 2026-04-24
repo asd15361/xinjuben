@@ -10,6 +10,7 @@ export interface ProviderFamilyConfig {
   model: string
   systemInstruction: string
   timeoutMs: number
+  thinkingMode?: 'enabled' | 'disabled'
 }
 
 export interface RuntimeProviderConfig {
@@ -39,7 +40,9 @@ export function loadRuntimeProviderConfig(): RuntimeProviderConfig {
     deepseek: {
       apiKey: process.env.DEEPSEEK_API_KEY || '',
       baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
-      model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+      model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash',
+      thinkingMode:
+        process.env.DEEPSEEK_THINKING === 'enabled' ? 'enabled' : 'disabled',
       systemInstruction: process.env.DEEPSEEK_SYSTEM_INSTRUCTION || '',
       timeoutMs: readNumber(process.env.DEEPSEEK_TIMEOUT_MS, 45000)
     },

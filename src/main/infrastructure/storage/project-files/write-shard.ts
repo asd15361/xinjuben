@@ -2,6 +2,7 @@ import { copyFile, mkdir, rename, rm, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 
 import type {
+  MarketProfileDto,
   ProjectCounts,
   ProjectShellDto,
   ProjectSnapshotDto
@@ -25,6 +26,7 @@ export interface ProjectsIndexEntry {
   workflowType: 'ai_write' | 'novel_adapt'
   stage: WorkflowStage
   genre: string
+  marketProfile: MarketProfileDto | null
   updatedAt: string
   counts: ProjectCounts
 }
@@ -40,6 +42,7 @@ export interface ProjectMetaShard {
   workflowType: 'ai_write' | 'novel_adapt'
   stage: WorkflowStage
   genre: string
+  marketProfile: MarketProfileDto | null
   updatedAt: string
 }
 
@@ -230,6 +233,7 @@ export function buildShardPayloads(project: ProjectSnapshotDto): ProjectShardPay
       workflowType: project.workflowType,
       stage: project.stage,
       genre: project.genre,
+      marketProfile: project.marketProfile ?? null,
       updatedAt: project.updatedAt
     },
     chat: {

@@ -16,7 +16,14 @@ import {
   computeCharacterFunctionScore,
   computeCharacterArcProgress,
   inspectContentQualityEpisode,
-  inspectContentQualityBatch
+  inspectContentQualityBatch,
+  computeOpeningShockScore,
+  computeHookRetentionScore,
+  computePunchlineDensityScore,
+  computeVillainOppressionQualityScore,
+  computeCatharsisPayoffScore,
+  computeInformationDensityScore,
+  computeScreenplayFormatScore
 } from './screenplay-content-quality.ts'
 
 function makeScene(screenplay: string, sceneNo = 1): ScriptSegmentDto {
@@ -280,8 +287,66 @@ describe('inspectContentQualityEpisode', () => {
     assert.ok(typeof signal.dramaticTurnScore === 'number')
     assert.ok(typeof signal.sceneEngineScore === 'number')
     assert.ok(typeof signal.characterFunctionScore === 'number')
+    assert.ok(typeof signal.openingShockScore === 'number')
+    assert.ok(typeof signal.hookRetentionScore === 'number')
+    assert.ok(typeof signal.punchlineDensityScore === 'number')
+    assert.ok(typeof signal.villainOppressionQualityScore === 'number')
+    assert.ok(typeof signal.catharsisPayoffScore === 'number')
+    assert.ok(typeof signal.storyContinuityScore === 'number')
     assert.ok(typeof signal.overallScore === 'number')
     assert.ok(Array.isArray(signal.repairRecommendations))
+  })
+
+  it('with snapshot: detects continuity issues and lowers score', () => {
+    const scene = makeScene('张三走进房间，独自发呆。', 3)
+    const signal = inspectContentQualityEpisode(scene, {
+      protagonistName: '张三',
+      antagonistName: '李四',
+      snapshot: {
+        projectId: 'p1',
+        audienceLane: 'male',
+        subgenre: '都市逆袭',
+        currentEpisode: 3,
+        totalEpisodes: 20,
+        protagonistState: { statusSummary: '寻找证据', emotionalArc: '愤怒' },
+        antagonistState: { statusSummary: '设局', threatLevel: '高压', currentGoal: '陷害张三' },
+        relationshipState: { keyRelationship: '敌对', currentTension: '陷害' },
+        activeProps: [{ name: 'U盘', status: 'held' }],
+        unresolvedHooks: ['张三被跟踪'],
+        activeForeshadowing: [],
+        continuityConstraints: [],
+        previousEpisodeEnding: '张三发现线索'
+      }
+    })
+    assert.ok(signal.storyContinuityScore < 100)
+    assert.ok(signal.repairRecommendations.some((r) => r.reason.includes('连续性')))
+  })
+
+  it('with snapshot and good continuity: score is 100', () => {
+    const scene = makeScene(
+      '第3集\n3-1 日\n人物：张三、李四\n△张三握紧U盘，寻找证据。\n张三：我要查出真相。\n李四冷笑逼近。\n李四：你以为能逃？\n△张三想起被跟踪的事，眼神一凛。',
+      3
+    )
+    const signal = inspectContentQualityEpisode(scene, {
+      protagonistName: '张三',
+      antagonistName: '李四',
+      snapshot: {
+        projectId: 'p1',
+        audienceLane: 'male',
+        subgenre: '都市逆袭',
+        currentEpisode: 3,
+        totalEpisodes: 20,
+        protagonistState: { statusSummary: '寻找证据', emotionalArc: '愤怒' },
+        antagonistState: { statusSummary: '设局', threatLevel: '高压', currentGoal: '陷害张三' },
+        relationshipState: { keyRelationship: '敌对', currentTension: '陷害' },
+        activeProps: [{ name: 'U盘', status: 'held' }],
+        unresolvedHooks: ['张三被跟踪'],
+        activeForeshadowing: [],
+        continuityConstraints: [],
+        previousEpisodeEnding: '张三发现线索'
+      }
+    })
+    assert.equal(signal.storyContinuityScore, 100)
   })
 
   it('循环问题生成 episode_engine 修复推荐', () => {
@@ -381,5 +446,274 @@ describe('inspectContentQualityBatch', () => {
     assert.ok(report.loopProblemSummary.totalLoops >= 2)
     assert.ok(report.loopProblemSummary.byPattern['喽啰骂废物循环'] >= 1)
     assert.ok(report.loopProblemSummary.byPattern['小柔流血循环'] >= 1)
+  })
+
+  it('批量报告包含5项商业传播力平均分', () => {
+    const scenes = [
+      makeScene('黎明：跪下！\n△当众羞辱。\n李科：这规矩你不懂？', 1),
+      makeScene('黎明：原来是假的。\n△证据拍到脸上。\n众人：震惊！\n△追兵逼近。', 2)
+    ]
+    const report = inspectContentQualityBatch(scenes, {
+      protagonistName: '黎明',
+      antagonistName: '李科'
+    })
+    assert.ok(typeof report.averageOpeningShockScore === 'number')
+    assert.ok(typeof report.averageHookRetentionScore === 'number')
+    assert.ok(typeof report.averagePunchlineDensityScore === 'number')
+    assert.ok(typeof report.averageVillainOppressionQualityScore === 'number')
+    assert.ok(typeof report.averageCatharsisPayoffScore === 'number')
+  })
+
+  it('batch with snapshots computes averageStoryContinuityScore', () => {
+    const scenes = [
+      makeScene('张三走进房间。', 1),
+      makeScene('李四冷笑。', 2)
+    ]
+    const report = inspectContentQualityBatch(scenes, {
+      protagonistName: '张三',
+      antagonistName: '李四',
+      snapshots: [
+        {
+          projectId: 'p1',
+          audienceLane: 'male',
+          subgenre: '都市逆袭',
+          currentEpisode: 1,
+          totalEpisodes: 20,
+          protagonistState: { statusSummary: '寻找证据', emotionalArc: '愤怒' },
+          antagonistState: { statusSummary: '设局', threatLevel: '高压', currentGoal: '陷害张三' },
+          relationshipState: { keyRelationship: '敌对', currentTension: '陷害' },
+          activeProps: [{ name: 'U盘', status: 'held' }],
+          unresolvedHooks: ['钩子1'],
+          activeForeshadowing: [],
+          continuityConstraints: [],
+          previousEpisodeEnding: ''
+        },
+        {
+          projectId: 'p1',
+          audienceLane: 'male',
+          subgenre: '都市逆袭',
+          currentEpisode: 2,
+          totalEpisodes: 20,
+          protagonistState: { statusSummary: '寻找证据', emotionalArc: '愤怒' },
+          antagonistState: { statusSummary: '设局', threatLevel: '高压', currentGoal: '陷害张三' },
+          relationshipState: { keyRelationship: '敌对', currentTension: '陷害' },
+          activeProps: [{ name: 'U盘', status: 'held' }],
+          unresolvedHooks: ['钩子2'],
+          activeForeshadowing: [],
+          continuityConstraints: [],
+          previousEpisodeEnding: '张三发现线索'
+        }
+      ]
+    })
+    assert.ok(typeof report.averageStoryContinuityScore === 'number')
+    assert.ok(report.averageStoryContinuityScore < 100)
+  })
+})
+
+describe('commercial quality scoring', () => {
+  it('computeOpeningShockScore: high loss event in first lines scores high', () => {
+    const scene = makeScene('△黎明被当众剥夺身份。\n李科：从今日起，废除你第十九徒之名。')
+    assert.ok(computeOpeningShockScore(scene) >= 40)
+  })
+
+  it('computeOpeningShockScore: no shock event scores low', () => {
+    const scene = makeScene('黎明走进山洞。\n小柔：你来了。')
+    assert.ok(computeOpeningShockScore(scene) < 30)
+  })
+
+  it('computeHookRetentionScore: crisis at end scores high', () => {
+    const scene = makeScene('△追兵逼近。\n李科：谁？\n△火光从门外传来。')
+    assert.ok(computeHookRetentionScore(scene) >= 60)
+  })
+
+  it('computeHookRetentionScore: weak ending scores low', () => {
+    const scene = makeScene('黎明：我准备做点什么。\n△似乎要出发。')
+    assert.ok(computeHookRetentionScore(scene) < 50)
+  })
+
+  it('computePunchlineDensityScore: short punchline near twist scores high', () => {
+    const scene = makeScene('黎明：原来是你。\n黎明：账册在此。\n黎明：跪下。')
+    assert.ok(computePunchlineDensityScore(scene) >= 40)
+  })
+
+  it('computePunchlineDensityScore: no dialogue scores zero', () => {
+    const scene = makeScene('△门被撞开。\n△人走进来。')
+    assert.equal(computePunchlineDensityScore(scene), 0)
+  })
+
+  it('computeVillainOppressionQualityScore: rule-based pressure scores high', () => {
+    const scene = makeScene('李科：按门规，你该当何罪？\n李科：宗规第七条。')
+    assert.ok(computeVillainOppressionQualityScore(scene, '李科') >= 50)
+  })
+
+  it('computeVillainOppressionQualityScore: only insults scores low', () => {
+    const scene = makeScene('李科：废物！\n李科：没用！\n李科：蠢货！')
+    assert.ok(computeVillainOppressionQualityScore(scene, '李科') < 50)
+  })
+
+  it('computeCatharsisPayoffScore: full payoff chain scores high', () => {
+    const scene = makeScene('黎明：证据在此。\n李科：后退。\n众人：震惊。')
+    assert.ok(computeCatharsisPayoffScore(scene, '黎明') >= 70)
+  })
+
+  it('computeCatharsisPayoffScore: no counterattack scores low', () => {
+    const scene = makeScene('黎明：我认输。\n李科：跪下。')
+    assert.ok(computeCatharsisPayoffScore(scene, '黎明') < 50)
+  })
+})
+
+describe('P4: information density and format scoring', () => {
+  it('computeInformationDensityScore: high when checkpoints pass', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明、李科\n△黎明攥紧钥匙，指节发白。\n李科：凭什么？你配吗？\n黎明：滚！\n△钥匙拍到桌上，震得茶杯一跳。'
+    )
+    const score = computeInformationDensityScore(scene)
+    assert.ok(score >= 50)
+  })
+
+  it('computeInformationDensityScore: low when exposition dominates', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明\n黎明：很久以前，有一个王朝。\n黎明：这个王朝有三大门派。\n黎明：第一门派是青云宗。\n黎明：第二门派是玄天阁。'
+    )
+    const score = computeInformationDensityScore(scene)
+    assert.ok(score < 60)
+  })
+
+  it('computeScreenplayFormatScore: high for proper format', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜 内 山洞\n人物：黎明、李科\n△黎明走进山洞。\n黎明：你来了。\n李科：我来了。'
+    )
+    const score = computeScreenplayFormatScore(scene)
+    assert.ok(score >= 60)
+  })
+
+  it('computeScreenplayFormatScore: low for quoted dialogue', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明\n黎明："你来了。"\n黎明："我来了。"'
+    )
+    const score = computeScreenplayFormatScore(scene)
+    assert.ok(score < 90)
+  })
+
+  it('computeScreenplayFormatScore: low for novel narration', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明\n那是一个风雨交加的夜晚。\n他回忆起多年前的往事。\n内心充满了复杂的情绪。'
+    )
+    const score = computeScreenplayFormatScore(scene)
+    assert.ok(score < 70)
+  })
+})
+
+describe('P4: marketProfile quality detection', () => {
+  it('inspectContentQualityEpisode without marketProfile: old projects still work', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明、李科\n△黎明亮出底牌。\n李科：脸色一变，后退半步。\n众人：震惊。',
+      1
+    )
+    const signal = inspectContentQualityEpisode(scene, {
+      protagonistName: '黎明',
+      antagonistName: '李科'
+    })
+    assert.strictEqual(signal.marketQuality, undefined)
+    assert.ok(typeof signal.informationDensityScore === 'number')
+    assert.ok(typeof signal.screenplayFormatScore === 'number')
+    assert.ok(typeof signal.overallScore === 'number')
+  })
+
+  it('inspectContentQualityEpisode with male marketProfile includes male dimensions', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明、李科\n△黎明亮出底牌，身份反转。\n李科：脸色一变，后退半步。\n众人：震惊。\n黎明：获得新功法，突破境界。',
+      1
+    )
+    const signal = inspectContentQualityEpisode(scene, {
+      protagonistName: '黎明',
+      antagonistName: '李科',
+      marketProfile: { audienceLane: 'male', subgenre: '男频都市逆袭' }
+    })
+    assert.ok(signal.marketQuality)
+    assert.strictEqual(signal.marketQuality!.audienceLane, 'male')
+    assert.strictEqual(signal.marketQuality!.subgenre, '男频都市逆袭')
+    assert.ok(signal.marketQuality!.score >= 0)
+    assert.ok(signal.marketQuality!.dimensions.length >= 4)
+    const dimIds = signal.marketQuality!.dimensions.map((d) => d.id)
+    assert.ok(dimIds.includes('statusReversal'))
+    assert.ok(dimIds.includes('powerProgression'))
+    assert.ok(dimIds.includes('hiddenCard'))
+    assert.ok(dimIds.includes('publicPayoff'))
+    assert.ok(dimIds.includes('villainHierarchy'))
+  })
+
+  it('inspectContentQualityEpisode with female marketProfile includes female dimensions', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：女主、霸总\n△女主攥紧衣角，眼眶发红。\n女主：你凭什么这样对我？\n霸总：因为你是我的。\n△女主后退半步，声音发抖。',
+      1
+    )
+    const signal = inspectContentQualityEpisode(scene, {
+      protagonistName: '女主',
+      antagonistName: '反派',
+      marketProfile: { audienceLane: 'female', subgenre: '女频霸总甜宠' }
+    })
+    assert.ok(signal.marketQuality)
+    assert.strictEqual(signal.marketQuality!.audienceLane, 'female')
+    assert.strictEqual(signal.marketQuality!.subgenre, '女频霸总甜宠')
+    assert.ok(signal.marketQuality!.score >= 0)
+    assert.ok(signal.marketQuality!.dimensions.length >= 4)
+    const dimIds = signal.marketQuality!.dimensions.map((d) => d.id)
+    assert.ok(dimIds.includes('emotionalIdentification'))
+    assert.ok(dimIds.includes('relationshipTension'))
+    assert.ok(dimIds.includes('powerBorrowing'))
+    assert.ok(dimIds.includes('supportingPowerReveal'))
+    assert.ok(dimIds.includes('femaleGrowth'))
+  })
+
+  it('inspectContentQualityBatch computes new batch averages', () => {
+    const scenes = [
+      makeScene(
+        '第1集\n1-1 夜\n人物：黎明、李科\n△黎明亮出底牌。\n李科：后退。\n众人：震惊。',
+        1
+      ),
+      makeScene(
+        '第2集\n1-1 夜\n人物：黎明\n△黎明获得新功法。\n黎明：突破境界。',
+        2
+      )
+    ]
+    const report = inspectContentQualityBatch(scenes, {
+      protagonistName: '黎明',
+      antagonistName: '李科',
+      marketProfile: { audienceLane: 'male', subgenre: '男频都市逆袭' }
+    })
+    assert.ok(typeof report.averageInformationDensityScore === 'number')
+    assert.ok(typeof report.averageScreenplayFormatScore === 'number')
+    assert.ok(typeof report.averageMarketQualityScore === 'number')
+    assert.ok(report.averageMarketQualityScore! >= 0)
+  })
+
+  it('inspectContentQualityBatch without marketProfile: averageMarketQualityScore undefined', () => {
+    const scenes = [
+      makeScene('第1集\n1-1 夜\n人物：黎明\n黎明：你好。', 1),
+      makeScene('第2集\n1-1 夜\n人物：黎明\n黎明：再见。', 2)
+    ]
+    const report = inspectContentQualityBatch(scenes, {
+      protagonistName: '黎明'
+    })
+    assert.strictEqual(report.averageMarketQualityScore, undefined)
+    assert.ok(typeof report.averageInformationDensityScore === 'number')
+    assert.ok(typeof report.averageScreenplayFormatScore === 'number')
+  })
+
+  it('marketProfile dimensions include evidence and repairHint', () => {
+    const scene = makeScene(
+      '第1集\n1-1 夜\n人物：黎明、李科\n△黎明剥夺李科身份，当众打脸。\n李科：脸色铁青。\n众人：震惊，不敢置信。',
+      1
+    )
+    const signal = inspectContentQualityEpisode(scene, {
+      protagonistName: '黎明',
+      antagonistName: '李科',
+      marketProfile: { audienceLane: 'male', subgenre: '男频都市逆袭' }
+    })
+    const dim = signal.marketQuality!.dimensions.find((d) => d.id === 'statusReversal')
+    assert.ok(dim)
+    assert.ok(dim!.evidence.length > 0)
+    assert.ok(dim!.repairHint.length > 0)
   })
 })

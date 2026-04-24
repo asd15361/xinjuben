@@ -7,11 +7,15 @@ export function HomePage(): JSX.Element {
     busy,
     canCreate,
     projectName,
+    audienceLane,
+    subgenre,
     projects,
     query,
     status,
     visibleProjects,
     setProjectName,
+    setAudienceLane,
+    setSubgenre,
     setQuery,
     createProject,
     openProject,
@@ -26,7 +30,11 @@ export function HomePage(): JSX.Element {
         busy={busy}
         projectName={projectName}
         canCreate={canCreate}
+        audienceLane={audienceLane}
+        subgenre={subgenre}
         onProjectNameChange={setProjectName}
+        onAudienceLaneChange={setAudienceLane}
+        onSubgenreChange={setSubgenre}
         onCreate={() => void createProject()}
       />
 

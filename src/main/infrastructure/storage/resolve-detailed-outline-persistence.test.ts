@@ -205,6 +205,7 @@ test('resolveDetailedOutlinePersistence preserves 30-episode detailed outline ac
     workflowType: 'ai_write' as const,
     stage: persisted.stage,
     genre: persisted.outlineDraft?.genre ?? '',
+    marketProfile: null,
     updatedAt: persisted.updatedAt,
     chatMessages: [],
     generationStatus: null,

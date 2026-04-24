@@ -35,6 +35,7 @@ const mockWindowApi = {
           stage: 'script', // Project is at 'script' stage in main
           workflowType: 'ai_write',
           genre: '玄幻',
+          marketProfile: null,
           updatedAt: '2026-03-27T00:00:00.000Z',
           chatMessages: [],
           storyIntent: {

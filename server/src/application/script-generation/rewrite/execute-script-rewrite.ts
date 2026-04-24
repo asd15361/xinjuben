@@ -9,9 +9,15 @@ import type { ScriptSegmentDto, CharacterDraftDto, OutlineDraftDto } from '@shar
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 import type { EpisodeGuardFailure } from '@shared/domain/script/screenplay-repair-guard'
+import type { ScriptGenerationControlPackageDto } from '@shared/contracts/script-generation'
 import { parseGeneratedScene } from '../runtime/parse-generated-scene'
 import { buildScriptStateLedger } from '../ledger/build-script-ledger'
 import { resolveAiStageTimeoutMs } from '../../ai/resolve-ai-stage-timeout'
+import {
+  buildStoryStateSnapshot,
+  buildStoryStateSnapshotPromptBlock
+} from '@shared/domain/short-drama/story-state-snapshot'
+import { inspectStoryContinuityAgainstSnapshot } from '@shared/domain/script/screenplay-continuity-audit'
 
 export interface ExecuteScriptRewriteInputDto {
   episodeNo: number
@@ -20,6 +26,12 @@ export interface ExecuteScriptRewriteInputDto {
   storyIntent: StoryIntentPackageDto | null | undefined
   outline: OutlineDraftDto | undefined
   characters: CharacterDraftDto[] | undefined
+  projectId?: string
+  outlineTitle?: string
+  theme?: string
+  mainConflict?: string
+  targetEpisodes?: number
+  scriptControlPackage?: ScriptGenerationControlPackageDto
 }
 
 export interface ExecuteScriptRewriteResultDto {
@@ -67,6 +79,34 @@ function buildEpisodeIssueTicket(
 }
 
 /**
+ * 构建连续性约束提示块
+ */
+function buildContinuityConstraintBlock(
+  auditResult: ReturnType<typeof inspectStoryContinuityAgainstSnapshot>
+): string[] {
+  if (auditResult.issues.length === 0) return []
+
+  const lines: string[] = []
+  lines.push('【连续性约束】')
+  lines.push(`连续性问题：共 ${auditResult.issues.length} 项，分数 ${auditResult.score}/100`)
+  lines.push('')
+
+  for (let i = 0; i < auditResult.issues.length; i++) {
+    const issue = auditResult.issues[i]
+    lines.push(`${i + 1}. [${issue.severity === 'high' ? '严重' : issue.severity === 'medium' ? '中等' : '轻微'}] ${issue.detail}`)
+    if (issue.evidence.length > 0) {
+      lines.push(`   证据：${issue.evidence.join(' / ')}`)
+    }
+  }
+
+  lines.push('')
+  lines.push('修稿时必须确保以上连续性错误被修复，不得穿帮。')
+  lines.push('')
+
+  return lines
+}
+
+/**
  * 构建单集重写 prompt
  */
 function buildEpisodeRewritePrompt(input: {
@@ -76,8 +116,14 @@ function buildEpisodeRewritePrompt(input: {
   outline: OutlineDraftDto | undefined
   characters: CharacterDraftDto[] | undefined
   ledger: ScriptStateLedgerDto | null
+  projectId?: string
+  outlineTitle?: string
+  theme?: string
+  mainConflict?: string
+  targetEpisodes?: number
+  scriptControlPackage?: ScriptGenerationControlPackageDto
 }): string {
-  const { targetScene, failures, storyIntent, outline, characters, ledger } = input
+  const { targetScene, failures, storyIntent, outline, characters, ledger, projectId, outlineTitle, theme, mainConflict, targetEpisodes, scriptControlPackage } = input
   const sceneCount = resolveRewriteSceneCount(targetScene)
 
   const lines: string[] = []
@@ -139,6 +185,32 @@ function buildEpisodeRewritePrompt(input: {
     lines.push('')
   }
 
+  // Story state snapshot
+  if (characters && outline && targetEpisodes) {
+    const snapshot = buildStoryStateSnapshot({
+      projectId: projectId || outlineTitle || 'unknown',
+      outlineTitle: outlineTitle || outline.title || 'unknown',
+      theme,
+      mainConflict,
+      storyIntent,
+      outline,
+      characters,
+      episodeNo: targetScene.sceneNo,
+      targetEpisodes,
+      existingScript: [],
+      ledger
+    })
+    lines.push(buildStoryStateSnapshotPromptBlock(snapshot))
+    lines.push('')
+
+    // 连续性约束（snapshot 驱动）
+    const continuityAudit = inspectStoryContinuityAgainstSnapshot({
+      snapshot,
+      scene: targetScene
+    })
+    lines.push(...buildContinuityConstraintBlock(continuityAudit))
+  }
+
   // 原稿
   lines.push('【必须改的上一版原稿】')
   lines.push(targetScene.screenplay || '')
@@ -184,7 +256,13 @@ export async function executeScriptRewrite(input: {
     storyIntent,
     outline,
     characters,
-    ledger
+    ledger,
+    projectId: rewriteInput.projectId,
+    outlineTitle: rewriteInput.outlineTitle,
+    theme: rewriteInput.theme,
+    mainConflict: rewriteInput.mainConflict,
+    targetEpisodes: rewriteInput.targetEpisodes,
+    scriptControlPackage: rewriteInput.scriptControlPackage
   })
 
   // 调用 AI

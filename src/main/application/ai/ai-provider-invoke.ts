@@ -1,5 +1,32 @@
-import type { AiGenerateRequestDto, AiGenerateResponseDto } from '../../../shared/contracts/ai.ts'
+import type {
+  AiGenerateRequestDto,
+  AiGenerateResponseDto,
+  AiTaskKind
+} from '../../../shared/contracts/ai.ts'
 import { createAbortSignal, normalizeAbortError, type LaneRuntime } from './ai-lane-runtime.ts'
+
+const TASK_DEFAULT_MAX_OUTPUT_TOKENS: Record<AiTaskKind, number | undefined> = {
+  decision_assist: undefined,
+  story_intake: 8192,
+  short_drama_showrunner: undefined,
+  faction_matrix: undefined,
+  rough_outline: 16384,
+  character_profile: 12288,
+  character_profile_simple: 8192,
+  episode_summary: undefined,
+  detailed_outline: 24576,
+  episode_control: 10240,
+  seven_questions: 8192,
+  episode_script: 20480,
+  episode_rewrite: 16384,
+  scene_repair: 16384,
+  quality_audit: undefined,
+  general: undefined
+}
+
+export function resolveTaskDefaultMaxOutputTokens(task: AiTaskKind): number | undefined {
+  return TASK_DEFAULT_MAX_OUTPUT_TOKENS[task]
+}
 
 export function resolveRequestTimeoutMs(
   request: AiGenerateRequestDto,
@@ -20,7 +47,10 @@ function resolveMaxOutputTokens(request: AiGenerateRequestDto): number | undefin
     typeof request.maxOutputTokens === 'number' && Number.isFinite(request.maxOutputTokens)
       ? Math.floor(request.maxOutputTokens)
       : 0
-  return requested > 0 ? requested : undefined
+  if (requested > 0) {
+    return requested
+  }
+  return resolveTaskDefaultMaxOutputTokens(request.task)
 }
 
 function resolveResponseFormat(request: AiGenerateRequestDto): { type: 'json_object' } | undefined {
@@ -78,6 +108,9 @@ async function invokeChatCompletionsProvider(input: {
           },
           body: JSON.stringify({
             model: laneRuntime.config.model,
+            ...(providerName === 'deepseek'
+              ? { thinking: { type: laneRuntime.config.thinkingMode ?? 'disabled' } }
+              : {}),
             temperature: request.temperature ?? 0.7,
             ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
             ...(responseFormat ? { response_format: responseFormat } : {}),

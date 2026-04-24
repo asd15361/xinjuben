@@ -69,6 +69,7 @@ export async function createProject(input: CreateProjectInputDto): Promise<Proje
       workflowType: input.workflowType,
       stage: 'chat',
       genre: input.genre?.trim() || '',
+      marketProfile: input.marketProfile ?? null,
       updatedAt: now,
       chatMessages: [],
       generationStatus: null,

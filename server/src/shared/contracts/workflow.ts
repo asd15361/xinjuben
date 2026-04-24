@@ -52,6 +52,24 @@ export interface EpisodeControlCardDto {
   nextEpisodeTeaser?: string
   /** 主角行动类型（枚举，从数据结构上切断窝囊可能） */
   protagonistActionType?: '装弱反击' | '冷静对峙' | '主动设局' | '借力打力' | '底牌碾压'
+  /** 爆款钩子类型 */
+  viralHookType?: string
+  /** 金句种子：基于当前集道具/身份/证据/规则生成 */
+  signatureLineSeed?: string
+  /** 爽点类型（16种之一） */
+  payoffType?: string
+  /** 爽点级别：normal=常规, major=每5集大爽点, final=末集终局 */
+  payoffLevel?: 'normal' | 'major' | 'final'
+  /** 反派压迫模式：规则压迫/权位压迫/利益分化/借刀杀人 */
+  villainOppressionMode?: string
+  /** 开局冲击事件类型：高损失/高羞辱/高危险/高反转 */
+  openingShockEvent?: string
+  /** 集尾留客钩子 */
+  retentionCliffhanger?: string
+  /** 本集强制道具：必须在冲突中被抢/被换/被出示/被销毁，不能只提就消失 */
+  requiredProp?: string
+  /** 道具来源：extracted=从剧情文本提取，scheduled=按集数轮转 fallback */
+  requiredPropSource?: 'extracted' | 'scheduled'
 }
 
 export interface OutlineEpisodeDto {

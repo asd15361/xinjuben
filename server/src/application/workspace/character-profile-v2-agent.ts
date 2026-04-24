@@ -15,8 +15,10 @@ import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/pro
 import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { MarketProfileDto } from '@shared/contracts/project'
 import type { FactionDto, FactionMatrixDto } from '@shared/contracts/faction-matrix'
 import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
+import { buildMarketProfilePromptSection } from './build-market-profile-prompt-section'
 
 export interface CharacterProfileV2AgentInput {
   storyIntent: StoryIntentPackageDto
@@ -189,7 +191,7 @@ function buildCharacterProfileV2RetryPrompt(input: {
  * 2. 禁止流水账剧情：小传只定义"他是个什么样的人"+"他为了什么而活"+"他在全剧提供什么功能"
  * 3. 差异化生成：核心人物超详尽，中层精简，龙套一行字
  */
-export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2AgentInput): string {
+export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2AgentInput & { marketProfile?: MarketProfileDto | null }): string {
   const premise = input.storyIntent.sellingPremise || '待补'
   const coreConflict = input.storyIntent.coreConflict || '待补'
   const protagonist = input.storyIntent.protagonist || '主角'
@@ -215,8 +217,14 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
         .join('\n')
     : '无旧版人物小传'
 
+  const marketProfileSection = buildMarketProfilePromptSection({
+    marketProfile: input.marketProfile,
+    stage: 'characters'
+  })
+
   return [
     '【五维人物小传 Agent · 人物生成指令】',
+    ...(marketProfileSection ? [marketProfileSection] : []),
     '输出严格JSON，无文本、无解释。',
     '',
     '【致命红线 · 禁止流水账剧情】',
@@ -305,6 +313,7 @@ function buildSingleCharacterProfileV2AgentPrompt(input: {
   placeholder: FactionDto['branches'][number]['characters'][number]
   branch: FactionDto['branches'][number]
   existingCharacter?: { name: string; biography: string; publicMask: string }
+  marketProfile?: MarketProfileDto | null
 }): string {
   const premise = input.storyIntent.sellingPremise || '待补'
   const coreConflict = input.storyIntent.coreConflict || '待补'
@@ -312,8 +321,14 @@ function buildSingleCharacterProfileV2AgentPrompt(input: {
   const antagonist = input.storyIntent.antagonist || '对手'
   const worldView = input.storyIntent.shortDramaConstitution?.worldViewBrief || '待补'
 
+  const marketProfileSection = buildMarketProfilePromptSection({
+    marketProfile: input.marketProfile,
+    stage: 'characters'
+  })
+
   return [
     '只输出一个人物的合法 JSON，不要解释，不要 markdown，不要代码块。',
+    ...(marketProfileSection ? [marketProfileSection] : []),
     '绝对禁止改名、加人、跨势力补位。',
     `势力：${input.faction.name}`,
     `分支：${input.branch.name}`,
@@ -519,6 +534,7 @@ async function generateCharacterProfileV2ForFaction(input: {
     scopedCharacters.length === 1 && singleCharacterBranch
       ? singleCharacterBranch.characters[0]
       : undefined
+  const marketProfile = input.storyIntent.marketProfile
   const prompt =
     singleCharacterPlaceholder && singleCharacterBranch
       ? buildSingleCharacterProfileV2AgentPrompt({
@@ -528,12 +544,14 @@ async function generateCharacterProfileV2ForFaction(input: {
           placeholder: singleCharacterPlaceholder,
           existingCharacter: scopedExistingCharacters?.find(
             (character) => character.name === singleCharacterPlaceholder.name
-          )
+          ),
+          marketProfile
         })
       : buildCharacterProfileV2AgentPrompt({
           storyIntent: input.storyIntent,
           factionMatrix: scopedMatrix,
-          existingCharacters: scopedExistingCharacters
+          existingCharacters: scopedExistingCharacters,
+          marketProfile
         })
   const maxOutputTokens =
     scopedCharacters.length === 1
