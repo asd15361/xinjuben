@@ -65,7 +65,16 @@ function pickWorldThreat(text: string): string {
 function pickPressureSource(text: string, fallback: string): string {
   if (text.includes('李科')) return '李科'
   if (text.includes('对手')) return '对手'
-  return fallback || '对手'
+  return normalizePressureSource(fallback)
+}
+
+function normalizePressureSource(value: string): string {
+  const text = cleanText(value)
+  if (!text) return '对手阵营'
+  if (/^(反派|对手|敌人|名门正派大小姐|反派大小姐|真女主|女主)$/u.test(text)) {
+    return '对手阵营'
+  }
+  return text
 }
 
 function firstClause(text: string): string {
@@ -120,16 +129,17 @@ function buildGeneralLeverDraft(input: {
   antagonist: string
 }): Partial<CharacterDraftDto> {
   const pressureSource = pickPressureSource(input.summary, input.antagonist)
+  const protagonist = input.protagonist || '主角'
   return {
     publicMask: `表面是${firstClause(input.summary)}。`,
-    hiddenPressure: `${input.name}现在最大的压力，是一旦跟${input.protagonist || '主角'}和${pressureSource}这条冲突线绑死，就很难再退回场外。`,
-    fear: `最怕自己被彻底卷进主线以后，再也没有回头余地。`,
-    protectTarget: `想守住自己还能掌控的那点位置，不愿被人随手当成工具。`,
-    conflictTrigger: `只要有人逼他在${input.protagonist || '主角'}和${pressureSource}之间明确站队，他就必须出动作。`,
-    advantage: `${input.name}手里通常握着别人一时看不到的门路、位置或局中信息。`,
-    weakness: `${input.name}最怕自己的真实立场被提前揭开，一旦被看穿就会马上失去回旋余地。`,
-    goal: `把自己手里的那一截局面真正攥稳，不再只当别人推动剧情的背景板。`,
-    arc: `${input.name}会从被局势裹着走，变成能把局面往前拱一把的关键杠杆。`
+    hiddenPressure: `${input.name}夹在职责、规矩和${pressureSource}的外压之间，任何一次误判都会把自己推到台前。`,
+    fear: `最怕${pressureSource}把责任推到自己身上，也怕${protagonist}的秘密在自己手里失控。`,
+    protectTarget: `想守住自己的职责边界、规矩解释权和还能保持判断的余地。`,
+    conflictTrigger: `当${pressureSource}越过他负责的规矩，或把${protagonist}的风险强压到他头上时，他会被迫表态。`,
+    advantage: `${input.name}掌握具体流程、门路或现场信息，能决定一件事是被压下去还是被推上台面。`,
+    weakness: `${input.name}过度依赖位置和规矩，一旦外压绕过程序，他的判断就容易慢半拍。`,
+    goal: `先保住自己负责的秩序，再在关键节点判断该压住谁、放过谁。`,
+    arc: `${input.name}会从只按规矩办事，走到必须承担一次真实站位的代价。`
   }
 }
 

@@ -92,6 +92,35 @@ interface ConfirmedSevenQuestionsGenerationDeps {
   }>
 }
 
+interface CharacterProfilesGenerationResult {
+  characters: CharacterDraftDto[]
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  factionMatrix?: FactionMatrixDto
+}
+
+const SHORT_SERIES_FULL_PROFILE_LIMIT = 8
+const MID_SERIES_FULL_PROFILE_LIMIT = 12
+const LONG_SERIES_FULL_PROFILE_LIMIT = 22
+
+const CHARACTER_DRAFT_TEXT_FIELDS: Array<keyof CharacterDraftDto> = [
+  'name',
+  'biography',
+  'publicMask',
+  'hiddenPressure',
+  'fear',
+  'protectTarget',
+  'conflictTrigger',
+  'advantage',
+  'weakness',
+  'goal',
+  'arc',
+  'appearance',
+  'personality',
+  'identity',
+  'values',
+  'plotFunction'
+]
+
 function resolveCharacterCardAuthorityNames(generationBriefText: string): string[] {
   const structured = parseStructuredGenerationBrief(generationBriefText)
   const cards = Array.isArray(structured?.characterCards) ? structured.characterCards : []
@@ -114,6 +143,206 @@ function normalizeCharacterName(value: string): string {
 
 function isGenericRoleAnchor(value: string): boolean {
   return /^(主角|男主|女主|反派|对手|敌人)$/u.test(value.trim())
+}
+
+function isConcreteCharacterName(value: string): boolean {
+  const text = value.trim()
+  if (!text || isGenericRoleAnchor(text)) return false
+  if (text.length > 8) return false
+  if (/[《》【】，,。；、\s]/u.test(text)) return false
+  if (/(主角|男主|女主|反派|对手|敌人|大小姐|少年|废柴|废材|魔尊|血脉|身负|隐藏)/u.test(text)) {
+    return false
+  }
+  return /^[\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z0-9'.-]*$/u.test(text)
+}
+
+function replaceLiteralName(value: string | undefined, from: string, to: string): string {
+  if (!value || !from || from === to) return value || ''
+  return value.split(from).join(to)
+}
+
+function replaceNameInAnyValue<T>(value: T, from: string, to: string): T {
+  if (typeof value === 'string') {
+    return replaceLiteralName(value, from, to) as T
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceNameInAnyValue(item, from, to)) as T
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+      key,
+      replaceNameInAnyValue(item, from, to)
+    ])
+    return Object.fromEntries(entries) as T
+  }
+
+  return value
+}
+
+function replaceNameInCharacterDraft(
+  character: CharacterDraftDto,
+  from: string,
+  to: string
+): CharacterDraftDto {
+  const next: CharacterDraftDto = { ...character }
+  for (const field of CHARACTER_DRAFT_TEXT_FIELDS) {
+    const value = next[field]
+    if (typeof value === 'string') {
+      ;(next as unknown as Record<string, unknown>)[field] = replaceLiteralName(value, from, to)
+    }
+  }
+  return next
+}
+
+function scoreLikelyAlternateProtagonist(character: CharacterDraftDto): number {
+  const identityText = [character.name, character.identity, character.publicMask]
+    .join('\n')
+    .trim()
+  const ownText = [
+    character.name,
+    character.biography,
+    character.identity,
+    character.publicMask,
+    character.goal,
+    character.arc,
+    character.values,
+    character.plotFunction
+  ]
+    .join('\n')
+    .trim()
+
+  if (/(女主|掌门之女|盟主|长老|特使|执事|亲信|女儿|大小姐)/u.test(identityText)) {
+    return 0
+  }
+
+  let score = 0
+  if (character.roleLayer === 'core') score += 1
+  if (character.depthLevel === 'core') score += 1
+  if (/(男主|主角)/u.test(ownText)) score += 3
+  if (/(废柴|废材|废物|外门|杂役|底层弟子|人尽可欺|备受欺凌)/u.test(ownText)) {
+    score += 2
+  }
+  if (/(魔尊血脉|血脉封印|体内封|吊坠|母亲遗物|身世|父母)/u.test(ownText)) {
+    score += 2
+  }
+
+  return score
+}
+
+function findAlternateProtagonistAlias(input: {
+  characters: CharacterDraftDto[]
+  protagonistName: string
+}): string | null {
+  if (!isConcreteCharacterName(input.protagonistName)) return null
+
+  const normalizedProtagonist = normalizeCharacterName(input.protagonistName)
+  const candidates = input.characters
+    .filter((character) => normalizeCharacterName(character.name) !== normalizedProtagonist)
+    .map((character, index) => ({
+      character,
+      index,
+      score: scoreLikelyAlternateProtagonist(character)
+    }))
+    .filter((item) => item.score >= 4)
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+
+  return candidates[0]?.character.name.trim() || null
+}
+
+function lockConcreteProtagonistName(input: {
+  result: CharacterProfilesGenerationResult
+  protagonistName: string
+}): { result: CharacterProfilesGenerationResult; alias: string | null } {
+  const protagonistName = input.protagonistName.trim()
+  const alias = findAlternateProtagonistAlias({
+    characters: input.result.characters || [],
+    protagonistName
+  })
+
+  if (!alias || alias === protagonistName) {
+    return { result: input.result, alias: null }
+  }
+
+  return {
+    alias,
+    result: {
+      characters: (input.result.characters || []).map((character) =>
+        replaceNameInCharacterDraft(character, alias, protagonistName)
+      ),
+      characterProfilesV2: input.result.characterProfilesV2
+        ? replaceNameInAnyValue(input.result.characterProfilesV2, alias, protagonistName)
+        : input.result.characterProfilesV2,
+      factionMatrix: input.result.factionMatrix
+        ? replaceNameInAnyValue(input.result.factionMatrix, alias, protagonistName)
+        : input.result.factionMatrix
+    }
+  }
+}
+
+function resolveFullProfileLimit(totalEpisodes: number): number {
+  if (totalEpisodes <= 24) return SHORT_SERIES_FULL_PROFILE_LIMIT
+  if (totalEpisodes <= 40) return MID_SERIES_FULL_PROFILE_LIMIT
+  return LONG_SERIES_FULL_PROFILE_LIMIT
+}
+
+function characterFullProfilePriority(input: {
+  character: CharacterDraftDto
+  protagonist?: string
+  antagonist?: string
+  index: number
+}): number {
+  const characterName = normalizeCharacterName(input.character.name)
+  if (input.protagonist && characterName === normalizeCharacterName(input.protagonist)) return -1000
+  if (input.antagonist && characterName === normalizeCharacterName(input.antagonist)) return -900
+
+  const roleWeight =
+    input.character.roleLayer === 'core'
+      ? 0
+      : input.character.roleLayer === 'active'
+        ? 100
+        : 200
+  const depthWeight =
+    input.character.depthLevel === 'core'
+      ? 0
+      : input.character.depthLevel === 'mid'
+        ? 20
+        : 60
+  const functionPenalty = /(特使|执事|弟子|门人|护卫|跑腿|传令)/u.test(input.character.name)
+    ? 50
+    : 0
+
+  return roleWeight + depthWeight + functionPenalty + input.index
+}
+
+function limitFullProfileDrafts(input: {
+  characterDrafts: CharacterDraftDto[]
+  totalEpisodes: number
+  protagonist?: string
+  antagonist?: string
+}): CharacterDraftDto[] {
+  const limit = resolveFullProfileLimit(input.totalEpisodes)
+  if (input.characterDrafts.length <= limit) return input.characterDrafts
+
+  return [...input.characterDrafts]
+    .map((character, index) => ({
+      character,
+      priority: characterFullProfilePriority({
+        character,
+        protagonist: input.protagonist,
+        antagonist: input.antagonist,
+        index
+      })
+    }))
+    .sort((left, right) => left.priority - right.priority)
+    .slice(0, limit)
+    .sort(
+      (left, right) =>
+        input.characterDrafts.indexOf(left.character) -
+        input.characterDrafts.indexOf(right.character)
+    )
+    .map((item) => item.character)
 }
 
 function isCharacterNameCovered(characters: CharacterDraftDto[], anchorName: string): boolean {
@@ -152,14 +381,14 @@ function buildMandatoryProtagonistDraft(input: {
   if (isHiddenBloodlineXianxia) {
     return {
       name: input.name,
-      biography: `${input.name}是被宗门长期当成废柴的男主，体内封着足以引发正道争夺的魔尊血脉。他因${coreItem}被毁开始觉醒，在误信名门大小姐和忽视真女主守护之间不断受挫，最终查清父母旧案并学会掌控血脉。`,
+      biography: `${input.name}是被宗门长期当成废柴的男主，体内封着足以引发正道争夺的魔尊血脉。他因${coreItem}被毁开始觉醒，在误信伪善对手和忽视暗中守护者之间不断受挫，最终查清父母旧案并学会掌控血脉。`,
       publicMask: '表面是修炼迟滞、处处被嘲笑的宗门底层弟子。',
       hiddenPressure: '他不知道自己为何被压成废柴，也不知道体内魔尊血脉一旦暴露会牵动整个仙盟。',
       fear: `失去${coreItem}、身世真相和暗中守护自己的人。`,
       protectTarget: `${coreItem}、自己的身世真相和真正守护他的人。`,
-      conflictTrigger: `有人踩碎、抢夺或利用${coreItem}，或拿真女主逼他交出血脉秘密。`,
+      conflictTrigger: `有人踩碎、抢夺或利用${coreItem}，或拿暗中守护者逼他交出血脉秘密。`,
       advantage: '魔尊血脉一旦被逼醒，能在绝境中爆发出压倒性力量。',
-      weakness: '前期自卑又缺真相，容易被伪善的反派大小姐骗取信任。',
+      weakness: '前期自卑又缺真相，容易被伪善对手骗取信任。',
       goal: '查清父母被害真相，弄清魔尊血脉来源，完成逆袭复仇并守住世界。',
       arc: '从被蒙蔽的废柴，到识破利用、掌控血脉、愿意承担守护责任的强者。',
       roleLayer: 'core'
@@ -394,12 +623,23 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     deps.generateOutlineBundle ?? generateOutlineBundleFromConfirmedSevenQuestionsDefault
 
   // 先生成人物小传，再让粗纲消费人物关系和势力底账，避免七问/骨架两套账本漂移。
-  const characterProfilesResult = await generateCharacterProfiles({
+  let characterProfilesResult = await generateCharacterProfiles({
     storyIntent: baseStoryIntent,
     totalEpisodes: targetEpisodeCount,
     runtimeConfig: input.runtimeConfig,
     signal: input.signal
   })
+
+  const initialProtagonistLock = lockConcreteProtagonistName({
+    result: characterProfilesResult,
+    protagonistName: baseStoryIntent.protagonist || ''
+  })
+  characterProfilesResult = initialProtagonistLock.result
+  if (initialProtagonistLock.alias) {
+    await appendDiagnosticLog(
+      `character_bundle_protagonist_alias_locked from=${initialProtagonistLock.alias} to=${baseStoryIntent.protagonist}`
+    )
+  }
 
   const storyIntent = normalizeOutlineStoryIntent(baseStoryIntent)
   storyIntent.generationBriefText = storyIntent.generationBriefText || generationBriefText
@@ -483,6 +723,17 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
 
   if (!outlineGenerationError && !outlineDraft.summary) {
     outlineDraft.summary = outlineEpisodesToSummary(outlineDraft.summaryEpisodes)
+  }
+
+  const outlineProtagonistLock = lockConcreteProtagonistName({
+    result: characterProfilesResult,
+    protagonistName: outlineDraft.protagonist || storyIntent.protagonist || ''
+  })
+  characterProfilesResult = outlineProtagonistLock.result
+  if (outlineProtagonistLock.alias) {
+    await appendDiagnosticLog(
+      `character_bundle_protagonist_alias_locked from=${outlineProtagonistLock.alias} to=${outlineDraft.protagonist || storyIntent.protagonist}`
+    )
   }
 
   // 旧项目如果已经锁过七问，把它折叠进 outlineBlocks；新流程只生成技术规划块。
@@ -615,14 +866,27 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     drafts: filteredCharacters,
     entityStore
   })
-  const characterDrafts = clampCharacterDraftsToVisibleRoster({
+  const fullProfileDrafts = limitFullProfileDrafts({
     characterDrafts: attachedCharacterDrafts,
+    totalEpisodes: targetEpisodeCount,
+    protagonist: anchors.protagonist,
+    antagonist: anchors.antagonist
+  })
+
+  if (fullProfileDrafts.length !== attachedCharacterDrafts.length) {
+    await appendDiagnosticLog(
+      `character_bundle_short_series_full_profiles_limited before=${attachedCharacterDrafts.length} after=${fullProfileDrafts.length} totalEpisodes=${targetEpisodeCount}`
+    )
+  }
+
+  const characterDrafts = clampCharacterDraftsToVisibleRoster({
+    characterDrafts: fullProfileDrafts,
     entityStore
   })
 
-  if (characterDrafts.length !== attachedCharacterDrafts.length) {
+  if (characterDrafts.length !== fullProfileDrafts.length) {
     await appendDiagnosticLog(
-      `character_bundle_trimmed_to_visible_roster before=${attachedCharacterDrafts.length} after=${characterDrafts.length} entityCharacters=${entityStore.characters.length}`
+      `character_bundle_trimmed_to_visible_roster before=${fullProfileDrafts.length} after=${characterDrafts.length} entityCharacters=${entityStore.characters.length}`
     )
   }
 
