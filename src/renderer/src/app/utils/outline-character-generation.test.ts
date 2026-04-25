@@ -56,8 +56,9 @@ test('buildOutlineCharacterPartialSuccessNotice explains recovered rough outline
   })
 
   assert.equal(notice.kind, 'warning')
-  assert.equal(notice.title, '人物小传已经生成，骨架用了临时版本')
+  assert.equal(notice.title, '人物小传已经生成，骨架未写入')
   assert.match(notice.detail, /人物小传和世界底账/)
+  assert.match(notice.detail, /不再写入临时骨架/)
   assert.equal(notice.primaryAction?.label, '继续看人物')
   assert.equal(notice.secondaryAction?.label, '去剧本骨架')
   assert.equal(notice.secondaryAction?.stage, 'outline')

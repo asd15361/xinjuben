@@ -1,14 +1,20 @@
 import { useMemo, useState } from 'react'
 import { Users, Plus, Shield, Sparkles, Trash2 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useStageStore } from '../../../store/useStageStore'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { CharacterStageEditor } from '../../../components/CharacterStageEditor'
+import { CopyTextButton } from '../../../components/CopyTextButton'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
 import { StageExportButton } from '../../../components/StageExportButton'
 import { useOutlineCharacterGeneration } from '../../../app/hooks/useOutlineCharacterGeneration.ts'
 import { useProjectStageExport } from '../../../app/hooks/useProjectStageExport'
+import {
+  buildCharacterProfileCopyText,
+  buildCharacterStageCopyText,
+  buildFactionRosterCopyText,
+  buildLightCharacterCopyText
+} from '../model/character-stage-copy-text.ts'
 import {
   buildCharacterStageSections,
   createCharacterDraftFromEntityStore
@@ -128,6 +134,11 @@ export function CharacterStage(): JSX.Element {
           </div>
 
           <div className="flex items-center gap-4">
+            <CopyTextButton
+              label="复制全部人物"
+              copiedLabel="已复制"
+              getText={() => buildCharacterStageCopyText(sections)}
+            />
             <StageExportButton
               onClick={() => {
                 void exportStage('character')
@@ -203,16 +214,26 @@ export function CharacterStage(): JSX.Element {
 
         <div className="grid grid-cols-1 2xl:grid-cols-[1.15fr_0.85fr] gap-4 items-start">
           <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 xl:p-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-2.5">
-                <Sparkles size={16} className="text-orange-300" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-2.5">
+                  <Sparkles size={16} className="text-orange-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white/90">待升级轻量人物卡</h3>
+                  <p className="text-[11px] text-white/45 mt-1">
+                    这里的人已经进了世界底账，但还没占用完整小传工位。
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-black text-white/90">待升级轻量人物卡</h3>
-                <p className="text-[11px] text-white/45 mt-1">
-                  这里的人已经进了世界底账，但还没占用完整小传工位。
-                </p>
-              </div>
+              <CopyTextButton
+                label="复制轻量卡"
+                getText={() =>
+                  sections.lightCards.length > 0
+                    ? sections.lightCards.map(buildLightCharacterCopyText).join('\n\n')
+                    : '暂无轻量人物卡'
+                }
+              />
             </div>
 
             {sections.lightCards.length === 0 ? (
@@ -283,13 +304,19 @@ export function CharacterStage(): JSX.Element {
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleUpgradeLightCard(card.entityId)}
-                          className="shrink-0 rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-2 text-[11px] font-black text-orange-200 hover:bg-orange-500/25 transition-all"
-                        >
-                          升级成完整小传
-                        </button>
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          <CopyTextButton
+                            label="复制"
+                            getText={() => buildLightCharacterCopyText(card)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleUpgradeLightCard(card.entityId)}
+                            className="rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-2 text-[11px] font-black text-orange-200 hover:bg-orange-500/25 transition-all"
+                          >
+                            升级成完整小传
+                          </button>
+                        </div>
                       </div>
 
                       <p className="mt-4 text-[12px] leading-6 text-white/55">
@@ -338,16 +365,26 @@ export function CharacterStage(): JSX.Element {
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 xl:p-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2.5">
-                <Shield size={16} className="text-sky-200" />
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-2.5">
+                  <Shield size={16} className="text-sky-200" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white/90">势力与人物位</h3>
+                  <p className="text-[11px] text-white/45 mt-1">
+                    这一块先只读，先确认每方势力下面到底站了哪些人，还缺哪些可补的人物位。
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-black text-white/90">势力与人物位</h3>
-                <p className="text-[11px] text-white/45 mt-1">
-                  这一块先只读，先确认每方势力下面到底站了哪些人，还缺哪些可补的人物位。
-                </p>
-              </div>
+              <CopyTextButton
+                label="复制势力"
+                getText={() =>
+                  sections.factionRoster.length > 0
+                    ? sections.factionRoster.map(buildFactionRosterCopyText).join('\n\n')
+                    : '暂无势力与人物位'
+                }
+              />
             </div>
 
             {sections.factionRoster.length === 0 ? (
@@ -373,6 +410,10 @@ export function CharacterStage(): JSX.Element {
                           </span>
                         </div>
                       </div>
+                      <CopyTextButton
+                        label="复制"
+                        getText={() => buildFactionRosterCopyText(faction)}
+                      />
                     </div>
 
                     {faction.summary && (
@@ -439,16 +480,20 @@ export function CharacterStage(): JSX.Element {
               这里只放真正要深写、要持续驱动后面工序的人物。
             </p>
           </div>
+          <CopyTextButton
+            label="复制完整小传"
+            getText={() =>
+              sections.fullProfiles.length > 0
+                ? sections.fullProfiles.map(buildCharacterProfileCopyText).join('\n\n')
+                : '暂无完整人物小传'
+            }
+          />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-          <AnimatePresence mode="popLayout">
-            {sections.fullProfiles.map((c, i) => (
-              <motion.div
+          {sections.fullProfiles.map((c, i) => (
+            <div
                 key={getCharacterCardKey(c)}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
                 className={`group relative rounded-2xl border transition-all duration-300 ${
                   editingIndex === i
                     ? 'xl:col-span-2 w-full ring-2 ring-orange-500/30 border-orange-500/40 bg-orange-500/[0.04]'
@@ -484,16 +529,27 @@ export function CharacterStage(): JSX.Element {
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     className="p-5 cursor-pointer flex flex-col h-full w-full text-left"
                     onClick={() => setEditingIndex(i)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setEditingIndex(i)
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between gap-4 mb-4">
                       <h3 className="text-base font-black text-white/90 tracking-tight leading-none">
                         {c.name || `未命名 ${i + 1}`}
                       </h3>
                       <div className="flex items-center gap-2">
+                        <CopyTextButton
+                          label="复制"
+                          getText={() => buildCharacterProfileCopyText(c)}
+                        />
                         <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[8px] text-white/30 font-black uppercase tracking-widest group-hover:text-orange-400 group-hover:border-orange-500/30 transition-all">
                           点击修饰
                         </span>
@@ -560,11 +616,10 @@ export function CharacterStage(): JSX.Element {
                         {c.biography || '这个人物很神秘，还没有写下 TA 的生平小传...'}
                       </p>
                     </div>
-                  </button>
+                  </div>
                 )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
+            </div>
+          ))}
 
           <button
             onClick={() => {

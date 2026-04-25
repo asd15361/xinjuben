@@ -1,4 +1,5 @@
-import type { ChangeEvent } from 'react'
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react'
+import { CopyTextButton } from '../../../components/CopyTextButton'
 import { WorkspaceInput } from '../../../components/WorkspaceCommons'
 import type { OutlineDraftDto } from '../../../../../shared/contracts/workflow'
 import {
@@ -6,29 +7,109 @@ import {
   normalizeOutlineEpisodes,
   outlineEpisodesToSummary
 } from '../../../../../shared/domain/workflow/outline-episodes'
+import {
+  buildOutlineBasicsCopyText,
+  buildOutlineEpisodeCopyText
+} from '../model/outline-stage-copy-text.ts'
 
-function syncTextareaHeight(
-  event:
-    | Pick<ChangeEvent<HTMLTextAreaElement>, 'currentTarget'>
-    | { currentTarget: HTMLTextAreaElement }
-): void {
-  const target = event.currentTarget
+function syncTextareaHeight(target: HTMLTextAreaElement): void {
   target.style.height = '0px'
   target.style.height = `${target.scrollHeight}px`
 }
+
+const OutlineEpisodeCard = memo(function OutlineEpisodeCard(input: {
+  episodeNo: number
+  content: string
+  onChangeEpisode: (episodeNo: number, content: string) => void
+}): JSX.Element {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useLayoutEffect(() => {
+    if (textareaRef.current) {
+      syncTextareaHeight(textareaRef.current)
+    }
+  }, [input.content])
+
+  return (
+    <div className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-5 hover:border-orange-500/30 transition-all">
+      <div className="flex gap-4">
+        <div className="shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+            <span className="text-xs font-black text-orange-400">{input.episodeNo}</span>
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p className="text-[11px] font-black text-white/30 uppercase tracking-tighter">
+              {`第 ${input.episodeNo} 集`}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-white/20">这一集发生什么，结尾挂什么</span>
+              <CopyTextButton
+                label="复制本集"
+                getText={() =>
+                  buildOutlineEpisodeCopyText({
+                    episodeNo: input.episodeNo,
+                    summary: input.content
+                  })
+                }
+              />
+            </div>
+          </div>
+          <textarea
+            ref={textareaRef}
+            className="w-full overflow-hidden bg-transparent text-[13px] text-white/70 leading-relaxed outline-none focus:text-white/90 transition-colors resize-none"
+            value={input.content}
+            rows={3}
+            style={{ minHeight: '88px' }}
+            onChange={(event) => {
+              syncTextareaHeight(event.currentTarget)
+              input.onChangeEpisode(input.episodeNo, event.target.value)
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+})
 
 export function OutlineBasicsPanel(input: {
   outline: OutlineDraftDto
   onChange: (data: Partial<OutlineDraftDto>) => void
 }): JSX.Element {
   const { outline, onChange } = input
-  const normalizedOutline = ensureOutlineEpisodeShape(outline)
-  const episodes = normalizedOutline.summaryEpisodes.map((episode, idx) => ({
-    key: `episode-${episode.episodeNo}`,
-    index: idx,
-    episodeNo: episode.episodeNo,
-    content: episode.summary
-  }))
+  const normalizedOutline = useMemo(() => ensureOutlineEpisodeShape(outline), [outline])
+  const episodes = useMemo(
+    () =>
+      normalizedOutline.summaryEpisodes.map((episode, idx) => ({
+        key: `episode-${episode.episodeNo}`,
+        index: idx,
+        episodeNo: episode.episodeNo,
+        content: episode.summary
+      })),
+    [normalizedOutline.summaryEpisodes]
+  )
+  const episodesRef = useRef(episodes)
+  const onChangeRef = useRef(onChange)
+
+  episodesRef.current = episodes
+  onChangeRef.current = onChange
+
+  const handleEpisodeContentChange = useCallback((episodeNo: number, content: string) => {
+    const currentEpisodes = episodesRef.current
+    const nextEpisodes = normalizeOutlineEpisodes(
+      currentEpisodes.map((current) => ({
+        episodeNo: current.episodeNo,
+        summary: current.episodeNo === episodeNo ? content : current.content
+      })),
+      currentEpisodes.length
+    )
+
+    onChangeRef.current({
+      summaryEpisodes: nextEpisodes,
+      summary: outlineEpisodesToSummary(nextEpisodes)
+    })
+  }, [])
 
   return (
     <div className="space-y-8">
@@ -44,6 +125,10 @@ export function OutlineBasicsPanel(input: {
             </p>
           </div>
           <div className="hidden lg:flex flex-col items-end gap-2 text-right">
+            <CopyTextButton
+              label="复制基础骨架"
+              getText={() => buildOutlineBasicsCopyText(outline)}
+            />
             <span className="text-[10px] uppercase tracking-widest text-white/20">工作方式</span>
             <span className="text-[12px] font-black text-orange-400">按集修改</span>
           </div>
@@ -97,60 +182,14 @@ export function OutlineBasicsPanel(input: {
 
         <div className="grid grid-cols-1 gap-4">
           {episodes.length > 0 ? (
-            episodes.map((episode) => {
-              return (
-                <div
-                  key={episode.key}
-                  className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-5 hover:border-orange-500/30 transition-all"
-                >
-                  <div className="flex gap-4">
-                    <div className="shrink-0">
-                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
-                        <span className="text-xs font-black text-orange-400">
-                          {episode.episodeNo}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <p className="text-[11px] font-black text-white/30 uppercase tracking-tighter">
-                          {`第 ${episode.episodeNo} 集`}
-                        </p>
-                        <span className="text-[10px] text-white/20">
-                          这一集发生什么，结尾挂什么
-                        </span>
-                      </div>
-                      <textarea
-                        className="w-full overflow-hidden bg-transparent text-[13px] text-white/70 leading-relaxed outline-none focus:text-white/90 transition-colors resize-none"
-                        value={episode.content}
-                        rows={3}
-                        style={{ minHeight: '88px' }}
-                        ref={(node) => {
-                          if (node) syncTextareaHeight({ currentTarget: node })
-                        }}
-                        onChange={(e) => {
-                          syncTextareaHeight(e)
-                          const nextEpisodes = normalizeOutlineEpisodes(
-                            episodes.map((current) => ({
-                              episodeNo: current.episodeNo,
-                              summary:
-                                current.episodeNo === episode.episodeNo
-                                  ? e.target.value
-                                  : current.content
-                            })),
-                            episodes.length
-                          )
-                          onChange({
-                            summaryEpisodes: nextEpisodes,
-                            summary: outlineEpisodesToSummary(nextEpisodes)
-                          })
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )
-            })
+            episodes.map((episode) => (
+              <OutlineEpisodeCard
+                key={episode.key}
+                episodeNo={episode.episodeNo}
+                content={episode.content}
+                onChangeEpisode={handleEpisodeContentChange}
+              />
+            ))
           ) : (
             <WorkspaceInput
               label="剧情大纲（暂无分集数据，请重新生成或手动录入）"

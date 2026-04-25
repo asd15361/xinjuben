@@ -88,6 +88,26 @@ export async function generateOutlineAndCharactersForProject(
     throw new Error('outline_character_generation_empty_result')
   }
 
+  const finalAnchors = resolveCharacterContractAnchors({
+    storyIntent: result.storyIntent,
+    outline: result.outlineDraft
+  })
+  const finalContractIssues = getCharacterBundleContractIssues({
+    characters: result.characterDrafts,
+    protagonist: finalAnchors.protagonist,
+    antagonist: finalAnchors.antagonist
+  })
+
+  if (
+    finalContractIssues.incompleteCharacters.length > 0 ||
+    !finalContractIssues.protagonistCovered ||
+    !finalContractIssues.antagonistCovered
+  ) {
+    throw new Error(
+      `character_contract_incomplete_after_retries:protagonist=${finalContractIssues.protagonistCovered ? 1 : 0}:antagonist=${finalContractIssues.antagonistCovered ? 1 : 0}:incomplete=${finalContractIssues.incompleteCharacters.length}`
+    )
+  }
+
   await projectRepository.saveOutlineDraft({
     userId: request.userId,
     projectId: request.projectId,

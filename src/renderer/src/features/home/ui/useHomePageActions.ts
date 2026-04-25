@@ -7,6 +7,10 @@ import {
   apiDeleteProject,
   apiListProjects
 } from '../../../services/api-client.ts'
+import {
+  readCachedProjectSummaries,
+  writeCachedProjectSummaries
+} from '../model/project-summary-cache.ts'
 
 export function formatProjectTime(iso: string): string {
   try {
@@ -46,12 +50,18 @@ export function useHomePageActions(): {
   )
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
 
+  function getCurrentUserId(): string {
+    return useAuthStore.getState().user?.id ?? ''
+  }
+
   async function reload(): Promise<void> {
+    const userId = getCurrentUserId()
     try {
       const list = await apiListProjects()
       setProjects(list.projects)
+      writeCachedProjectSummaries(userId, list.projects)
     } catch {
-      setProjects([])
+      setProjects(readCachedProjectSummaries(userId))
     }
   }
 
@@ -114,6 +124,8 @@ export function useHomePageActions(): {
   // 登录成功后自动刷新项目列表
   useEffect(() => {
     if (isLoggedIn) {
+      const userId = getCurrentUserId()
+      setProjects(readCachedProjectSummaries(userId))
       void reload()
     } else {
       setProjects([])

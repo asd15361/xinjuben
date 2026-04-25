@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
+import { CopyTextButton } from '../../../components/CopyTextButton'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
 import { StageExportButton } from '../../../components/StageExportButton'
 import { useOutlineCharacterGeneration } from '../../../app/hooks/useOutlineCharacterGeneration.ts'
@@ -8,6 +10,7 @@ import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { useStageStore } from '../../../store/useStageStore'
 import { ensureOutlineEpisodeShape } from '../../../../../shared/domain/workflow/outline-episodes'
 import { declareFormalFact, confirmFormalFact, removeFormalFact } from '../api.ts'
+import { buildOutlineStageCopyText } from '../model/outline-stage-copy-text.ts'
 import { OutlineBasicsPanel } from './OutlineBasicsPanel'
 import { OutlineEntityStorePanel } from './OutlineEntityStorePanel.tsx'
 import { FormalFactDeclarationPanel } from './FormalFactDeclarationPanel'
@@ -20,9 +23,12 @@ export function OutlineStage(): JSX.Element {
   const { actionLabel, generationStatus, generationBusy, handleGenerateOutlineAndCharacters } =
     useOutlineCharacterGeneration('outline')
   const entityStore = useWorkflowStore((state) => state.projectEntityStore)
-  const episodeCount = ensureOutlineEpisodeShape(outline).summaryEpisodes.filter((episode) =>
-    episode.summary.trim()
-  ).length
+  const episodeCount = useMemo(
+    () =>
+      ensureOutlineEpisodeShape(outline).summaryEpisodes.filter((episode) => episode.summary.trim())
+        .length,
+    [outline]
+  )
 
   async function handleGoToDetailedOutlineStage(): Promise<void> {
     if (!projectId) return
@@ -82,6 +88,10 @@ export function OutlineStage(): JSX.Element {
           </div>
 
           <div className="flex items-center gap-3">
+            <CopyTextButton
+              label="复制全部骨架"
+              getText={() => buildOutlineStageCopyText({ outline, entityStore })}
+            />
             <StageExportButton
               onClick={() => {
                 void exportStage('outline')

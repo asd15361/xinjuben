@@ -77,6 +77,7 @@ interface ConfirmedSevenQuestionsGenerationDeps {
     characterProfilesV2?: CharacterProfileV2Dto[]
     factionMatrix?: FactionMatrixDto
     marketProfile?: import('@shared/contracts/project').MarketProfileDto | null
+    storyIntent?: StoryIntentPackageDto
   }) => Promise<{
     outline?: {
       title?: string
@@ -111,61 +112,94 @@ function normalizeCharacterName(value: string): string {
   return value.trim().toLowerCase()
 }
 
-function pickStoryIntentSummarySeed(storyIntent: StoryIntentPackageDto): string {
-  const synopsis = storyIntent.storySynopsis
-  return [
-    synopsis?.openingPressureEvent,
-    synopsis?.firstFaceSlapEvent,
-    synopsis?.protagonistCurrentDilemma,
-    synopsis?.antagonistForce,
-    synopsis?.antagonistPressureMethod,
-    synopsis?.stageGoal,
-    synopsis?.corePayoff,
-    synopsis?.finaleDirection,
-    ...(storyIntent.dramaticMovement || []),
-    storyIntent.storySynopsis?.logline,
-    storyIntent.creativeSummary,
-    storyIntent.sellingPremise,
-    storyIntent.coreConflict
+function isGenericRoleAnchor(value: string): boolean {
+  return /^(主角|男主|女主|反派|对手|敌人)$/u.test(value.trim())
+}
+
+function isCharacterNameCovered(characters: CharacterDraftDto[], anchorName: string): boolean {
+  const normalizedAnchor = normalizeCharacterName(anchorName)
+  if (!normalizedAnchor) return true
+  return characters.some((character) => {
+    const normalizedName = normalizeCharacterName(character.name)
+    return (
+      normalizedName === normalizedAnchor ||
+      normalizedName.includes(normalizedAnchor) ||
+      normalizedAnchor.includes(normalizedName)
+    )
+  })
+}
+
+function buildMandatoryProtagonistDraft(input: {
+  name: string
+  storyIntent: StoryIntentPackageDto
+  outlineDraft: OutlineDraftDto
+  generationBriefText: string
+}): CharacterDraftDto {
+  const sourceText = [
+    input.storyIntent.genre,
+    input.storyIntent.coreConflict,
+    input.storyIntent.sellingPremise,
+    input.storyIntent.creativeSummary,
+    input.storyIntent.freeChatFinalSummary,
+    input.generationBriefText,
+    input.outlineDraft.summary
   ]
-    .map((item) => String(item || '').trim())
-    .find(Boolean) || '主角在压迫中寻找真相并完成反击。'
+    .filter(Boolean)
+    .join('\n')
+  const isHiddenBloodlineXianxia = /修仙|玄幻|仙盟|宗门|魔尊|血脉|吊坠/u.test(sourceText)
+  const coreItem = /吊坠|遗物|玉佩/u.test(sourceText) ? '母亲吊坠碎片' : '核心线索'
+
+  if (isHiddenBloodlineXianxia) {
+    return {
+      name: input.name,
+      biography: `${input.name}是被宗门长期当成废柴的男主，体内封着足以引发正道争夺的魔尊血脉。他因${coreItem}被毁开始觉醒，在误信名门大小姐和忽视真女主守护之间不断受挫，最终查清父母旧案并学会掌控血脉。`,
+      publicMask: '表面是修炼迟滞、处处被嘲笑的宗门底层弟子。',
+      hiddenPressure: '他不知道自己为何被压成废柴，也不知道体内魔尊血脉一旦暴露会牵动整个仙盟。',
+      fear: `失去${coreItem}、身世真相和暗中守护自己的人。`,
+      protectTarget: `${coreItem}、自己的身世真相和真正守护他的人。`,
+      conflictTrigger: `有人踩碎、抢夺或利用${coreItem}，或拿真女主逼他交出血脉秘密。`,
+      advantage: '魔尊血脉一旦被逼醒，能在绝境中爆发出压倒性力量。',
+      weakness: '前期自卑又缺真相，容易被伪善的反派大小姐骗取信任。',
+      goal: '查清父母被害真相，弄清魔尊血脉来源，完成逆袭复仇并守住世界。',
+      arc: '从被蒙蔽的废柴，到识破利用、掌控血脉、愿意承担守护责任的强者。',
+      roleLayer: 'core'
+    }
+  }
+
+  return {
+    name: input.name,
+    biography: `${input.name}是故事主角，围绕"${input.outlineDraft.mainConflict || input.storyIntent.coreConflict}"持续受压、查明真相并完成反击。`,
+    publicMask: '表面被局势压住，只能先忍住寻找破局点。',
+    hiddenPressure: '真正的底牌和身世真相还不能提前暴露。',
+    fear: '失去身边仅有的支持和关键证据。',
+    protectTarget: '关键证据、身边人和自己的选择权。',
+    conflictTrigger: '对手拿身边人或核心证据逼他低头。',
+    advantage: '能在压力场里藏锋、观察和反设局。',
+    weakness: '前期信息不足，容易误判真正敌友。',
+    goal: '查清真相并完成反击。',
+    arc: '从被动受压到主动掌控局面。',
+    roleLayer: 'core'
+  }
 }
 
 function buildFallbackOutlinePayloadFromStoryIntent(input: {
   storyIntent: StoryIntentPackageDto
-  totalEpisodes: number
 }): NonNullable<
   NonNullable<Awaited<ReturnType<NonNullable<ConfirmedSevenQuestionsGenerationDeps['generateOutlineBundle']>>>>['outline']
 > {
   const storyIntent = input.storyIntent
-  const totalEpisodes = Math.max(1, Math.floor(input.totalEpisodes || DEFAULT_EPISODE_COUNT))
   const protagonist = storyIntent.protagonist?.trim() || '主角'
   const antagonist = storyIntent.antagonist?.trim() || '对手'
   const conflict = storyIntent.coreConflict?.trim() || `${protagonist}与${antagonist}的核心冲突`
-  const seed = pickStoryIntentSummarySeed(storyIntent)
-  const movement =
-    storyIntent.dramaticMovement && storyIntent.dramaticMovement.length > 0
-      ? storyIntent.dramaticMovement
-      : [seed]
 
   return {
     title: storyIntent.titleHint?.trim() || protagonist,
     genre: storyIntent.genre?.trim() || '',
-    theme: storyIntent.themeAnchors?.[0]?.trim() || storyIntent.emotionalPayoff?.trim() || seed,
+    theme: storyIntent.themeAnchors?.[0]?.trim() || storyIntent.emotionalPayoff?.trim() || '',
     protagonist,
     mainConflict: conflict,
-    summary:
-      storyIntent.storySynopsis?.logline?.trim() ||
-      storyIntent.creativeSummary?.trim() ||
-      `${protagonist}围绕"${conflict}"持续受压、查明真相、完成反击。`,
-    episodes: Array.from({ length: totalEpisodes }, (_, index) => {
-      const anchor = movement[index % movement.length] || seed
-      return {
-        episodeNo: index + 1,
-        summary: `围绕${protagonist}推进"${conflict}"：${anchor}`
-      }
-    }),
+    summary: '',
+    episodes: [],
     facts: []
   }
 }
@@ -284,6 +318,7 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
   marketProfile?: import('@shared/contracts/project').MarketProfileDto | null
+  storyIntent?: StoryIntentPackageDto
 }): Promise<{ outline?: {
   title?: string
   genre?: string
@@ -385,7 +420,8 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
       characterProfiles: { characters: characterProfilesResult.characters },
       characterProfilesV2: characterProfilesResult.characterProfilesV2,
       factionMatrix: characterProfilesResult.factionMatrix,
-      marketProfile: input.storyIntent.marketProfile
+      marketProfile: input.storyIntent.marketProfile,
+      storyIntent
     })
 
     const outlinePayload = outlineBundle?.outline
@@ -407,11 +443,10 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   } catch (error) {
     outlineGenerationError = error instanceof Error ? error.message : String(error || 'unknown')
     await appendDiagnosticLog(
-      `rough_outline_recovered_with_story_intent_skeleton error=${outlineGenerationError}`
+      `rough_outline_failed_without_temporary_skeleton error=${outlineGenerationError}`
     )
     validatedOutline = buildFallbackOutlinePayloadFromStoryIntent({
-      storyIntent,
-      totalEpisodes: targetEpisodeCount
+      storyIntent
     })
   }
 
@@ -436,20 +471,24 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     )
   }
 
-  const summaryEpisodes = normalizeOutlineEpisodes(
-    validatedOutline.episodes?.length
-      ? validatedOutline.episodes
-      : parseSummaryToOutlineEpisodes(outlineDraft.summary, targetEpisodeCount),
-    targetEpisodeCount
-  )
+  const summaryEpisodes = outlineGenerationError
+    ? []
+    : normalizeOutlineEpisodes(
+        validatedOutline.episodes?.length
+          ? validatedOutline.episodes
+          : parseSummaryToOutlineEpisodes(outlineDraft.summary, targetEpisodeCount),
+        targetEpisodeCount
+      )
   outlineDraft.summaryEpisodes = summaryEpisodes
 
-  if (!outlineDraft.summary) {
+  if (!outlineGenerationError && !outlineDraft.summary) {
     outlineDraft.summary = outlineEpisodesToSummary(outlineDraft.summaryEpisodes)
   }
 
   // 旧项目如果已经锁过七问，把它折叠进 outlineBlocks；新流程只生成技术规划块。
-  if (confirmedSevenQuestions?.sections.length) {
+  if (outlineGenerationError) {
+    outlineDraft.outlineBlocks = []
+  } else if (confirmedSevenQuestions?.sections.length) {
     outlineDraft.outlineBlocks = confirmedSevenQuestions.sections.map((section, index) => {
       const blockEpisodes = summaryEpisodes.filter(
         (ep) => ep.episodeNo >= section.startEpisode && ep.episodeNo <= section.endEpisode
@@ -503,7 +542,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   // 兜底补全：AI 生成的人物字段可能为空字符串或模板化套话，
   // Guardian 会在保存时检查所有必填字段（name/biography/goal/advantage/weakness/arc），
   // 这里用题材原型库 + generationBrief 中的角色卡信息自动补全缺失字段。
-  const filteredCharacters = enrichCharacterDrafts({
+  let filteredCharacters = enrichCharacterDrafts({
     characters: preEnrichedCharacters,
     storyIntent: baseStoryIntent,
     generationBriefText
@@ -513,6 +552,25 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     storyIntent,
     outline: outlineDraft
   })
+
+  if (
+    anchors.protagonist &&
+    !isGenericRoleAnchor(anchors.protagonist) &&
+    !isCharacterNameCovered(filteredCharacters, anchors.protagonist)
+  ) {
+    filteredCharacters = [
+      buildMandatoryProtagonistDraft({
+        name: anchors.protagonist,
+        storyIntent,
+        outlineDraft,
+        generationBriefText
+      }),
+      ...filteredCharacters
+    ]
+    await appendDiagnosticLog(
+      `character_bundle_added_missing_protagonist name=${anchors.protagonist}`
+    )
+  }
 
   if (
     !isCharacterBundleStructurallyComplete({

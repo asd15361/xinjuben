@@ -47,12 +47,30 @@ function createEntityId(prefix: string, projectId: string, ...parts: string[]): 
   return `${prefix}_${projectId}_${hashText(parts.map((part) => normalizeName(part)).join('|'))}`
 }
 
+function resolveMinVisibleCharacterCount(totalEpisodes: number | undefined): number {
+  if (Number.isFinite(totalEpisodes) && Number(totalEpisodes) <= 24) {
+    return 0
+  }
+
+  return MIN_VISIBLE_CHARACTER_COUNT
+}
+
 function createSeatMatchKey(input: {
   factionId?: string | null
   branchId?: string | null
   roleInFaction?: string | null
 }): string {
   return [input.factionId, input.branchId, input.roleInFaction]
+    .map((value) => normalizeName(value || ''))
+    .join('|')
+}
+
+function createPlaceholderMatchKey(input: {
+  factionId?: string | null
+  branchId?: string | null
+  placeholderId?: string | null
+}): string {
+  return [input.factionId, input.branchId, input.placeholderId]
     .map((value) => normalizeName(value || ''))
     .join('|')
 }
@@ -441,8 +459,10 @@ function topUpVisibleCharacterCards(input: {
   projectId: string
   characters: CharacterEntityDto[]
   factions: FactionEntityDto[]
+  minVisibleCharacterCount?: number
 }): CharacterEntityDto[] {
-  if (input.characters.length >= MIN_VISIBLE_CHARACTER_COUNT) {
+  const minVisibleCharacterCount = Math.max(0, input.minVisibleCharacterCount ?? MIN_VISIBLE_CHARACTER_COUNT)
+  if (input.characters.length >= minVisibleCharacterCount) {
     return input.characters
   }
 
@@ -502,7 +522,7 @@ function topUpVisibleCharacterCards(input: {
   const seenIds = new Set(characters.map((character) => character.id))
 
   for (const candidate of candidates) {
-    if (characters.length >= MIN_VISIBLE_CHARACTER_COUNT) {
+    if (characters.length >= minVisibleCharacterCount) {
       break
     }
     if (seenIds.has(candidate.entity.id)) {
@@ -600,13 +620,33 @@ export function buildOutlineCharacterEntityStore(input: {
   }
 
   const profileByPlaceholderId = new Map<string, CharacterProfileV2Dto>()
+  const profileByCompositePlaceholderId = new Map<string, CharacterProfileV2Dto>()
   const profileByName = new Map<string, CharacterProfileV2Dto>()
   const profileBySeatKey = new Map<string, CharacterProfileV2Dto>()
   const draftByName = new Map<string, CharacterDraftDto>()
+  const placeholderIdCounts = new Map<string, number>()
+
+  for (const profile of input.characterProfilesV2 || []) {
+    const profileId = normalizeName(profile.id)
+    if (!profileId) continue
+    placeholderIdCounts.set(profileId, (placeholderIdCounts.get(profileId) || 0) + 1)
+  }
 
   for (const profile of input.characterProfilesV2 || []) {
     profileByName.set(normalizeName(profile.name), profile)
-    if (profile.id) profileByPlaceholderId.set(profile.id, profile)
+    if (profile.id && placeholderIdCounts.get(normalizeName(profile.id)) === 1) {
+      profileByPlaceholderId.set(profile.id, profile)
+    }
+    if (profile.id) {
+      const compositePlaceholderKey = createPlaceholderMatchKey({
+        factionId: profile.factionId,
+        branchId: profile.branchId,
+        placeholderId: profile.id
+      })
+      if (compositePlaceholderKey !== '||' && !profileByCompositePlaceholderId.has(compositePlaceholderKey)) {
+        profileByCompositePlaceholderId.set(compositePlaceholderKey, profile)
+      }
+    }
     const seatKey = createSeatMatchKey({
       factionId: profile.factionId,
       branchId: profile.branchId,
@@ -635,7 +675,13 @@ export function buildOutlineCharacterEntityStore(input: {
           branchId: branch.id,
           roleInFaction: placeholder.roleInFaction
         })
+        const compositePlaceholderKey = createPlaceholderMatchKey({
+          factionId: faction.id,
+          branchId: branch.id,
+          placeholderId: placeholder.id
+        })
         const profile =
+          profileByCompositePlaceholderId.get(compositePlaceholderKey) ||
           profileByPlaceholderId.get(placeholder.id) ||
           profileBySeatKey.get(seatKey) ||
           profileByName.get(normalizeName(placeholder.name))
@@ -665,7 +711,8 @@ export function buildOutlineCharacterEntityStore(input: {
     characters: topUpVisibleCharacterCards({
       projectId: input.projectId,
       characters,
-      factions
+      factions,
+      minVisibleCharacterCount: resolveMinVisibleCharacterCount(input.factionMatrix.totalEpisodes)
     }),
     focusedCharacterDrafts: input.focusedCharacterDrafts
   })

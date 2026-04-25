@@ -312,6 +312,12 @@ function extractRuleLeverCharacter(storyIntent: StoryIntentPackageDto, fallback:
 }
 
 function extractCoreItem(storyIntent: StoryIntentPackageDto, fallback: string): string {
+  const brief = storyIntent.generationBriefText || ''
+  const explicitItemMatch = brief.match(
+    /(?:母亲遗物|母亲留下的吊坠|吊坠碎片|吊坠|玉佩|项链|遗物)[^，。；、\n]{0,8}/
+  )
+  if (explicitItemMatch) return explicitItemMatch[0].trim()
+
   // 从 constitutionalMacGuffin 或 coreDislocation 中提取
   const macGuffin = storyIntent.shortDramaConstitution?.macGuffinDefinition
   if (macGuffin && macGuffin.trim()) return macGuffin.trim()

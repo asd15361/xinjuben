@@ -43,6 +43,7 @@ export function AppSidebar(): JSX.Element {
     useProjectGenerationProgress(generationStatus)
 
   async function handleStageChange(targetStage: WorkflowStage): Promise<void> {
+    if (targetStage === currentStage) return
     clearGenerationNotice()
     if (!projectId) return
     const result = await switchStageSession(projectId, targetStage)

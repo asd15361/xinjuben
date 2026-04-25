@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
+import { CopyTextButton } from '../../../components/CopyTextButton'
 import { ValidationBadge, WorkspaceInput } from '../../../components/WorkspaceCommons'
 import { FactEngine } from '../../../services/coreEngines'
 import type { OutlineDraftDto } from '../../../../../shared/contracts/workflow'
+import { buildFormalFactsCopyText } from '../model/outline-stage-copy-text.ts'
 import { FormalFactList } from './FormalFactList'
 
 type FactLevel = 'core' | 'supporting'
@@ -55,6 +57,10 @@ export function FormalFactDeclarationPanel(input: {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <CopyTextButton
+            label="复制设定"
+            getText={() => buildFormalFactsCopyText(input.outline.facts)}
+          />
           {validation && <ValidationBadge score={validation.score} label="提交前检查" />}
           <button
             onClick={() => void handleDeclare()}

@@ -66,10 +66,10 @@ export function buildOutlineCharacterPartialSuccessNotice(input: {
   return {
     kind: 'warning',
     title: input.hadExistingContent
-      ? '人物小传已经重新生成，骨架用了临时版本'
-      : '人物小传已经生成，骨架用了临时版本',
+      ? '人物小传已经重新生成，骨架未写入'
+      : '人物小传已经生成，骨架未写入',
     detail:
-      '这次 AI 在生成剧本骨架批次时返回了不完整 JSON，系统保住了人物小传和世界底账，并用创作信息生成了临时骨架。下一步先检查人物，再到剧本骨架页重新生成或手动调整。',
+      '这次 AI 在生成剧本骨架批次时返回了不完整 JSON，系统只保住人物小传和世界底账，不再写入临时骨架。下一步先检查人物，再重新生成骨架。',
     primaryAction: {
       label: buildCurrentStageActionLabel(input.currentStage),
       stage: input.currentStage

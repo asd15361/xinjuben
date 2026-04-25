@@ -33,6 +33,19 @@ test('20 episode faction matrix prompt uses lightweight roster requirements', ()
   assert.doesNotMatch(prompt, /每个二级分支必须包含至少 3 个人物占位符/)
 })
 
+test('hidden bloodline xianxia prompt forbids turning protagonist into a public demon leader', () => {
+  const prompt = buildFactionMatrixAgentPrompt({
+    storyIntent: buildStoryIntent(),
+    totalEpisodes: 20
+  })
+
+  assert.match(prompt, /隐藏血脉修仙项目/)
+  assert.match(prompt, /禁止把主角前期写成魔渊宗宗主/)
+  assert.match(prompt, /真女主和反派大小姐必须分开/)
+  assert.match(prompt, /吊坠碎片是贯穿线索/)
+  assert.match(prompt, /禁止自动加入退婚/)
+})
+
 test('60 episode faction matrix prompt keeps full roster requirements', () => {
   const prompt = buildFactionMatrixAgentPrompt({
     storyIntent: buildStoryIntent(),

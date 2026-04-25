@@ -218,6 +218,21 @@ function renderFactionMatrixSummary(
  * 所有硬编码人名/地名/物品名已替换为变量占位符。
  */
 function buildGeneralizedPromptRules(vars: PromptVariables): string[] {
+  if (vars.genreArchetype === 'xianxia') {
+    return [
+      `2.7. 正确方向示意：${vars.protagonist}先因${vars.coreItem}被毁或被夺受辱，血脉、封印和身世线索被迫露出一角；随后${vars.antagonist}伪装善意继续利用，${vars.leverageCharacter}暗中保护却被冷落，主角从误信到识破，再掌控力量完成复仇与守护。不要照抄这个例句，只学"压迫、觉醒、误信、识破、掌控"的整季弧线。`,
+      `10.5. 如果底稿里有${vars.worldElement}、血脉、封印、吊坠残片或身世禁忌，开局和当前批次末两集都要显性落一次；不准把它只写成背景后面彻底消失。`,
+      `10.6. "踩碎/抢夺${vars.coreItem}/逼问血脉线索/围堵${vars.protagonist}"这种直给压法全季最多 2 次；用过后就换成误信、反间、禁地、封印反噬、父母旧案或情感误会继续加压。`,
+      `10.8. 前 1-6 集不要反复直说主题信条词；先写这套东西怎样让${vars.protagonist}被羞辱、忍住、误信、藏住残片、护住一点尊严或第一次反击。进入当前 5 集批次的收口段后才允许点题，而且整季直接点题最多 2 集。`,
+      `10.8.5. 如果主角设定里有"废柴/被封印/装弱/被误解"，前 1-6 集至少两集 summary 要显性写出"${vars.protagonist}被当成废柴羞辱""${vars.protagonist}血脉被压住""${vars.protagonist}不知真相"这类状态；不准一路只写他忽然会打。`,
+      `13.95. 当前 5 集批次如果出现仙盟、宗门高层或其他势力，他们只能围绕血脉、封印、${vars.coreItem}、父母旧案和人物误会加压，不能接管主戏；主推进仍要落在${vars.protagonist}、${vars.antagonist}、${vars.leverageCharacter}和${vars.coreItem}上。`,
+      `14.5. 当前批次末段不准从仙盟议事或宗门定性开场；必须从${vars.protagonist}正在处理上一集留下的伤势、血脉反噬、碎${vars.coreItem}、禁地线索、追杀或${vars.leverageCharacter}的暗中保护起手。`,
+      `15. ${vars.leverageCharacter}至少一次主动带出线索、替主角挡危机、换条件、传信、自救或反咬，不准一路只被押、被误会、等主角来救。`,
+      `15.6. 当前批次末两集不准把"仙盟问责/宗门议事/谁继任掌门"写成主戏眼；这只能是背景压强，真正推进仍要落在血脉、${vars.coreItem}、父母旧案、情感误会和主角选择上。`,
+      `16.6. 当前 5 集批次主推进优先写宗门大比、禁地、静室疗伤、山门追杀、秘境抢线索、夜探、吊坠残片异动；不要让仙盟流程、宗门会议、权位重排自己长成新的主戏。`
+    ]
+  }
+
   return [
     // ── 2.7 示例 ──
     `2.7. 正确方向示意：${vars.protagonist}先被${vars.antagonist}拿${vars.leverageCharacter}逼到亮底，随后借${vars.worldElement}、${vars.coreItem}和${vars.organization}旧规把人账、证据账、规则账越拧越紧，前半程藏锋挨压，后半程转为借力反咬，最终在亮出底牌后接住伤势、职责和余波。不要照抄这个例句，只学"整季一段拉通"的写法。`,

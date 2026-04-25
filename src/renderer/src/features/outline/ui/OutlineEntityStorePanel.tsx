@@ -1,10 +1,16 @@
+import { useMemo } from 'react'
+import { CopyTextButton } from '../../../components/CopyTextButton'
 import type { ProjectEntityStoreDto } from '../../../../../shared/contracts/entities.ts'
 import { buildOutlineEntityStoreViewModel } from '../model/build-outline-entity-store-view-model.ts'
+import { buildEntityStoreCopyText } from '../model/outline-stage-copy-text.ts'
 
 export function OutlineEntityStorePanel(input: {
   entityStore: ProjectEntityStoreDto | null
 }): JSX.Element {
-  const viewModel = buildOutlineEntityStoreViewModel(input.entityStore)
+  const viewModel = useMemo(
+    () => buildOutlineEntityStoreViewModel(input.entityStore),
+    [input.entityStore]
+  )
 
   return (
     <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5 space-y-5">
@@ -20,22 +26,28 @@ export function OutlineEntityStorePanel(input: {
             这一块现在先做只读观察，不在这里补编辑。目的是先确认确认信息阶段有没有把世界底账立起来。
           </p>
         </div>
-        <div className="hidden lg:grid grid-cols-5 gap-2 text-center">
-          {[
-            ['人物', viewModel.counts.characters],
-            ['势力', viewModel.counts.factions],
-            ['地点', viewModel.counts.locations],
-            ['物件', viewModel.counts.items],
-            ['关系', viewModel.counts.relations]
-          ].map(([label, count]) => (
-            <div
-              key={label}
-              className="rounded-xl border border-white/8 bg-black/20 px-3 py-2 min-w-[62px]"
-            >
-              <p className="text-[10px] text-white/25">{label}</p>
-              <p className="text-sm font-black text-orange-400">{count}</p>
-            </div>
-          ))}
+        <div className="flex flex-col items-end gap-3">
+          <CopyTextButton
+            label="复制底账"
+            getText={() => buildEntityStoreCopyText(input.entityStore)}
+          />
+          <div className="hidden lg:grid grid-cols-5 gap-2 text-center">
+            {[
+              ['人物', viewModel.counts.characters],
+              ['势力', viewModel.counts.factions],
+              ['地点', viewModel.counts.locations],
+              ['物件', viewModel.counts.items],
+              ['关系', viewModel.counts.relations]
+            ].map(([label, count]) => (
+              <div
+                key={label}
+                className="rounded-xl border border-white/8 bg-black/20 px-3 py-2 min-w-[62px]"
+              >
+                <p className="text-[10px] text-white/25">{label}</p>
+                <p className="text-sm font-black text-orange-400">{count}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

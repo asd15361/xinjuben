@@ -18,6 +18,16 @@ test('resolveCharacterContractAnchors falls back to outline protagonist when sto
   )
 })
 
+test('resolveCharacterContractAnchors prefers specific outline protagonist over generic story protagonist', () => {
+  assert.deepEqual(
+    resolveCharacterContractAnchors({
+      storyIntent: { protagonist: '主角', antagonist: '名门正派大小姐' } as never,
+      outline: { protagonist: '林夜' }
+    }),
+    { protagonist: '林夜', antagonist: '名门正派大小姐' }
+  )
+})
+
 test('isCharacterDraftStructurallyComplete accepts legacy V1 contract', () => {
   assert.equal(
     isCharacterDraftStructurallyComplete({
@@ -269,6 +279,44 @@ test('isCharacterBundleStructurallyComplete fuzzy matches antagonist with factio
       characters: [protagonist, antagonist],
       protagonist: '黎明',
       antagonist: '李科'
+    }),
+    true
+  )
+})
+
+test('isCharacterBundleStructurallyComplete accepts generic size-jie antagonist from profile text', () => {
+  const protagonist = {
+    name: '林夜',
+    biography: '云隐宗废柴弟子',
+    publicMask: '',
+    hiddenPressure: '',
+    fear: '',
+    protectTarget: '',
+    conflictTrigger: '',
+    advantage: '血脉初醒',
+    weakness: '容易误信善意',
+    goal: '查清身世',
+    arc: '从被蒙蔽到掌控血脉'
+  }
+  const antagonist = {
+    name: '林若雪',
+    biography: '林家大小姐，伪装善意利用主角。',
+    publicMask: '高洁优雅的名门贵女',
+    hiddenPressure: '',
+    fear: '',
+    protectTarget: '',
+    conflictTrigger: '',
+    advantage: '仙盟资源',
+    weakness: '傲慢',
+    goal: '夺取血脉',
+    arc: '从伪善操控到败露'
+  }
+
+  assert.equal(
+    isCharacterBundleStructurallyComplete({
+      characters: [protagonist, antagonist],
+      protagonist: '林夜',
+      antagonist: '名门正派大小姐'
     }),
     true
   )

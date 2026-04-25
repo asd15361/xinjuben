@@ -92,6 +92,16 @@
 - **七问不能和骨架重复记账**：用户已经确认的 `storyIntent` 才是正式输入；七问候选有审核价值，但如果继续要求“先锁七问再生骨架”，就会制造两套账本且容易互相打架。
 - **聊天刷新先查后端真相**：刷新后 UI 看不到不等于聊天丢失，要先查 `project_chats.messagesJson` 和 `ProjectRepository.getProject`，再判断是保存失败还是 hydration/显示问题。
 
+## UI 性能复发问题
+
+- **UI 改动后变卡已经是复发问题，不是偶发体验抱怨**：每次改 `CharacterStage`、`OutlineStage`、首页工作台、生成状态面板、复制按钮、卡片列表时，都必须把“真实页面是否变卡”当成验收项。
+- **大文本复制不能在 render 阶段预构建**：复制人物小传、剧本骨架、世界底账这类长文本时，只能通过 `getText` 在点击复制时构建；不能把 `buildXxxCopyText(...)` 的结果直接作为 prop 传入，避免每次状态更新都重算整页文本。
+- **列表卡片不能无限加交互重量**：人物卡、势力卡、剧集卡每新增按钮、动效、派生字段，都要检查是否会让每张卡多一个 state、timer、motion 或大对象闭包。能下沉到纯 helper 的逻辑下沉，能按需计算的不要常驻渲染。
+- **“刷新后几秒才出现列表 / 点导航等几秒”通常不是纯渲染卡**：先查是否把 UI 更新绑在远端接口后面。项目列表应先读本地摘要缓存再后台刷新；阶段导航应先更新本地 `currentStage`，项目快照随后补水。
+- **修 UI 性能时不要随手增加 hook 订阅数量**：尤其在 Vite HMR + ErrorBoundary 下，给同一自定义 hook 多加 `useAuthStore`/store hook 可能触发 `Rendered more hooks than during the previous render`。缓存元数据这类非渲染依赖优先用 `store.getState()` 快照读取。
+- **typecheck 通过不等于 UI 可用**：UI 改完至少要做一次真实页面手测或 Chrome 性能观察，重点看滚动、输入、展开/折叠、生成中状态、复制按钮点击后的响应。
+- **如果用户反馈“卡”**：先查本轮新增的 render-time 计算、全局 store selector、map 列表、Framer Motion/AnimatePresence、setTimeout/interval 和大文本 formatter，不要先怀疑浏览器或机器。
+
 ## 我最容易再犯的错
 
 - 只看到报错点，不追第一次越界的位置。

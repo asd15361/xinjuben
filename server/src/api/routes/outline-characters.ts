@@ -121,7 +121,7 @@ outlineCharactersRouter.post(
         projectId
       })
 
-      await executeDeduction(req, true, {
+      await executeDeduction(req, !result.outlineGenerationError, {
         task: 'outline_and_characters',
         projectId,
         lane: 'deepseek',
@@ -132,7 +132,7 @@ outlineCharactersRouter.post(
       const newBalance = await creditService.getBalance(req.user!.id)
 
       res.json({
-        success: true,
+        success: !result.outlineGenerationError,
         project: result.project,
         outlineDraft: result.project.outlineDraft,
         characterDrafts: result.project.characterDrafts,

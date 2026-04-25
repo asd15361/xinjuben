@@ -36,6 +36,40 @@ function isFuzzyNameMatch(characterName: string, anchorName: string): boolean {
   return false
 }
 
+function isGenericRoleAnchor(value: string): boolean {
+  return /^(主角|男主|女主|反派|对手|敌人)$/u.test(value.trim())
+}
+
+function isAnchorCoveredByCharacterText(
+  character: CharacterDraftDto,
+  anchorName: string
+): boolean {
+  if (isFuzzyNameMatch(character.name, anchorName)) return true
+
+  const combined = [
+    character.name,
+    character.biography,
+    character.identity,
+    character.values,
+    character.plotFunction,
+    character.goal,
+    character.publicMask
+  ]
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .join(' ')
+
+  if (/大小姐/u.test(anchorName)) {
+    return /大小姐|贵女|嫡女/u.test(combined)
+  }
+
+  if (/仙盟|正道|名门正派/u.test(anchorName)) {
+    return /仙盟|正道|名门正派/u.test(combined)
+  }
+
+  return false
+}
+
 type CharacterContractCandidate = CharacterDraftDto &
   Partial<
     Pick<
@@ -110,8 +144,12 @@ export function resolveCharacterContractAnchors(input: {
   storyIntent?: StoryIntentPackageDto | null
   outline?: Pick<OutlineDraftDto, 'protagonist'> | null
 }): { protagonist?: string; antagonist?: string } {
+  const storyProtagonist = input.storyIntent?.protagonist?.trim() || ''
+  const outlineProtagonist = input.outline?.protagonist?.trim() || ''
   const protagonist =
-    input.storyIntent?.protagonist?.trim() || input.outline?.protagonist?.trim() || ''
+    storyProtagonist && !isGenericRoleAnchor(storyProtagonist)
+      ? storyProtagonist
+      : outlineProtagonist || storyProtagonist
   const antagonist = input.storyIntent?.antagonist?.trim() || ''
 
   return {
@@ -130,16 +168,19 @@ export function getCharacterBundleContractIssues(input: {
   antagonistCovered: boolean
 } {
   const characters = Array.isArray(input.characters) ? input.characters : []
-  const names = characters.map((item) => item.name.trim()).filter(Boolean)
   return {
     incompleteCharacters: characters
       .map((item) => getCharacterContractIssues(item))
       .filter((item): item is CharacterContractIssueDto => Boolean(item)),
     protagonistCovered: input.protagonist?.trim()
-      ? names.some((name) => isFuzzyNameMatch(name, input.protagonist!.trim()))
+      ? characters.some((character) =>
+          isAnchorCoveredByCharacterText(character, input.protagonist!.trim())
+        )
       : true,
     antagonistCovered: input.antagonist?.trim()
-      ? names.some((name) => isFuzzyNameMatch(name, input.antagonist!.trim()))
+      ? characters.some((character) =>
+          isAnchorCoveredByCharacterText(character, input.antagonist!.trim())
+        )
       : true
   }
 }

@@ -35,3 +35,23 @@ export function buildRoughOutlineParseRetryPrompt(originalPrompt: string): strin
     originalPrompt
   ].join('\n')
 }
+
+export function buildRoughOutlineBatchParseRetryPrompt(originalPrompt: string): string {
+  return [
+    '你是短剧编剧助手。上一版分集 JSON 没写完就被截断了。',
+    '这次只输出最小必要 JSON，不要任何解释、不要 markdown、不要 ```json。',
+    '最后一个字符必须是 `}`。',
+    '只输出这个结构，每集 summary 只写 1 句：',
+    '{',
+    '  "batchSummary": "当前批次总述，1句",',
+    '  "episodes": [',
+    '    {"episodeNo": 1, "summary": "1句"},',
+    '    {"episodeNo": 2, "summary": "1句"}',
+    '  ]',
+    '}',
+    'episodeNo 必须严格遵守项目上下文里的当前批次范围；不能缺集、不能多集、不能重复集号。',
+    '',
+    '项目上下文（供你填充内容用）：',
+    originalPrompt
+  ].join('\n')
+}

@@ -109,7 +109,7 @@ test('outline and characters can be generated directly from story intent without
   assert.ok(diagnostics.some((message) => message.includes('rough_outline_start direct_story_intent')))
 })
 
-test('keeps generated characters when rough outline batch generation fails', async () => {
+test('keeps generated characters but does not fabricate a temporary outline when rough outline fails', async () => {
   const diagnostics: string[] = []
 
   const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
@@ -138,11 +138,60 @@ test('keeps generated characters when rough outline batch generation fails', asy
     'rough_outline_batch_retry_exhausted:rough_outline_batch_parse_failed'
   )
   assert.equal(result.outlineDraft.title, '魔尊血脉')
-  assert.equal(result.outlineDraft.summaryEpisodes.length, 20)
-  assert.ok(result.outlineDraft.summary.includes('林烬'))
+  assert.equal(result.outlineDraft.summary, '')
+  assert.equal(result.outlineDraft.summaryEpisodes.length, 0)
+  assert.equal(result.outlineDraft.outlineBlocks?.length, 0)
   assert.ok(
     diagnostics.some((message) =>
-      message.includes('rough_outline_recovered_with_story_intent_skeleton')
+      message.includes('rough_outline_failed_without_temporary_skeleton')
     )
+  )
+})
+
+test('adds a mandatory protagonist card when generated faction profiles omit the outline lead', async () => {
+  const diagnostics: string[] = []
+
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_missing_lead',
+      storyIntent: {
+        ...buildStoryIntent(),
+        protagonist: '主角',
+        antagonist: '名门正派大小姐',
+        generationBriefText:
+          '【项目】魔尊血脉｜20集\n男主的母亲吊坠被踩碎后觉醒魔尊血脉，名门正派大小姐伪装善意夺血脉。'
+      },
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig()
+    },
+    {
+      appendDiagnosticLog: async (message) => {
+        diagnostics.push(message)
+      },
+      generateCharacterProfiles: async () => ({
+        characters: [buildCharacter('陆渊'), buildCharacter('林若雪')]
+      }),
+      generateOutlineBundle: async () => ({
+        outline: {
+          title: '魔尊血脉',
+          genre: '男频修仙',
+          theme: '废柴逆袭',
+          protagonist: '林夜',
+          mainConflict: '林夜被名门正派大小姐利用，查清父母旧仇并掌控魔尊血脉',
+          summary: '林夜从废柴受辱到吊坠破碎觉醒，再识破名门正派大小姐夺血脉的阴谋。',
+          episodes: Array.from({ length: 20 }, (_, index) => ({
+            episodeNo: index + 1,
+            summary: `第${index + 1}集推进林夜围绕吊坠碎片查清真相。`
+          })),
+          facts: []
+        }
+      })
+    }
+  )
+
+  assert.equal(result.characterDrafts[0]?.name, '林夜')
+  assert.match(result.characterDrafts[0]?.biography || '', /母亲吊坠/)
+  assert.ok(
+    diagnostics.some((message) => message.includes('character_bundle_added_missing_protagonist'))
   )
 })

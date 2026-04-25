@@ -6,6 +6,7 @@ import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { CharacterDraftDto, OutlineEpisodeDto } from '@shared/contracts/workflow'
 import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
 import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
+import { extractPromptVariables, type PromptVariables } from '@shared/contracts/prompt-variables'
 import { getGovernanceOutlineBlockSize } from '@shared/domain/workflow/batching-contract'
 import { buildFourActEpisodeRanges } from '@shared/domain/workflow/episode-count'
 import { parseCharacterBundleText } from './parse-character-bundle'
@@ -31,6 +32,7 @@ import {
 } from './rough-outline-assembly'
 import { tryParseObject } from './summarize-chat-for-generation-json'
 import {
+  buildRoughOutlineBatchParseRetryPrompt,
   buildRoughOutlineParseRetryPrompt,
   isLikelyTruncatedJsonResponse
 } from './rough-outline-parse-retry'
@@ -171,12 +173,15 @@ async function invokeRoughOutlineStage<T>(input: {
     )
 
     if (!parsedOk) {
-      if (input.stage === 'rough_outline_overview' && isLikelyTruncatedJsonResponse(result.text)) {
+      if (isLikelyTruncatedJsonResponse(result.text)) {
         await appendRuntimeDiagnosticLog(
           'rough_outline',
           `${input.stage}_retry_parse ${input.logContext} reason=truncated_json retryMaxOutputTokens=${ROUGH_OUTLINE_PARSE_RETRY_MAX_OUTPUT_TOKENS}`
         )
-        const retryPrompt = buildRoughOutlineParseRetryPrompt(input.prompt)
+        const retryPrompt =
+          input.stage === 'rough_outline_batch'
+            ? buildRoughOutlineBatchParseRetryPrompt(input.prompt)
+            : buildRoughOutlineParseRetryPrompt(input.prompt)
         const retryResult = await generateTextWithRuntimeRouter(
           {
             task: 'rough_outline',
@@ -229,6 +234,7 @@ async function generateOutlineOverview(input: {
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
   marketProfile?: RoughOutlineOverviewInput['marketProfile']
+  promptVars?: PromptVariables
 }): Promise<{
   overview: OutlineOverviewPayload
   actPlans: RoughOutlineActPlan[]
@@ -252,6 +258,7 @@ async function generateOutlineOverview(input: {
         characterProfilesV2: input.characterProfilesV2,
         factionMatrix: input.factionMatrix,
         marketProfile: input.marketProfile,
+        promptVars: input.promptVars,
         marketPlaybook
       })
       const overview = await invokeRoughOutlineStage<OutlineOverviewPayload>({
@@ -302,6 +309,7 @@ async function generateOutlineEpisodeBatch(input: {
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
   marketProfile?: RoughOutlineEpisodeBatchInput['marketProfile']
+  promptVars?: PromptVariables
 }): Promise<OutlineEpisodeBatchPayload> {
   return runRoughOutlineStageWithRetries({
     stage: 'rough_outline_batch',
@@ -325,6 +333,7 @@ async function generateOutlineEpisodeBatch(input: {
         characterProfilesV2: input.characterProfilesV2,
         factionMatrix: input.factionMatrix,
         marketProfile: input.marketProfile,
+        promptVars: input.promptVars,
         marketPlaybook
       })
       const batch = await invokeRoughOutlineStage<OutlineEpisodeBatchPayload>({
@@ -376,7 +385,9 @@ export async function generateOutlineBundle(input: {
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
   marketProfile?: RoughOutlineOverviewInput['marketProfile']
+  storyIntent?: StoryIntentPackageDto
 }): Promise<OutlineBundlePayload | null> {
+  const promptVars = input.storyIntent ? extractPromptVariables(input.storyIntent) : undefined
   const overviewStage = await generateOutlineOverview({
     generationBriefText: input.generationBriefText,
     totalEpisodes: input.totalEpisodes,
@@ -386,7 +397,8 @@ export async function generateOutlineBundle(input: {
     characterProfiles: input.characterProfiles,
     characterProfilesV2: input.characterProfilesV2,
     factionMatrix: input.factionMatrix,
-    marketProfile: input.marketProfile
+    marketProfile: input.marketProfile,
+    promptVars
   })
 
   const batchSize = getGovernanceOutlineBlockSize()
@@ -409,7 +421,8 @@ export async function generateOutlineBundle(input: {
       characterProfiles: input.characterProfiles,
       characterProfilesV2: input.characterProfilesV2,
       factionMatrix: input.factionMatrix,
-      marketProfile: input.marketProfile
+      marketProfile: input.marketProfile,
+      promptVars
     })
     batches.push(batch)
     for (const episode of batch.episodes || []) {

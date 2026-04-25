@@ -59,6 +59,11 @@ export async function switchStageSession(
   perfLog.stageSessionSwitchStart(projectId, targetStage)
   logSessionDiagnostic(`switchStageSession start projectId=${projectId} targetStage=${targetStage}`)
 
+  const currentProjectId = useWorkflowStore.getState().projectId
+  if (currentProjectId === projectId) {
+    useWorkflowStore.getState().setStage(targetStage)
+  }
+
   const { project } = await apiGetProject(projectId)
   // Authority: stage comes from main-derived project snapshot, never from renderer-local targetStage
   const result: StageSessionResult | null = project
