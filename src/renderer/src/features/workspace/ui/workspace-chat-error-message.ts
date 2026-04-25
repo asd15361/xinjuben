@@ -64,7 +64,7 @@ export function normalizeWorkspaceChatErrorMessage(error: unknown): string {
   }
 
   if (/^seven_questions_confirmation_required$/i.test(summaryPrefixStripped)) {
-    return '先去确认七问，再继续生成粗纲和人物'
+    return '七问已经并入骨架流程，请直接生成人物小传和剧本骨架'
   }
 
   const outlineIncompleteMatch = summaryPrefixStripped.match(
@@ -99,7 +99,7 @@ export function normalizeWorkspaceChatErrorMessage(error: unknown): string {
   }
 
   if (/^rough_outline_requires_confirmed_seven_questions$/i.test(summaryPrefixStripped)) {
-    return '先去确认七问，再继续生成粗纲和人物'
+    return '这次卡在旧七问前置条件，请直接重新生成人物小传和骨架'
   }
 
   if (/^rough_outline_result_missing$/i.test(summaryPrefixStripped)) {
@@ -107,7 +107,7 @@ export function normalizeWorkspaceChatErrorMessage(error: unknown): string {
   }
 
   if (/^seven_questions_confirm_save_failed$/i.test(summaryPrefixStripped)) {
-    return '这次七问没有保存住，先重新确认七问再继续'
+    return '旧七问保存失败；现在请直接重新生成人物小传和骨架'
   }
 
   if (/^rough_outline_overview_incomplete:act_summaries_missing$/i.test(summaryPrefixStripped)) {

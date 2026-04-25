@@ -38,7 +38,7 @@ describe('screenplay-format-policy', () => {
     it('contains no_director_camera', () => {
       const rule = SCREENPLAY_FORMAT_RULES.find((r) => r.id === 'no_director_camera')
       assert.ok(rule)
-      assert.ok(rule!.detectableMarkers?.length > 0 || rule!.wrongExample.includes('特写'))
+      assert.ok(rule!.wrongExample.includes('特写'))
     })
   })
 

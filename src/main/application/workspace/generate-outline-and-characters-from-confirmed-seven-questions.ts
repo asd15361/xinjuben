@@ -1,19 +1,18 @@
 /**
  * src/main/application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.ts
  *
- * 基于确认版七问生成粗纲和人物。
+ * 生成人物小传和粗纲骨架。
  *
  * 职责：
- * - 检查项目是否已有确认版七问
- * - 如果没有，报错（不要偷偷再生成一版七问）
- * - 如果有，基于确认版七问生成粗纲和人物
+ * - 优先基于 StoryIntent 生成人物小传
+ * - 再基于 StoryIntent + 人物小传生成统一粗纲骨架
+ * - 兼容旧项目：如果 outlineBlocks 里已有确认版七问，把它作为叙事约束注入，不再把七问作为前置阶段
  *
- * 【七问工作流】
+ * 【当前工作流】
  * storyIntent 已确认
- *   -> generateSevenQuestionsDraft（生成初稿）
- *   -> 前端展示七问（用户修改/确认）
- *   -> saveConfirmedSevenQuestions（写入 outlineBlocks）
- *   -> generateOutlineAndCharactersFromConfirmedSevenQuestions（生成粗纲）<- 这里
+ *   -> 生成人物小传/势力底账
+ *   -> 生成粗纲骨架
+ *   -> outlineBlocks 只作为技术规划块，不再承担第二套七问账本
  */
 
 import type { RuntimeProviderConfig } from '../../infrastructure/runtime-env/provider-config'
@@ -43,12 +42,11 @@ import { mapV2ToLegacyCharacterDraft } from '../../../shared/contracts/character
 import { normalizeOutlineStoryIntent } from './outline-story-intent.ts'
 import { validateStructuredOutline } from './rough-outline-validation.ts'
 import { toDraftFacts, type OutlineFactCandidate } from './outline-facts.ts'
-import {
-  hasConfirmedSevenQuestions,
-  extractConfirmedSevenQuestions
-} from '../../../shared/domain/workflow/seven-questions-authority.ts'
+import { extractConfirmedSevenQuestions } from '../../../shared/domain/workflow/seven-questions-authority.ts'
 import { parseStructuredGenerationBrief } from './summarize-chat-for-generation-support.ts'
 import { enrichCharacterDrafts } from './enrich-character-drafts.ts'
+import { getGovernanceOutlineBlockSize } from '../../../shared/domain/workflow/batching-contract.ts'
+import { buildOutlineBlocks } from '../../../shared/domain/workflow/planning-blocks.ts'
 
 interface ConfirmedSevenQuestionsGenerationDeps {
   appendDiagnosticLog?: (message: string) => Promise<void>
@@ -67,7 +65,7 @@ interface ConfirmedSevenQuestionsGenerationDeps {
     totalEpisodes: number
     runtimeConfig: RuntimeProviderConfig
     signal?: AbortSignal
-    sevenQuestions: SevenQuestionsResultDto
+    sevenQuestions?: SevenQuestionsResultDto
     characterProfiles: { characters: CharacterDraftDto[] }
     characterProfilesV2?: CharacterProfileV2Dto[]
     factionMatrix?: FactionMatrixDto
@@ -181,7 +179,7 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   totalEpisodes: number
   runtimeConfig: RuntimeProviderConfig
   signal?: AbortSignal
-  sevenQuestions: SevenQuestionsResultDto
+  sevenQuestions?: SevenQuestionsResultDto
   characterProfiles: { characters: CharacterDraftDto[] }
   characterProfilesV2?: CharacterProfileV2Dto[]
   factionMatrix?: FactionMatrixDto
@@ -191,13 +189,13 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
 }
 
 /**
- * 基于确认版七问生成粗纲和人物。
+ * 基于确认信息生成人物小传和粗纲。
  *
  * @param input.storyIntent - 已确认的真源
- * @param input.outlineDraft - 当前 outlineDraft（必须已包含确认版七问）
+ * @param input.outlineDraft - 当前 outlineDraft（旧项目可能包含确认版七问，可选）
  * @param input.runtimeConfig - 运行时配置
  * @param input.signal - 中断信号
- * @returns 粗纲、人物、七问
+ * @returns 粗纲、人物、旧七问约束（如存在）
  */
 export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   input: {
@@ -211,7 +209,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   storyIntent: StoryIntentPackageDto
   outlineDraft: OutlineDraftDto
   characterDrafts: CharacterDraftDto[]
-  sevenQuestions: SevenQuestionsResultDto
+  sevenQuestions: SevenQuestionsResultDto | null
 }> {
   const generationBriefText = input.storyIntent.generationBriefText?.trim()
   const appendDiagnosticLog = deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
@@ -219,30 +217,23 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     throw new Error('confirmed_story_intent_missing')
   }
 
-  // 关键检查：如果没有确认版七问，直接报错
-  if (!hasConfirmedSevenQuestions(input.outlineDraft)) {
-    await appendDiagnosticLog(
-      'rough_outline_requires_confirmed_seven_questions: no confirmed seven questions found in outlineDraft'
-    )
-    throw new Error('rough_outline_requires_confirmed_seven_questions')
-  }
-
   const targetEpisodeCount =
     extractEpisodeCountFromGenerationBrief(generationBriefText) || DEFAULT_EPISODE_COUNT
 
-  // 从 outlineDraft 提取确认版七问
   const confirmedSevenQuestions = extractConfirmedSevenQuestions(input.outlineDraft)
 
-  if (!confirmedSevenQuestions) {
-    throw new Error('rough_outline_requires_confirmed_seven_questions')
+  if (confirmedSevenQuestions) {
+    await appendDiagnosticLog(
+      `rough_outline_start from_confirmed_seven_questions sectionCount=${confirmedSevenQuestions.sectionCount} totalEpisodes=${targetEpisodeCount}`
+    )
+    await appendDiagnosticLog(
+      `rough_outline_confirmed_seven_questions_handshake ${buildConfirmedSevenQuestionsHandshakeSummary(confirmedSevenQuestions)}`
+    )
+  } else {
+    await appendDiagnosticLog(
+      `rough_outline_start direct_story_intent totalEpisodes=${targetEpisodeCount}`
+    )
   }
-
-  await appendDiagnosticLog(
-    `rough_outline_start from_confirmed_seven_questions sectionCount=${confirmedSevenQuestions.sectionCount} totalEpisodes=${targetEpisodeCount}`
-  )
-  await appendDiagnosticLog(
-    `rough_outline_confirmed_seven_questions_handshake ${buildConfirmedSevenQuestionsHandshakeSummary(confirmedSevenQuestions)}`
-  )
 
   const baseStoryIntent = normalizeOutlineStoryIntent(input.storyIntent)
   const generateCharacterProfiles =
@@ -250,7 +241,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   const buildOutlineBundle =
     deps.generateOutlineBundle ?? generateOutlineBundleFromConfirmedSevenQuestionsDefault
 
-  // 七问已经确认，后续只允许生成人物小传，禁止重跑七问 Agent。
+  // 先生成人物小传，再让粗纲消费人物关系和势力底账，避免七问/骨架两套账本漂移。
   const characterProfilesResult = await generateCharacterProfiles({
     storyIntent: baseStoryIntent,
     totalEpisodes: targetEpisodeCount,
@@ -258,13 +249,12 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     signal: input.signal
   })
 
-  // 将确认版七问传递给粗纲生成
   const outlineBundleResult = await buildOutlineBundle({
     generationBriefText,
     totalEpisodes: targetEpisodeCount,
     runtimeConfig: input.runtimeConfig,
     signal: input.signal,
-    sevenQuestions: confirmedSevenQuestions,
+    sevenQuestions: confirmedSevenQuestions ?? undefined,
     characterProfiles: { characters: characterProfilesResult.characters },
     characterProfilesV2: characterProfilesResult.characterProfilesV2,
     factionMatrix: characterProfilesResult.factionMatrix
@@ -296,6 +286,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     protagonist: validatedOutline.protagonist?.trim() || storyIntent.protagonist || '',
     mainConflict: validatedOutline.mainConflict?.trim() || storyIntent.coreConflict || '',
     summary: validatedOutline.summary?.trim() || '',
+    planningUnitEpisodes: getGovernanceOutlineBlockSize(),
     summaryEpisodes: [],
     // User has already confirmed the chapter-level direction through seven questions.
     // Facts produced inside this same outline confirmation flow must land as confirmed,
@@ -322,8 +313,8 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     outlineDraft.summary = outlineEpisodesToSummary(outlineDraft.summaryEpisodes)
   }
 
-  // 将确认版七问映射到 outlineBlocks
-  if (confirmedSevenQuestions.sections.length > 0) {
+  // 旧项目如果已经锁过七问，把它折叠进 outlineBlocks；新流程只生成技术规划块。
+  if (confirmedSevenQuestions?.sections.length) {
     outlineDraft.outlineBlocks = confirmedSevenQuestions.sections.map((section, index) => {
       const blockEpisodes = summaryEpisodes.filter(
         (ep) => ep.episodeNo >= section.startEpisode && ep.episodeNo <= section.endEpisode
@@ -340,6 +331,11 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
         sevenQuestions: section.sevenQuestions
       }
     })
+  } else {
+    outlineDraft.outlineBlocks = buildOutlineBlocks(
+      summaryEpisodes,
+      outlineDraft.planningUnitEpisodes
+    )
   }
 
   const rawCharacters = (characterProfilesResult.characters || [])
@@ -412,6 +408,6 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     storyIntent,
     outlineDraft,
     characterDrafts: filteredCharacters,
-    sevenQuestions: confirmedSevenQuestions
+    sevenQuestions: confirmedSevenQuestions ?? null
   }
 }

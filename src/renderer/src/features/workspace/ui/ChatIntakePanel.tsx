@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
+import type { StorySynopsisReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
 import { isConfirmedStoryIntentForTranscript } from '../../../../../shared/domain/workflow/confirmed-story-intent'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
@@ -14,7 +15,10 @@ export function ChatIntakePanel(props: {
   disabled: boolean
   status: string
   generationStatus: ProjectGenerationStatusDto | null
-  onConfirmIntent: (chatTranscript: string) => Promise<string>
+  onConfirmIntent: (chatTranscript: string) => Promise<{
+    generationBriefText: string
+    readiness: StorySynopsisReadiness
+  }>
   onGenerate: (chatTranscript: string) => Promise<void>
 }): JSX.Element | null {
   const projectId = useWorkflowStore((state) => state.projectId)
@@ -30,6 +34,14 @@ export function ChatIntakePanel(props: {
       projectId,
       chatMessages: nextMessages.filter((message) => message.text !== CHAT_PENDING_MESSAGE_TEXT)
     })
+  }
+
+  async function safePersistChatMessages(nextMessages: ChatMessage[]): Promise<void> {
+    try {
+      await persistChatMessages(nextMessages)
+    } catch (error) {
+      console.warn('Chat persistence failed:', error)
+    }
   }
 
   useEffect(() => {
@@ -89,7 +101,7 @@ export function ChatIntakePanel(props: {
         }
       ]
       setMessages(nextMessages)
-      await persistChatMessages(nextMessages)
+      await safePersistChatMessages(nextMessages)
     } catch (error) {
       console.error('AI Reply Failure:', error)
       const nextMessages: ChatMessage[] = [
@@ -102,7 +114,7 @@ export function ChatIntakePanel(props: {
         }
       ]
       setMessages(nextMessages)
-      await persistChatMessages(nextMessages)
+      await safePersistChatMessages(nextMessages)
     } finally {
       setBusy(false)
     }
@@ -124,7 +136,7 @@ export function ChatIntakePanel(props: {
         }
       ]
       setMessages(nextMessages)
-      await persistChatMessages(nextMessages)
+      await safePersistChatMessages(nextMessages)
     } finally {
       setBusy(false)
     }
@@ -134,17 +146,28 @@ export function ChatIntakePanel(props: {
     if (!canGenerate) return
     setBusy(true)
     try {
-      const generationBriefText = await props.onConfirmIntent(truthTranscript)
+      const { generationBriefText, readiness } = await props.onConfirmIntent(truthTranscript)
+
+      let readinessText = ''
+      if (readiness.ready) {
+        readinessText = '\n\n✅ 故事梗概已具备生成人物小传和骨架所需信息。'
+      } else {
+        readinessText =
+          '\n\n⚠️ 故事梗概还缺以下关键项：' +
+          readiness.missing.map((m) => `\n- ${m}`).join('') +
+          '\n\n你可以继续补充，也可以先用当前版本生成人物小传和骨架（AI 会尝试补齐缺失项）。'
+      }
+
       const nextMessages: ChatMessage[] = [
         ...messages,
         {
           role: 'assistant',
-          text: `我已经把当前聊天整理成正式创作信息，后面只按这版往下走。\n\n下一步先确认七问：\n\n${generationBriefText}`,
+          text: `我已经把当前聊天整理成一版创作信息总结，你可以继续补充，也可以进入人物小传和剧本骨架。${readinessText}\n\n创作信息总结：\n\n${generationBriefText}`,
           createdAt: Date.now()
         }
       ]
       setMessages(nextMessages)
-      await persistChatMessages(nextMessages)
+      await safePersistChatMessages(nextMessages)
     } catch (error) {
       const nextMessages: ChatMessage[] = [
         ...messages,
@@ -155,7 +178,7 @@ export function ChatIntakePanel(props: {
         }
       ]
       setMessages(nextMessages)
-      await persistChatMessages(nextMessages)
+      await safePersistChatMessages(nextMessages)
     } finally {
       setBusy(false)
     }

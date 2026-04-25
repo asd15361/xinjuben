@@ -56,6 +56,20 @@ export interface ShortDramaConstitutionDto {
   forbiddenContent?: string
 }
 
+export interface StorySynopsisDto {
+  logline: string
+  openingPressureEvent: string
+  protagonistCurrentDilemma: string
+  firstFaceSlapEvent: string
+  antagonistForce: string
+  antagonistPressureMethod: string
+  corePayoff: string
+  stageGoal: string
+  keyFemaleCharacterFunction?: string
+  episodePlanHint?: string
+  finaleDirection: string
+}
+
 export interface StoryIntentPackageDto {
   titleHint?: string
   genre?: string
@@ -80,4 +94,8 @@ export interface StoryIntentPackageDto {
   generationBriefText?: string
   confirmedChatTranscript?: string
   marketProfile?: MarketProfileDto | null
+  /** 聊天摘要（创作信息总结），不是正式故事梗概 */
+  creativeSummary?: string
+  /** 结构化故事梗概，经质量门检测后才是真下游输入 */
+  storySynopsis?: StorySynopsisDto | null
 }

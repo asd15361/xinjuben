@@ -1,6 +1,7 @@
 import { HomeHeroPanel } from './HomeHeroPanel'
 import { ProjectListPanel } from './ProjectListPanel'
 import { useHomePageActions } from './useHomePageActions'
+import { MarketPlaybookWorkbench } from '../../market-playbook/ui/MarketPlaybookWorkbench'
 
 export function HomePage(): JSX.Element {
   const {
@@ -24,7 +25,7 @@ export function HomePage(): JSX.Element {
   } = useHomePageActions()
 
   return (
-    <div className="h-full overflow-hidden flex flex-col">
+    <div className="min-h-full flex flex-col">
       <HomeHeroPanel
         status={status}
         busy={busy}
@@ -37,6 +38,8 @@ export function HomePage(): JSX.Element {
         onSubgenreChange={setSubgenre}
         onCreate={() => void createProject()}
       />
+
+      <MarketPlaybookWorkbench />
 
       <ProjectListPanel
         busy={busy}

@@ -47,6 +47,8 @@ import { buildScriptStateLedger } from '../ledger/build-script-ledger'
 import { buildEpisodeSceneDirectives } from './build-episode-scene-directives'
 import { buildSceneProgressionDirectives } from './build-scene-progression-directives'
 import { buildMarketProfilePromptSection } from '../../workspace/build-market-profile-prompt-section'
+import type { MarketPlaybookDto } from '@shared/contracts/market-playbook'
+import { buildMarketPlaybookPromptBlock } from '@shared/domain/market-playbook/playbook-prompt-block'
 import {
   buildStoryStateSnapshot,
   buildStoryStateSnapshotPromptBlock
@@ -529,7 +531,9 @@ export function createScriptGenerationPrompt(
   characters: CharacterDraftDto[],
   episodeNo: number,
   /** Newer episodes from the current batch — used to provide rolling context within a batch */
-  generatedScenes?: ScriptSegmentDto[]
+  generatedScenes?: ScriptSegmentDto[],
+  /** MarketPlaybook B 层打法包（可选） */
+  marketPlaybook?: MarketPlaybookDto | null
 ): string {
   const batchContext = buildScriptBatchContext({
     outline,
@@ -608,6 +612,11 @@ export function createScriptGenerationPrompt(
   const marketProfileSection = buildMarketProfilePromptSection({
     marketProfile: input.storyIntent?.marketProfile,
     stage: 'scriptGeneration'
+  })
+
+  const playbookBlock = buildMarketPlaybookPromptBlock({
+    playbook: marketPlaybook,
+    stage: 'episode_script'
   })
 
   const snapshot = buildStoryStateSnapshot({
@@ -692,6 +701,7 @@ export function createScriptGenerationPrompt(
     `你正在为短剧《${input.outlineTitle || '未命名项目'}》写第 ${episodeNo} 集剧本。`,
     '【首稿执行要点】（红线规则已写入 System 指令，以下为具体上下文）',
     ...(marketProfileSection ? [marketProfileSection] : []),
+    ...(playbookBlock ? [playbookBlock] : []),
     ...buildViralExecutionLines(controlCard, episodeNo),
     snapshotBlock,
     '',

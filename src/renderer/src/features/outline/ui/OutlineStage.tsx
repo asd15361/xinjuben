@@ -24,9 +24,9 @@ export function OutlineStage(): JSX.Element {
     episode.summary.trim()
   ).length
 
-  async function handleGoToCharacterStage(): Promise<void> {
+  async function handleGoToDetailedOutlineStage(): Promise<void> {
     if (!projectId) return
-    const result = await switchStageSession(projectId, 'character')
+    const result = await switchStageSession(projectId, 'detailed_outline')
     if (!result) {
       return
     }
@@ -74,7 +74,7 @@ export function OutlineStage(): JSX.Element {
               <Sparkles size={18} className="text-orange-400" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white/90">粗略大纲</h2>
+              <h2 className="text-lg font-black text-white/90">剧本骨架</h2>
               <p className="text-[11px] text-white/40 mt-0.5">
                 先把故事主骨架立住。每一集先写清楚发生什么、冲突怎么抬、钩子落在哪。
               </p>
@@ -104,12 +104,12 @@ export function OutlineStage(): JSX.Element {
             </div>
             <button
               onClick={() => {
-                void handleGoToCharacterStage()
+                void handleGoToDetailedOutlineStage()
               }}
               className="rounded-xl px-5 py-2.5 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20"
               style={{ background: '#FF7A00' }}
             >
-              确认：进入人物小传
+              确认：进入详细大纲
             </button>
           </div>
         </div>

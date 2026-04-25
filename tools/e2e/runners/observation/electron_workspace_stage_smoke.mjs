@@ -43,7 +43,7 @@ async function main() {
 
     const stages = [
       { name: 'chat', button: /��жԻ�/, mustSee: ['������з���', 'ȥ�ָ�ȷ�Ϲؼ���ʵ'] },
-      { name: 'outline', button: /粗略大纲/, mustSee: ['粗略大纲', '分集剧情视窗'] },
+      { name: 'outline', button: /剧本骨架/, mustSee: ['剧本骨架', '分集剧情视窗'] },
       { name: 'character', button: /人物小传/, mustSee: ['人物小传', '添加角色'] },
       {
         name: 'detailed_outline',

@@ -1,25 +1,35 @@
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
+import type { StorySynopsisReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
+import { inspectStorySynopsisReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
 import { useState } from 'react'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
 import { apiConfirmStoryIntentFromChat } from '../../../services/api-client.ts'
+import { useTrackedGeneration } from '../../../app/hooks/useTrackedGeneration.ts'
+import { resolveConfirmStoryIntentEstimatedSeconds } from '../../../app/utils/stage-estimates.ts'
 
 export function useChatStageActions(): {
   projectId: string | null
   status: string
   generationStatus: ProjectGenerationStatusDto | null
   setStatus: (value: string) => void
-  handleConfirmIntent: (chatTranscript: string) => Promise<string>
+  handleConfirmIntent: (chatTranscript: string) => Promise<{
+    generationBriefText: string
+    readiness: StorySynopsisReadiness
+  }>
 } {
   const projectId = useWorkflowStore((state) => state.projectId)
   const generationStatus = useWorkflowStore((state) => state.generationStatus)
   const setGenerationNotice = useWorkflowStore((state) => state.setGenerationNotice)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
+  const trackedGeneration = useTrackedGeneration()
   const [status, setStatus] = useState(
-    '先把题材、主角、困境和冲突说清楚。聊到差不多时，我会先帮你收成正式创作信息，再进入七问确认。'
+    '先把题材、主角、困境和冲突说清楚。聊到差不多时，我会先帮你整理成创作信息总结，再进入人物小传和剧本骨架。'
   )
 
-  async function handleConfirmIntent(chatTranscript: string): Promise<string> {
+  async function handleConfirmIntent(
+    chatTranscript: string
+  ): Promise<{ generationBriefText: string; readiness: StorySynopsisReadiness }> {
     if (!projectId) {
       setStatus('还没选中项目。先回首页打开一个项目，再继续这轮创作。')
       throw new Error('未选中项目')
@@ -27,30 +37,60 @@ export function useChatStageActions(): {
 
     const requestProjectId = projectId
     clearGenerationNotice()
-    setStatus('正在整理你刚才确认的内容，请先等我收成正式信息。')
+    setStatus('正在整理你的聊天内容，生成创作信息总结...')
 
     try {
-      const result = await apiConfirmStoryIntentFromChat({
-        projectId: requestProjectId,
-        chatTranscript
-      })
+      const result = await trackedGeneration.track(
+        {
+          task: 'confirm_story_intent',
+          title: '正在整理创作信息',
+          detail: '正在把聊天内容整理成可生成人物小传和剧本骨架的故事梗概，请稍候...',
+          fallbackSeconds: resolveConfirmStoryIntentEstimatedSeconds(),
+          scope: 'project'
+        },
+        () =>
+          apiConfirmStoryIntentFromChat({
+            projectId: requestProjectId,
+            chatTranscript
+          })
+      )
 
       if (!result.storyIntent) {
         throw new Error('确认信息失败，请再试一次。')
       }
 
+      // 质量门检测
+      const readiness = inspectStorySynopsisReadiness(result.storyIntent.storySynopsis)
+
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setStoryIntent(result.storyIntent)
-        setGenerationNotice({
-          kind: 'success',
-          title: '当前创作信息已经确认',
-          detail: '下一步先确认七问，再用确认版七问去生成粗纲和人物。'
-        })
+        if (readiness.ready) {
+          setGenerationNotice({
+            kind: 'success',
+            title: '创作信息总结已生成',
+            detail: '故事梗概已具备生成人物小传和剧本骨架所需信息。'
+          })
+        } else {
+          setGenerationNotice({
+            kind: 'warning',
+            title: '创作信息总结已生成，但故事梗概还缺几项',
+            detail: `缺：${readiness.missing.join('、')}。你可以继续补充，也可以直接生成人物小传和骨架（AI 会尝试补齐缺失项）。`
+          })
+        }
       }
-      setStatus('当前创作信息已经确认。下一步先去确认七问，再继续生成粗纲和人物。')
-      return result.generationBriefText
+
+      setStatus(
+        readiness.ready
+          ? '创作信息总结已生成，故事梗概完整。下一步可以进入人物小传。'
+          : `创作信息总结已生成，但故事梗概还缺：${readiness.missing.join('、')}。你可以继续补充，也可以直接进入人物小传。`
+      )
+
+      return {
+        generationBriefText: result.generationBriefText,
+        readiness
+      }
     } catch (error) {
-      setStatus('这次没有收成正式信息。继续补关键设定，再确认一版。')
+      setStatus('整理创作信息总结失败。继续补关键设定，再试一次。')
       throw error
     }
   }

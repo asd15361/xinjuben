@@ -6,11 +6,6 @@ import { useDynamicImportRecoverySuccessAck } from '../utils/dynamic-import-reco
 const ChatStage = lazy(async () =>
   import('../../features/chat/ui/ChatStage').then((module) => ({ default: module.ChatStage }))
 )
-const SevenQuestionsStage = lazy(async () =>
-  import('../../features/seven-questions/ui/SevenQuestionsStage').then((module) => ({
-    default: module.SevenQuestionsStage
-  }))
-)
 const OutlineStage = lazy(async () =>
   import('../../features/outline/ui/OutlineStage').then((module) => ({
     default: module.OutlineStage
@@ -55,7 +50,7 @@ function renderActiveStage(currentStage: string): ReactNode {
     case 'chat':
       return <ChatStage />
     case 'seven_questions':
-      return <SevenQuestionsStage />
+      return <CharacterStage />
     case 'outline':
       return <OutlineStage />
     case 'character':

@@ -13,6 +13,7 @@ import type {
 } from '@shared/contracts/script-generation'
 import { advanceScriptGenerationState } from '../state-machine'
 import { createScriptGenerationPrompt } from '../prompt/create-script-generation-prompt'
+import { resolveProjectMarketPlaybook } from '@shared/domain/market-playbook/playbook-prompt-block'
 import { buildFirstDraftSystemPrompt } from '../prompt/first-draft-system-prompt'
 import { parseGeneratedScene } from './parse-generated-scene'
 import { selectBatchEpisodesForRun } from './select-script-generation-batch'
@@ -373,6 +374,14 @@ export async function runScriptGenerationBatch(input: {
   const generateText = input.generateText ?? generateTextWithRuntimeRouter
   const enableImmediateRepair = input.enableImmediateRepair !== false
 
+  // 解析 MarketPlaybook（B 层），整个批次共用同一个 playbook
+  const marketPlaybook = resolveProjectMarketPlaybook({
+    marketPlaybookSelection: input.generationInput.marketPlaybookSelection,
+    audienceLane: input.generationInput.storyIntent?.marketProfile?.audienceLane,
+    subgenre: input.generationInput.storyIntent?.marketProfile?.subgenre,
+    customPlaybooks: input.generationInput.customMarketPlaybooks
+  })
+
   if (readyEpisodes.length === 0) {
     return {
       board,
@@ -410,7 +419,8 @@ export async function runScriptGenerationBatch(input: {
         input.outline,
         input.characters,
         episode.episodeNo,
-        generatedScenes
+        generatedScenes,
+        marketPlaybook
       )
 
       let bestAttempt: {
@@ -485,7 +495,8 @@ export async function runScriptGenerationBatch(input: {
         const contentSignal = inspectContentQualityEpisode(finalScene, {
           protagonistName: input.outline.protagonist || input.generationInput.storyIntent?.protagonist,
           antagonistName: input.generationInput.storyIntent?.antagonist,
-          marketProfile
+          marketProfile,
+          playbook: marketPlaybook
         })
         const repairSignals = buildContentRepairSignals(contentSignal, marketProfile)
 
@@ -517,7 +528,8 @@ export async function runScriptGenerationBatch(input: {
               const repairedSignal = inspectContentQualityEpisode(repairedScene, {
                 protagonistName: input.outline.protagonist || input.generationInput.storyIntent?.protagonist,
                 antagonistName: input.generationInput.storyIntent?.antagonist,
-                marketProfile
+                marketProfile,
+                playbook: marketPlaybook
               })
               // 修后质量不下滑才采纳
               if (shouldAcceptRepair(contentSignal, repairedSignal)) {

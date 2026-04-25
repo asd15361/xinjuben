@@ -102,7 +102,29 @@ export interface SevenQuestionsResultDto {
   needsSections: boolean
   sectionCount: number
   sectionCountReason: string
+  /** 候选方案的总集数，必须等于用户要求的集数 */
+  totalEpisodes: number
   sections: SevenQuestionsSectionDto[]
+}
+
+export interface CandidateValidationErrorDto {
+  field: string
+  message: string
+}
+
+/** 单个七问候选方案 */
+export interface SevenQuestionCandidateDto {
+  id: string
+  title: string
+  summary: string
+  /** 完整七问方案（含篇章划分与每篇章七问） */
+  result: SevenQuestionsResultDto
+  createdAt: string
+  source: 'generated' | 'regenerated' | 'edited'
+  /** 验证错误列表 */
+  validationErrors?: CandidateValidationErrorDto[]
+  /** 是否通过验证 */
+  isValid?: boolean
 }
 
 export interface OutlineBlockDto {
@@ -142,6 +164,13 @@ export interface FormalFactDeclarationDto extends FormalFactAuthorityDto {
   linkedToTheme: boolean
 }
 
+/** 七问候选会话状态（持久化到 outlineDraft，用于跨页面/刷新恢复候选列表） */
+export interface SevenQuestionsSessionDto {
+  candidates: SevenQuestionCandidateDto[]
+  selectedCandidateId: string | null
+  lockedCandidateId: string | null
+}
+
 export interface OutlineDraftDto {
   title: string
   genre: string
@@ -153,6 +182,8 @@ export interface OutlineDraftDto {
   summaryEpisodes: OutlineEpisodeDto[]
   outlineBlocks?: OutlineBlockDto[]
   facts: FormalFact[]
+  /** 七问候选会话（仅在七问阶段存在，确认后清除） */
+  sevenQuestionsSession?: SevenQuestionsSessionDto
 }
 
 export interface CharacterDraftDto {

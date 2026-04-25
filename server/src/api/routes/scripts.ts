@@ -33,11 +33,13 @@ import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
 import type { WorkflowStage } from '@shared/contracts/workflow'
 import { executeScriptRewrite } from '../../application/script-generation/rewrite/execute-script-rewrite'
 import { collectEpisodeGuardFailures } from '@shared/domain/script/screenplay-repair-guard'
+import { MarketPlaybookRepository } from '../../infrastructure/pocketbase/market-playbook-repository'
 
 export const scriptsRouter = Router()
 
 const creditService = new CreditService()
 const projectRepo = new ProjectRepository()
+const marketPlaybookRepo = new MarketPlaybookRepository()
 
 const MAX_TARGET_EPISODES = 2
 
@@ -147,6 +149,7 @@ async function updateProjectMetadata(
       (e) => e.status === 'completed'
     ).length
     const totalCount = board.episodeStatuses.length
+    const estimatedSeconds = Math.max(110, totalCount * 11)
 
     await projectRepo.saveProjectMeta({
       userId,
@@ -158,7 +161,7 @@ async function updateProjectMetadata(
         title: '剧本生成中',
         detail: `${completedCount}/${totalCount} 集已完成`,
         startedAt,
-        estimatedSeconds: 0
+        estimatedSeconds
       },
       visibleResult: {
         status: (completedCount > 0 ? 'visible' : 'pending') as 'visible' | 'pending',
@@ -236,6 +239,7 @@ async function launchScriptGenerationWorker(
   runningTasks.set(projectId, task)
 
   const existingScript = snapshot.scriptDraft ?? []
+  const customMarketPlaybooks = await marketPlaybookRepo.listActivePlaybooks(userId)
 
   const generationInput: StartScriptGenerationInputDto = {
     projectId,
@@ -252,7 +256,9 @@ async function launchScriptGenerationWorker(
     activeCharacterBlocks: snapshot.activeCharacterBlocks,
     segments: snapshot.detailedOutlineSegments,
     detailedOutlineBlocks: snapshot.detailedOutlineBlocks,
-    existingScript
+    existingScript,
+    marketPlaybookSelection: snapshot.marketPlaybookSelection,
+    customMarketPlaybooks
   }
 
   // 异步后台执行
@@ -300,7 +306,27 @@ async function launchScriptGenerationWorker(
       }
 
       // 最终更新 metadata（fire-and-forget）
-      void updateProjectMetadata(userId, projectId, result.board, task.startedAt.getTime())
+      void projectRepo
+        .saveProjectMeta({
+          userId,
+          projectId,
+          stage: 'script' as WorkflowStage,
+          generationStatus: null,
+          visibleResult: {
+            status: result.success ? 'visible' : 'pending',
+            description: result.success
+              ? `${result.generatedScenes.length} 集剧本已生成`
+              : '剧本生成未完成，请查看失败提示后重试',
+            payload: null,
+            failureResolution: null,
+            updatedAt: new Date().toISOString()
+          }
+        })
+        .catch((err) => {
+          console.error(
+            `[ScriptGeneration] final metadata update failed projectId=${projectId} error=${getErrorMessage(err)}`
+          )
+        })
 
       // 成功后扣费：按实际完成的集数扣
       if (result.success && result.generatedScenes.length > 0) {
@@ -330,6 +356,17 @@ async function launchScriptGenerationWorker(
       if (currentTask) {
         currentTask.status = 'failed'
       }
+      void projectRepo
+        .saveProjectMeta({
+          userId,
+          projectId,
+          generationStatus: null
+        })
+        .catch((err) => {
+          console.error(
+            `[ScriptGeneration] fatal metadata clear failed projectId=${projectId} error=${getErrorMessage(err)}`
+          )
+        })
     } finally {
       // 延迟清理内存：给 renderer 轮询留出窗口，避免终态后立即 404
       const finalTask = runningTasks.get(projectId)

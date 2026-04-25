@@ -10,11 +10,12 @@ import type {
   SaveConfirmedSevenQuestionsInputDto,
   SaveDetailedOutlineSegmentsInputDto,
   SaveOutlineDraftInputDto,
+  SaveSevenQuestionsSessionInputDto,
   SaveStoryIntentInputDto
 } from '@shared/contracts/workspace'
 import type { CreateProjectInputDto, ProjectSnapshotDto } from '@shared/contracts/project'
 import type { OutlineDraftDto } from '@shared/contracts/workflow'
-import type { StoryIntentPackageDto } from '@shared/contracts/intake'
+import type { StoryIntentPackageDto, StorySynopsisDto } from '@shared/contracts/intake'
 import { writeConfirmedSevenQuestionsToOutlineBlocks } from '@shared/domain/workflow/seven-questions-authority'
 import { buildConfirmedStoryIntent } from '@shared/domain/workflow/confirmed-story-intent'
 import { generateTextWithRouter } from '../../application/ai/generate-text'
@@ -108,6 +109,56 @@ function buildSevenQuestionsBaseOutline(project: {
     summary: '',
     summaryEpisodes: [],
     facts: []
+  }
+}
+
+function includesAny(text: string, values: string[]): boolean {
+  return values.some((value) => text.includes(value))
+}
+
+function buildStorySynopsisFromChat(input: {
+  chatTranscript: string
+  summaryText: string
+  fieldText: string
+}): StorySynopsisDto {
+  const source = `${input.chatTranscript}\n${input.summaryText}\n${input.fieldText}`
+
+  const hasPendant = includesAny(source, ['吊坠', '宝物', '妈妈留给', '母亲留给'])
+  const hasDemonBlood = includesAny(source, ['魔尊', '魔尊血脉', '血脉'])
+  const hasVillainLady = includesAny(source, ['大小姐', '名门正派', '武林盟', '盟主'])
+  const hasHiddenIdentity = includesAny(source, ['隐藏身世', '身世', '浑然不知', '不知道真相'])
+
+  const logline = hasDemonBlood
+    ? '被伪装成废柴的少年身负魔尊血脉，在全宗嘲笑和名门正派暗算中觉醒，查清父母之仇并守住足以撼动世界的力量。'
+    : '被众人轻视的少年在压迫中觉醒隐藏力量，识破反派阴谋，完成从废柴到强者的逆袭。'
+
+  return {
+    logline,
+    openingPressureEvent: hasPendant
+      ? '母亲遗留给主角的普通吊坠被外人当众踩碎，主角被羞辱到情绪最低点。'
+      : '主角在众目睽睽下被嘲笑、欺压，重要之物被毁，跌入开局低谷。',
+    protagonistCurrentDilemma: hasHiddenIdentity
+      ? '主角被宗门故意塑造成废柴，对自己的魔尊身世、封印真相和父母旧案一无所知。'
+      : '主角长期被当成废柴，被周围人质疑和排挤，急于证明自己并查清身世。',
+    firstFaceSlapEvent: hasPendant
+      ? '吊坠碎裂后散出灵力/魔力，引动主角第一次血脉觉醒，当场把欺辱者震飞，众人震惊。'
+      : '主角在压迫中首次觉醒隐藏力量，当场反击欺辱者，完成第一场打脸。',
+    antagonistForce: hasVillainLady
+      ? '名门正派大小姐及其背后的武林盟主宗门，联合多派觊觎主角的魔尊血脉。'
+      : '表面正派、实则觊觎主角力量的宗门势力。',
+    antagonistPressureMethod: hasVillainLady
+      ? '反派大小姐伪装成可信的名门贵女接近主角，用感情和身世线索诱导他信任自己，同时联合正派宗门试探、暗算、围剿，逐步夺取或激活他的血脉。'
+      : '反派以权势、规则和伪善身份压迫主角，先诱骗利用，再层层设局夺取他的隐藏力量。',
+    corePayoff: hasDemonBlood
+      ? '废柴被全宗嘲笑后层层觉醒魔尊血脉，打脸伪善名门，完成身份揭露、复仇和守护世界的逆袭爽感。'
+      : '被轻视的普通人逐步变强，连续打脸压迫者，最终让所有质疑者付出代价。',
+    stageGoal:
+      '前20集主角从自证不是废柴开始，逐步查清身世，识破反派大小姐的利用，为父母旧仇找到真凶，并转向主动复仇。',
+    keyFemaleCharacterFunction:
+      '宗门老大的女儿暗中守护主角，陪他寻找身世真相；反派大小姐负责制造情感陷阱和利用线。',
+    episodePlanHint: '20集短剧，前期压迫和首次觉醒，中期误信反派与连环暗算，后期真相揭露、复仇和情感回收。',
+    finaleDirection:
+      '主角揭开魔尊降世与父母被害真相，击败反派大小姐及幕后宗门，理解宗门老大的隐忍牺牲，并最终接受默默守护自己的女主。'
   }
 }
 
@@ -279,20 +330,53 @@ ${chatTranscript}
 
     // Parse fields from "field: value" format
     function extractField(text: string, fieldName: string): string {
-      const regex = new RegExp(`${fieldName}[：:]\\s*(.+)`, 'i')
+      const regex = new RegExp(`${fieldName}(?:[（(][^）)]*[）)])?(?:/[^：:]+)?[：:]\\s*(.+)`, 'i')
       const match = text.match(regex)
       return match?.[1]?.trim() || ''
     }
 
+    const storySynopsis = buildStorySynopsisFromChat({
+      chatTranscript,
+      summaryText,
+      fieldText
+    })
+    const storySource = `${chatTranscript}\n${summaryText}\n${fieldText}`
+    const isDemonXianxia = includesAny(storySource, ['魔尊', '修仙', '宗门', '血脉'])
+
     // Step 2: Build the structured storyIntent
     const storyIntent: StoryIntentPackageDto = buildConfirmedStoryIntent({
       storyIntent: {
-        genre: extractField(fieldText, '题材'),
-        protagonist: extractField(fieldText, '主角'),
-        antagonist: extractField(fieldText, '反派'),
-        coreConflict: extractField(fieldText, '核心冲突'),
-        endingDirection: extractField(fieldText, '结局方向'),
-        tone: extractField(fieldText, '基调')
+        genre: extractField(fieldText, '题材') || existingProject.genre || '',
+        protagonist:
+          extractField(fieldText, '主角') ||
+          (isDemonXianxia ? '身负魔尊血脉却被伪装成废柴的少年' : '被众人轻视但隐藏力量的主角'),
+        antagonist: extractField(fieldText, '反派') || storySynopsis.antagonistForce,
+        coreConflict:
+          extractField(fieldText, '核心冲突') ||
+          (isDemonXianxia
+            ? '主角在被全宗误解和名门正派暗算中觉醒魔尊血脉，查清身世并完成复仇。'
+            : storySynopsis.logline),
+        endingDirection: extractField(fieldText, '结局方向') || storySynopsis.finaleDirection,
+        tone:
+          extractField(fieldText, '基调') ||
+          (isDemonXianxia ? '男频修仙逆袭爽剧，前期憋屈虐心，后期强打脸强反转' : '前期压迫憋屈，后期逆袭打脸'),
+        creativeSummary: summaryText,
+        storySynopsis,
+        worldAnchors: isDemonXianxia
+          ? ['古代修仙宗门', '魔尊血脉', '名门正派联盟']
+          : [storySynopsis.antagonistForce],
+        relationAnchors: isDemonXianxia
+          ? ['宗门老大隐忍保护主角', '女主默默守护主角', '反派大小姐伪装接近并利用主角']
+          : ['主角被压迫者误解', '反派伪装接近并利用主角'],
+        themeAnchors: isDemonXianxia
+          ? ['被轻视者也能发光', '误解中的守护', '废柴逆袭复仇']
+          : ['被轻视者也能发光', '压迫后的逆袭', '真相揭露'],
+        dramaticMovement: [
+          storySynopsis.openingPressureEvent,
+          storySynopsis.firstFaceSlapEvent,
+          storySynopsis.antagonistPressureMethod,
+          storySynopsis.finaleDirection
+        ]
       },
       generationBriefText: summaryText,
       chatTranscript
@@ -371,11 +455,32 @@ projectsRouter.post('/:projectId/seven-questions/confirm', async (req, res) => {
     input.sevenQuestions.sections
   )
 
+  // 确认后清除候选会话
+  const nextOutlineWithoutSession: OutlineDraftDto = {
+    ...nextOutlineDraft,
+    sevenQuestionsSession: undefined
+  }
+
   await withProjectResult(res, async () => ({
     project: await projectRepository.saveOutlineDraft({
       userId: user.id,
       projectId: req.params.projectId,
-      outlineDraft: nextOutlineDraft
+      outlineDraft: nextOutlineWithoutSession
+    })
+  }))
+})
+
+// 保存七问候选会话（持久化 candidates + 选中/锁定状态）
+projectsRouter.put('/:projectId/seven-questions/session', async (req, res) => {
+  const user = requireUser(req, res)
+  if (!user) return
+
+  const input = req.body as SaveSevenQuestionsSessionInputDto
+  await withProjectResult(res, async () => ({
+    project: await projectRepository.saveSevenQuestionsSession({
+      userId: user.id,
+      projectId: req.params.projectId,
+      session: input.session ?? null
     })
   }))
 })

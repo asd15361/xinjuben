@@ -12,6 +12,7 @@ import {
   countCoveredScriptEpisodes
 } from '../../../shared/domain/workflow/script-episode-coverage.ts'
 import { resolveProjectEpisodeCount } from '../../../shared/domain/workflow/episode-count.ts'
+import { buildPlaybookSectionMarkdown } from '../../../shared/domain/market-playbook/playbook-markdown.ts'
 
 function sanitizeFilenamePart(value: string, fallback: string): string {
   const normalized = value.trim().replace(/[\\/:*?"<>|]+/g, '-')
@@ -21,7 +22,7 @@ function sanitizeFilenamePart(value: string, fallback: string): string {
 function stageLabel(stage: ExportableProjectStage): string {
   switch (stage) {
     case 'outline':
-      return '粗略大纲'
+      return '剧本骨架'
     case 'character':
       return '人物小传'
     case 'detailed_outline':
@@ -37,7 +38,7 @@ function buildOutlineMarkdown(project: ProjectSnapshotDto): string {
   const episodes = outline?.summaryEpisodes ?? []
 
   return [
-    `# ${project.name || '未命名项目'}｜粗略大纲`,
+    `# ${project.name || '未命名项目'}｜剧本骨架`,
     '',
     `- 项目ID：${project.id}`,
     `- 题材：${outline?.genre || project.genre || '未填写'}`,
@@ -46,6 +47,7 @@ function buildOutlineMarkdown(project: ProjectSnapshotDto): string {
     `- 主题：${outline?.theme || '未填写'}`,
     `- 主线冲突：${outline?.mainConflict || '未填写'}`,
     '',
+    buildPlaybookSectionMarkdown(project),
     '## 总述',
     '',
     outline?.summary?.trim() || '当前还没有总述。',

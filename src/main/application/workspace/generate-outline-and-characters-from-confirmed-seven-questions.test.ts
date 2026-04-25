@@ -565,26 +565,37 @@ test('confirmed seven questions path preserves V2 dimensions on persisted charac
   assert.equal(result.characterDrafts[0]?.depthLevel, 'core')
 })
 
-test('confirmed seven questions path fails explicitly when outlineDraft has no confirmed seven questions', async () => {
-  await assert.rejects(
-    () =>
-      generateOutlineAndCharactersFromConfirmedSevenQuestions(
-        {
-          storyIntent: createStoryIntent(),
-          outlineDraft: {
-            ...createConfirmedOutlineDraft(),
-            outlineBlocks: []
-          },
-          runtimeConfig: {} as never
-        },
-        {
-          appendDiagnosticLog: async () => {},
-          generateCharacterProfiles: async () => createCharacterProfiles(),
-          generateOutlineBundle: async () => createOutlineBundleStub()
-        }
-      ),
-    /rough_outline_requires_confirmed_seven_questions/
+test('story intent path generates outline and characters without confirmed seven questions', async () => {
+  const diagnostics: string[] = []
+  let receivedSevenQuestions: unknown = 'not-called'
+
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      storyIntent: createStoryIntent(),
+      outlineDraft: {
+        ...createConfirmedOutlineDraft(),
+        outlineBlocks: []
+      },
+      runtimeConfig: {} as never
+    },
+    {
+      appendDiagnosticLog: async (message) => {
+        diagnostics.push(message)
+      },
+      generateCharacterProfiles: async () => createCharacterProfiles(),
+      generateOutlineBundle: async (input) => {
+        receivedSevenQuestions = input.sevenQuestions
+        return createOutlineBundleStub()
+      }
+    }
   )
+
+  assert.equal(receivedSevenQuestions, undefined)
+  assert.equal(result.sevenQuestions, null)
+  assert.equal(result.outlineDraft.summaryEpisodes.length, 3)
+  assert.equal(result.outlineDraft.outlineBlocks?.length, 1)
+  assert.ok(result.outlineDraft.outlineBlocks?.every((block) => !block.sevenQuestions))
+  assert.ok(diagnostics.some((message) => message.includes('rough_outline_start direct_story_intent')))
 })
 
 test('confirmed seven questions path auto-confirms generated outline facts for downstream detailed outline', async () => {

@@ -3,6 +3,8 @@ import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
 import { useStageStore } from '../../../store/useStageStore.ts'
 import { clearScriptPlanCache } from '../../../app/services/script-plan-service.ts'
+import { useTrackedGeneration } from '../../../app/hooks/useTrackedGeneration.ts'
+import { resolveDetailedOutlineEstimatedSeconds } from '../../../app/utils/stage-estimates.ts'
 import { buildDetailedOutlineFailureNotice } from './detailed-outline-generation-notice.ts'
 import { resolveDetailedOutlineEntryBlock } from './detailed-outline-entry-guard.ts'
 import { buildDetailedOutlineGenerationSuccessNotice } from './detailed-outline-stage-label.ts'
@@ -28,6 +30,7 @@ export function useDetailedOutlineStageActions(): DetailedOutlineStageActionsRes
   const characters = useStageStore((state) => state.characters)
   const segments = useStageStore((state) => state.segments)
   const [generationKickoffPending, setGenerationKickoffPending] = useState(false)
+  const trackedGeneration = useTrackedGeneration()
 
   const handleGenerateDetailedOutline = useCallback(async (): Promise<void> => {
     if (!projectId || generationKickoffPending || generationStatus) return
@@ -49,9 +52,19 @@ export function useDetailedOutlineStageActions(): DetailedOutlineStageActionsRes
       await apiSaveOutlineDraft({ projectId: requestProjectId, outlineDraft: outline })
       await apiSaveCharacterDrafts({ projectId: requestProjectId, characterDrafts: characters })
 
-      const result = await apiGenerateDetailedOutline({
-        projectId: requestProjectId
-      })
+      const result = await trackedGeneration.track(
+        {
+          task: 'detailed_outline',
+          title: '正在生成详细大纲',
+          detail: '正在把推进、钩子和分集节奏排顺，请稍候...',
+          fallbackSeconds: resolveDetailedOutlineEstimatedSeconds(outline.summaryEpisodes.length),
+          scope: 'project'
+        },
+        () =>
+          apiGenerateDetailedOutline({
+            projectId: requestProjectId
+          })
+      )
       if (
         !result.project ||
         !result.detailedOutlineSegments ||
@@ -85,7 +98,8 @@ export function useDetailedOutlineStageActions(): DetailedOutlineStageActionsRes
     projectId,
     replaceSegments,
     segments,
-    setGenerationNotice
+    setGenerationNotice,
+    trackedGeneration
   ])
 
   return {

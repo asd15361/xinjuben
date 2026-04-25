@@ -27,8 +27,10 @@ import {
 } from '../short-drama/information-density-policy.ts'
 import { detectFormatIssues } from '../short-drama/screenplay-format-policy.ts'
 import type { MarketProfileDto } from '../../contracts/project.ts'
+import type { MarketPlaybookDto } from '../../contracts/market-playbook.ts'
 import type { StoryStateSnapshotDto } from '../../contracts/story-state.ts'
 import { inspectStoryContinuityAgainstSnapshot } from './screenplay-continuity-audit.ts'
+import { inspectPlaybookAlignment } from '../market-playbook/playbook-alignment.ts'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KNOWN_LOOP_PATTERNS
@@ -206,6 +208,8 @@ export interface ContentQualitySignal {
   storyContinuityScore: number
   /** 垂类市场质量分（男频/女频），无 marketProfile 时为 undefined */
   marketQuality?: MarketQualitySignal
+  /** MarketPlaybook 对齐度观测分（0-100），无 playbook 时为 undefined。不进入 overallScore */
+  playbookAlignmentScore?: number
   /** 总分 */
   overallScore: number
   /** 需要返修的推荐类型 */
@@ -276,6 +280,8 @@ export interface BatchContentQualityReport {
   averageStoryContinuityScore: number
   /** 垂类市场质量平均分 */
   averageMarketQualityScore?: number
+  /** MarketPlaybook 对齐度平均观测分，无 playbook 时为 undefined */
+  averagePlaybookAlignmentScore?: number
   /** 循环问题汇总 */
   loopProblemSummary: {
     totalLoops: number
@@ -1776,6 +1782,8 @@ export function inspectContentQualityEpisode(
     tacticHistory?: TacticCategory[]
     /** 垂类市场定位（男频/女频），不存在时不检测市场质量 */
     marketProfile?: MarketProfileDto | null
+    /** MarketPlaybook，不存在时不检测对齐度 */
+    playbook?: MarketPlaybookDto | null
     /** story state snapshot，用于连续性质检 */
     snapshot?: StoryStateSnapshotDto | null
   }
@@ -1790,6 +1798,7 @@ export function inspectContentQualityEpisode(
     pressureType,
     tacticHistory = [],
     marketProfile,
+    playbook,
     snapshot
   } = options || {}
 
@@ -1828,6 +1837,13 @@ export function inspectContentQualityEpisode(
   if (marketProfile) {
     marketQuality = computeMarketQuality(scene, marketProfile, protagonistName, antagonistName)
   }
+
+  // MarketPlaybook 对齐度观测（不进入 overallScore，不触发修稿）
+  const playbookAlignment = inspectPlaybookAlignment({
+    text: normalize(scene.screenplay),
+    playbook
+  })
+  const playbookAlignmentScore = playbookAlignment?.score
 
   // 人物弧线检测
   const characterNames = [protagonistName, supportingName, antagonistName]
@@ -2092,6 +2108,7 @@ export function inspectContentQualityEpisode(
     screenplayFormatScore,
     storyContinuityScore,
     marketQuality,
+    playbookAlignmentScore,
     overallScore,
     repairRecommendations
   }
@@ -2108,6 +2125,7 @@ export function inspectContentQualityBatch(
     supportingName?: string
     antagonistName?: string
     marketProfile?: MarketProfileDto | null
+    playbook?: MarketPlaybookDto | null
     snapshots?: StoryStateSnapshotDto[]
   }
 ): BatchContentQualityReport {
@@ -2135,6 +2153,7 @@ export function inspectContentQualityBatch(
       pressureType,
       tacticHistory,
       marketProfile: options?.marketProfile,
+      playbook: options?.playbook,
       snapshot: options?.snapshots?.[i] ?? null
     })
     episodes.push(signal)
@@ -2243,6 +2262,16 @@ export function inspectContentQualityBatch(
             episodesWithMarketQuality.length
         )
       : undefined
+  const episodesWithPlaybookAlignment = validEpisodes.filter((e) => e.playbookAlignmentScore != null)
+  const averagePlaybookAlignmentScore =
+    episodesWithPlaybookAlignment.length > 0
+      ? Math.round(
+          episodesWithPlaybookAlignment.reduce(
+            (sum, e) => sum + (e.playbookAlignmentScore ?? 0),
+            0
+          ) / episodesWithPlaybookAlignment.length
+        )
+      : undefined
 
   return {
     episodeCount: episodes.length,
@@ -2259,6 +2288,7 @@ export function inspectContentQualityBatch(
     averageScreenplayFormatScore,
     averageStoryContinuityScore,
     averageMarketQualityScore,
+    averagePlaybookAlignmentScore,
     loopProblemSummary
   }
 }

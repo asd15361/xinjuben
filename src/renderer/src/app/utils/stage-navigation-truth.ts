@@ -74,7 +74,7 @@ export async function evaluateStageAccess(
     }
     return {
       ready: false,
-      message: '先在灵感对话里确认创作信息，再进入七问篇章。',
+      message: '先在灵感对话里确认创作信息，再进入人物小传。',
       issues: ['还没有确认创作信息']
     }
   }

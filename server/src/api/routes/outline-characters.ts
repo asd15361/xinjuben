@@ -136,6 +136,7 @@ outlineCharactersRouter.post(
         project: result.project,
         outlineDraft: result.project.outlineDraft,
         characterDrafts: result.project.characterDrafts,
+        outlineGenerationError: result.outlineGenerationError,
         creditsRemaining: newBalance.balance
       })
     } catch (error) {

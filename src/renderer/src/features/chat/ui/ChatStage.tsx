@@ -25,9 +25,9 @@ export function ChatStage(): JSX.Element {
     .join('\n')
   const hasConfirmedCurrentInfo = isConfirmedStoryIntentForTranscript(storyIntent, truthTranscript)
 
-  async function handleGoToOutline(): Promise<void> {
+  async function handleGoToCharacter(): Promise<void> {
     if (!projectId) return
-    const result = await switchStageSession(projectId, 'outline')
+    const result = await switchStageSession(projectId, 'character')
     if (!result) {
       return
     }
@@ -54,23 +54,12 @@ export function ChatStage(): JSX.Element {
           {(outline.title.trim() || characters.length > 0) && (
             <button
               onClick={() => {
-                void handleGoToOutline()
+                void handleGoToCharacter()
               }}
               className="rounded-lg px-3 py-1.5 text-[10px] font-black text-[#050505] transition-transform active:scale-95"
               style={{ background: '#FF7A00' }}
             >
-              去粗纲确认
-            </button>
-          )}
-          {storyIntent && (
-            <button
-              onClick={() => {
-                if (!projectId) return
-                void switchStageSession(projectId, 'seven_questions')
-              }}
-              className="rounded-lg px-3 py-1.5 text-[10px] font-black border border-white/10 text-white/50 hover:text-white hover:bg-white/5 transition-all"
-            >
-              七问确认
+              去人物小传
             </button>
           )}
           <button
@@ -99,7 +88,7 @@ export function ChatStage(): JSX.Element {
               throw new Error('confirmed_story_intent_missing')
             }
             if (!projectId) return
-            await switchStageSession(projectId, 'seven_questions')
+            await switchStageSession(projectId, 'character')
           }}
         />
       </div>

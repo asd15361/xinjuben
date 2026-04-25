@@ -5,6 +5,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
+import type { ContentQualitySignal } from './screenplay-content-quality.ts'
 import {
   KNOWN_LOOP_PATTERNS,
   detectLoopsInEpisode,
@@ -23,7 +24,8 @@ import {
   computeVillainOppressionQualityScore,
   computeCatharsisPayoffScore,
   computeInformationDensityScore,
-  computeScreenplayFormatScore
+  computeScreenplayFormatScore,
+  buildContentRepairSignals
 } from './screenplay-content-quality.ts'
 
 function makeScene(screenplay: string, sceneNo = 1): ScriptSegmentDto {
@@ -715,5 +717,70 @@ describe('P4: marketProfile quality detection', () => {
     assert.ok(dim)
     assert.ok(dim!.evidence.length > 0)
     assert.ok(dim!.repairHint.length > 0)
+  })
+})
+
+// ============================================================
+// P9 边界测试：playbookAlignmentScore 不驱动修稿
+// ============================================================
+
+describe('P9: buildContentRepairSignals 不受 playbookAlignmentScore 影响', () => {
+  function makeHighScoreSignal(overrides?: Partial<ContentQualitySignal>): ContentQualitySignal {
+    return {
+      sceneNo: 1,
+      loops: [],
+      characterArcs: [],
+      themeAnchoringScore: 80,
+      plotNoveltyScore: 80,
+      dramaticTurnScore: 80,
+      sceneEngineScore: 80,
+      characterFunctionScore: 80,
+      weaknessDetection: { hasForbiddenBehavior: false, behaviors: [], behaviorTypes: [], isStrategic: false, evidence: [], severity: 0 },
+      tacticRotation: { isDuplicate: false },
+      openingShockScore: 80,
+      hookRetentionScore: 80,
+      punchlineDensityScore: 80,
+      villainOppressionQualityScore: 80,
+      catharsisPayoffScore: 80,
+      informationDensityScore: 80,
+      screenplayFormatScore: 80,
+      storyContinuityScore: 80,
+      overallScore: 80,
+      repairRecommendations: [],
+      ...overrides
+    }
+  }
+
+  it('playbookAlignmentScore=0 不产生任何 ContentRepairSignal', () => {
+    const signal = makeHighScoreSignal({ playbookAlignmentScore: 0 })
+    const repairSignals = buildContentRepairSignals(signal)
+    assert.strictEqual(repairSignals.length, 0, 'playbookAlignmentScore 不应触发修稿')
+  })
+
+  it('playbookAlignmentScore=100 不产生任何 ContentRepairSignal', () => {
+    const signal = makeHighScoreSignal({ playbookAlignmentScore: 100 })
+    const repairSignals = buildContentRepairSignals(signal)
+    assert.strictEqual(repairSignals.length, 0)
+  })
+
+  it('playbookAlignmentScore=undefined 不产生任何 ContentRepairSignal', () => {
+    const signal = makeHighScoreSignal({ playbookAlignmentScore: undefined })
+    const repairSignals = buildContentRepairSignals(signal)
+    assert.strictEqual(repairSignals.length, 0)
+  })
+
+  it('overallScore 低 + playbookAlignmentScore=0 仍按 overallScore 触发修稿', () => {
+    const signal = makeHighScoreSignal({
+      overallScore: 30,
+      openingShockScore: 20,
+      playbookAlignmentScore: 0
+    })
+    const repairSignals = buildContentRepairSignals(signal)
+    // openingShockScore=20 < 50 应该触发修稿，与 playbookAlignmentScore 无关
+    assert.ok(repairSignals.length > 0, 'openingShockScore 低应触发修稿')
+    assert.ok(
+      repairSignals.some((s) => s.id === 'openingShock'),
+      '应包含 openingShock 修稿信号'
+    )
   })
 })

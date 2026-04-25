@@ -214,6 +214,7 @@ export function parseSevenQuestionsResponse(rawText: string): SevenQuestionsResu
     if (!Array.isArray(parsed.sections)) return null
 
     return {
+      totalEpisodes: Number(parsed.totalEpisodes) || 0,
       needsSections: Boolean(parsed.needsSections),
       sectionCount: Number(parsed.sectionCount) || 0,
       sectionCountReason: String(parsed.sectionCountReason || ''),

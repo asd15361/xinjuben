@@ -217,6 +217,7 @@ export function parseSevenQuestionsResponse(rawText: string): SevenQuestionsResu
       needsSections: Boolean(parsed.needsSections),
       sectionCount: Number(parsed.sectionCount) || 0,
       sectionCountReason: String(parsed.sectionCountReason || ''),
+      totalEpisodes: Number(parsed.totalEpisodes) || 10,
       sections: parsed.sections
     }
   } catch {

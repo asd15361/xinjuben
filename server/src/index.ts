@@ -19,6 +19,7 @@ import { payRouter } from './api/routes/pay'
 import { stageContractRouter } from './api/routes/stage-contract'
 import { formalFactRouter } from './api/routes/formal-fact'
 import { scriptAuditRouter } from './api/routes/script-audit'
+import { marketPlaybooksRouter } from './api/routes/market-playbooks'
 
 // 加载环境变量
 dotenv.config()
@@ -64,6 +65,7 @@ app.use('/api/script-generation', scriptsRouter)
 app.use('/api/stage', stageContractRouter)
 app.use('/api/formal-fact', formalFactRouter)
 app.use('/api/script-audit', scriptAuditRouter)
+app.use('/api/market-playbooks', marketPlaybooksRouter)
 app.use('/api/pay', payRouter)
 
 // 404 处理

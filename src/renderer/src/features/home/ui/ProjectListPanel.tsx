@@ -25,7 +25,7 @@ export function ProjectListPanel(props: ProjectListPanelProps): JSX.Element {
   } = props
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white/[0.01] rounded-2xl border border-white/[0.05] p-5">
+    <div className="flex-1 flex flex-col min-h-[260px] bg-white/[0.01] rounded-2xl border border-white/[0.05] p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <h3 className="text-sm font-black text-white/80 flex items-center gap-2">

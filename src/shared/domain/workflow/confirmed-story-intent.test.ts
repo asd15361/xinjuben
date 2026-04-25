@@ -118,3 +118,44 @@ test('buildConfirmedStoryIntent normalizes protagonist, antagonist and locked ch
   assert.deepEqual(result.officialKeyCharacters, ['韦小宝', '海大富'])
   assert.deepEqual(result.lockedCharacterNames, ['韦小宝', '海大富'])
 })
+
+test('buildConfirmedStoryIntent passes creativeSummary and storySynopsis through', () => {
+  const result = buildConfirmedStoryIntent({
+    storyIntent: {
+      titleHint: '修仙传',
+      genre: '玄幻',
+      creativeSummary: '用户想写废灵根刺客的故事',
+      storySynopsis: {
+        logline: '废灵根刺客觉醒神尊之力',
+        openingPressureEvent: '测灵台判废体',
+        protagonistCurrentDilemma: '功劳被夺',
+        firstFaceSlapEvent: '测灵石炸裂',
+        antagonistForce: '宗门长老',
+        antagonistPressureMethod: '用规矩压人',
+        corePayoff: '逆袭',
+        stageGoal: '查清黑幕',
+        finaleDirection: '登顶清算'
+      }
+    },
+    generationBriefText: 'brief',
+    chatTranscript: 'transcript'
+  })
+
+  assert.equal(result.creativeSummary, '用户想写废灵根刺客的故事')
+  assert.ok(result.storySynopsis)
+  assert.equal(result.storySynopsis?.logline, '废灵根刺客觉醒神尊之力')
+  assert.equal(result.storySynopsis?.openingPressureEvent, '测灵台判废体')
+})
+
+test('buildConfirmedStoryIntent defaults creativeSummary to empty string when missing', () => {
+  const result = buildConfirmedStoryIntent({
+    storyIntent: {
+      titleHint: '测试'
+    },
+    generationBriefText: 'brief',
+    chatTranscript: 'transcript'
+  })
+
+  assert.equal(result.creativeSummary, '')
+  assert.equal(result.storySynopsis, null)
+})

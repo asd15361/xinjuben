@@ -22,7 +22,7 @@ export interface GenerationNoticeAction {
 
 export interface GenerationNotice {
   source?: 'system' | 'generation_result' | 'stage_gate'
-  kind: 'success' | 'error'
+  kind: 'success' | 'warning' | 'error'
   title: string
   detail: string
   primaryAction?: GenerationNoticeAction

@@ -6,9 +6,12 @@ import { apiGetProject } from '../../services/api-client.ts'
 import { useAuthStore } from '../store/useAuthStore.ts'
 import { useStageStore } from '../../store/useStageStore.ts'
 import { clearScriptPlanCache } from '../services/script-plan-service.ts'
+import { useTrackedGeneration } from './useTrackedGeneration.ts'
+import { resolveOutlineBundleEstimatedSeconds } from '../utils/stage-estimates.ts'
 import { useWorkflowStore } from '../store/useWorkflowStore.ts'
 import {
   buildOutlineCharacterGenerationFailureNotice,
+  buildOutlineCharacterPartialSuccessNotice,
   buildOutlineCharacterGenerationSuccessNotice,
   getOutlineCharacterGenerationActionLabel,
   hasOutlineCharacterStageContent,
@@ -35,6 +38,7 @@ export function useOutlineCharacterGeneration(
   const characters = useStageStore((state) => state.characters)
   const hydrateProjectDrafts = useStageStore((state) => state.hydrateProjectDrafts)
   const refreshCredits = useAuthStore((state) => state.refreshCredits)
+  const trackedGeneration = useTrackedGeneration()
 
   const outlineEpisodeCount = useMemo(
     () =>
@@ -63,7 +67,16 @@ export function useOutlineCharacterGeneration(
     setGenerationKickoffPending(true)
 
     try {
-      const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(requestProjectId)
+      const result = await trackedGeneration.track(
+        {
+          task: 'outline_and_characters',
+          title: '正在生成人物小传和骨架',
+          detail: '正在先写人物小传，再生成统一剧本骨架，请稍候...',
+          fallbackSeconds: resolveOutlineBundleEstimatedSeconds(),
+          scope: 'project'
+        },
+        () => generateOutlineAndCharactersFromConfirmedSevenQuestions(requestProjectId)
+      )
       if (!result.outlineDraft) {
         throw new Error('rough_outline_result_missing')
       }
@@ -81,10 +94,15 @@ export function useOutlineCharacterGeneration(
         })
         clearScriptPlanCache()
         setGenerationNotice(
-          buildOutlineCharacterGenerationSuccessNotice({
-            currentStage,
-            hadExistingContent: hadExistingContentSnapshot
-          })
+          result.outlineGenerationError
+            ? buildOutlineCharacterPartialSuccessNotice({
+                currentStage,
+                hadExistingContent: hadExistingContentSnapshot
+              })
+            : buildOutlineCharacterGenerationSuccessNotice({
+                currentStage,
+                hadExistingContent: hadExistingContentSnapshot
+              })
         )
         await refreshCredits()
       }
@@ -115,7 +133,8 @@ export function useOutlineCharacterGeneration(
     refreshCredits,
     setGenerationNotice,
     setProjectEntityStore,
-    setStoryIntent
+    setStoryIntent,
+    trackedGeneration
   ])
 
   return {

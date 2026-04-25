@@ -20,7 +20,6 @@
 import type { ProjectSnapshotDto } from '../../contracts/project.ts'
 import type { WorkflowStage } from '../../contracts/workflow.ts'
 import type { InputContractIssueDto } from '../../contracts/input-contract.ts'
-import { hasConfirmedSevenQuestions } from './seven-questions-authority.ts'
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -127,18 +126,6 @@ function hasOutlineContent(project: Pick<ProjectSnapshotDto, 'outlineDraft'>): b
   )
 }
 
-function hasSevenQuestionsOnly(project: Pick<ProjectSnapshotDto, 'outlineDraft'>): boolean {
-  if (!project.outlineDraft) return false
-  if (!hasConfirmedSevenQuestions(project.outlineDraft)) return false
-
-  const outline = project.outlineDraft
-  const hasOutlineSummary = Boolean(
-    outline.summary?.trim() || outline.summaryEpisodes?.some((episode) => episode.summary?.trim())
-  )
-
-  return !hasOutlineSummary
-}
-
 /**
  * Derive the current workflow stage from project snapshot.
  *
@@ -168,10 +155,6 @@ export function deriveStage(project: ProjectSnapshotDto): WorkflowStage {
   // Character stage
   if (hasCharacterContent(project)) {
     return 'character'
-  }
-
-  if (hasSevenQuestionsOnly(project)) {
-    return 'seven_questions'
   }
 
   // Outline stage
@@ -217,7 +200,7 @@ const BLOCKED_REASON_MAP: Record<string, { message: string; suggestedStage: Work
     suggestedStage: 'outline'
   },
   outline_summary_missing: {
-    message: '粗略大纲骨架还没成稿，当前还只是事实和槽位。',
+    message: '剧本骨架还没成稿，当前还只是事实和槽位。',
     suggestedStage: 'outline'
   },
   character_upstream_outline_incomplete: {
@@ -359,10 +342,10 @@ export function deriveRecommendedAction(
 
   // Default instruction based on current stage
   const instructionMap: Record<WorkflowStage | 'runtime_console', string> = {
-    chat: '继续在灵感对话里把需求说清楚，系统会自动整理成粗纲。',
-    seven_questions: '先确认并保存篇章七问，再单独启动粗纲和人物生成。',
-    outline: '继续完善粗纲，确保题材、主角困境和主线冲突都已定义。',
-    character: '继续完善人物小传，确保关键角色都有完整的人物弧光。',
+    chat: '继续在灵感对话里把需求说清楚，确认总结后进入人物小传和骨架生成。',
+    seven_questions: '七问已并入剧本骨架，不再作为单独主流程；请继续看人物小传或剧本骨架。',
+    outline: '继续完善剧本骨架，确保题材、主角困境和主线冲突都已定义。',
+    character: '继续完善人物小传，先锁角色关系、动机和立场，再看剧本骨架。',
     detailed_outline: '继续完善详细大纲，确保每个角色块和逐集细纲都已完成。',
     script: '可以在剧本页继续写，或回详细大纲继续完善。',
     runtime_console: '查看运行信息或回到剧本继续。'

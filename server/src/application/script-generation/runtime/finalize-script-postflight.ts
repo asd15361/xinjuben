@@ -14,6 +14,7 @@ import type {
 import { inspectScreenplayQualityBatch } from '@shared/domain/script/screenplay-quality'
 import { inspectContentQualityBatch } from '@shared/domain/script/screenplay-content-quality'
 import { buildStoryStateSnapshot } from '@shared/domain/short-drama/story-state-snapshot'
+import { resolveProjectMarketPlaybook } from '@shared/domain/market-playbook/playbook-prompt-block'
 import { buildScriptStateLedger } from '../ledger/build-script-ledger'
 import { buildLedgerPostflightAssertion } from '../ledger/ledger-postflight'
 import { collectF6PostflightIssues } from './collect-f6-postflight-issues'
@@ -74,6 +75,12 @@ export function finalizeScriptPostflight(input: {
     supportingName: undefined,
     antagonistName: input.generationInput.storyIntent?.antagonist,
     marketProfile,
+    playbook: resolveProjectMarketPlaybook({
+      marketPlaybookSelection: input.generationInput.marketPlaybookSelection,
+      audienceLane: marketProfile?.audienceLane,
+      subgenre: marketProfile?.subgenre,
+      customPlaybooks: input.generationInput.customMarketPlaybooks
+    }),
     snapshots
   })
   postflight.issues.push(...collectF6PostflightIssues(input.generatedScenes))
@@ -97,7 +104,8 @@ export function finalizeScriptPostflight(input: {
     informationDensityScore: contentQualityReport.averageInformationDensityScore,
     screenplayFormatScore: contentQualityReport.averageScreenplayFormatScore,
     storyContinuityScore: contentQualityReport.averageStoryContinuityScore,
-    marketQualityScore: contentQualityReport.averageMarketQualityScore
+    marketQualityScore: contentQualityReport.averageMarketQualityScore,
+    playbookAlignmentScore: contentQualityReport.averagePlaybookAlignmentScore
   }
   postflight.pass = postflight.issues.length === 0
   if (postflight.issues.length > 0 && !qualityReport.pass) {

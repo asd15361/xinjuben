@@ -54,10 +54,13 @@ export function extractConfirmedSevenQuestions(
     sevenQuestions: block.sevenQuestions!
   }))
 
+  const totalEpisodes = sections.length > 0 ? Math.max(...sections.map((s) => s.endEpisode)) : 0
+
   return {
     needsSections: sections.length > 1,
     sectionCount: sections.length,
     sectionCountReason: sections.length > 1 ? '剧本有明显的篇章划分' : '剧本整体一个篇章',
+    totalEpisodes,
     sections
   }
 }

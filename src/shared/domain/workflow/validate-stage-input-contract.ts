@@ -81,7 +81,7 @@ export function validateStageInputContract(
     if (!hasText(payload.outline.summary))
       issues.push({
         code: 'outline_summary_missing',
-        message: '粗略大纲骨架还没成稿，当前还只是事实和槽位。'
+        message: '剧本骨架还没成稿，当前还只是事实和槽位。'
       })
   }
 
@@ -94,7 +94,7 @@ export function validateStageInputContract(
     ) {
       issues.push({
         code: 'character_upstream_outline_incomplete',
-        message: '人物工序启动前，粗纲标题、主题、主线冲突和粗略大纲骨架必须先完整。'
+        message: '人物工序启动前，粗纲标题、主题、主线冲突和剧本骨架必须先完整。'
       })
     }
     if (

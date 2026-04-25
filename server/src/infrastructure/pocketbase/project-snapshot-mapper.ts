@@ -23,6 +23,7 @@ import type {
 } from '@shared/contracts/workflow'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { MarketProfileDto } from '@shared/contracts/project'
+import type { MarketPlaybookSelectionDto } from '@shared/contracts/market-playbook'
 
 export interface ProjectRecordShape {
   id: string
@@ -37,6 +38,7 @@ export interface ProjectRecordShape {
   visibleResultJson?: string | VisibleResultState | null
   formalReleaseJson?: string | FormalReleaseState | null
   marketProfileJson?: string | MarketProfileDto | null
+  marketPlaybookSelectionJson?: string | MarketPlaybookSelectionDto | null
 }
 
 export interface ProjectStageRecordsShape {
@@ -102,6 +104,10 @@ export function mapProjectSummary(record: ProjectRecordShape): ProjectSummaryDto
     stage: record.stage,
     genre: record.genre || '',
     marketProfile: parseJsonOrDefault<MarketProfileDto | null>(record.marketProfileJson, null),
+    marketPlaybookSelection: parseJsonOrDefault<MarketPlaybookSelectionDto | null>(
+      record.marketPlaybookSelectionJson,
+      null
+    ),
     updatedAt: record.updated
   }
 }
@@ -136,6 +142,10 @@ export function mapProjectSnapshot(
     stage: project.stage,
     genre: project.genre || '',
     marketProfile: parseJsonOrDefault<MarketProfileDto | null>(project.marketProfileJson, null),
+    marketPlaybookSelection: parseJsonOrDefault<MarketPlaybookSelectionDto | null>(
+      project.marketPlaybookSelectionJson,
+      null
+    ),
     updatedAt: project.updated,
     chatMessages: parseJsonOrDefault<ChatMessageDto[]>(stages.chat?.messagesJson, []),
     generationStatus: parseJsonOrDefault<ProjectGenerationStatusDto | null>(

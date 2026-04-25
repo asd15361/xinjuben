@@ -174,7 +174,7 @@ async function main() {
       await page.waitForTimeout(1000)
     }
 
-    await page.getByRole('button', { name: /粗略大纲/ }).click()
+    await page.getByRole('button', { name: /剧本骨架/ }).click()
     await page.waitForTimeout(600)
     await page
       .getByRole('button')

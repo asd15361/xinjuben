@@ -21,7 +21,9 @@ import type {
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
   ScriptSegmentDto,
-  SevenQuestionsResultDto
+  SevenQuestionsResultDto,
+  SevenQuestionCandidateDto,
+  SevenQuestionsSessionDto
 } from './workflow'
 
 export interface CreateProjectResultDto {
@@ -239,7 +241,12 @@ export interface GenerateSevenQuestionsDraftInputDto {
 
 export interface GenerateSevenQuestionsDraftResultDto {
   project: ProjectSnapshotDto | null
-  sevenQuestions: SevenQuestionsResultDto | null
+  /** 旧字段：单个七问结果，兼容旧前端 */
+  sevenQuestions?: SevenQuestionsResultDto | null
+  /** 新字段：七问候选列表 */
+  candidates?: SevenQuestionCandidateDto[]
+  /** 当只生成1个候选时标记，前端可提示继续生成 */
+  needsMoreCandidates?: boolean
 }
 
 /**
@@ -253,6 +260,18 @@ export interface SaveConfirmedSevenQuestionsInputDto {
 export interface SaveConfirmedSevenQuestionsResultDto {
   project: ProjectSnapshotDto | null
   outlineDraft: OutlineDraftDto | null
+}
+
+/**
+ * 保存七问候选会话（持久化 candidates + 选中/锁定状态）
+ */
+export interface SaveSevenQuestionsSessionInputDto {
+  projectId: string
+  session: SevenQuestionsSessionDto
+}
+
+export interface SaveSevenQuestionsSessionResultDto {
+  project: ProjectSnapshotDto | null
 }
 
 /**

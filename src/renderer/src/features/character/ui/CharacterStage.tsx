@@ -66,9 +66,9 @@ export function CharacterStage(): JSX.Element {
     [characters, entityStore]
   )
 
-  async function handleGoToDetailedOutline(): Promise<void> {
+  async function handleGoToOutline(): Promise<void> {
     if (!projectId) return
-    const result = await switchStageSession(projectId, 'detailed_outline')
+    const result = await switchStageSession(projectId, 'outline')
     if (!result) {
       return
     }
@@ -154,12 +154,12 @@ export function CharacterStage(): JSX.Element {
 
             <button
               onClick={() => {
-                void handleGoToDetailedOutline()
+                void handleGoToOutline()
               }}
               className="rounded-xl px-5 py-2.5 text-xs font-black text-[#050505] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-500/20"
               style={{ background: '#FF7A00' }}
             >
-              确认：生成详细大纲
+              确认：进入剧本骨架
             </button>
           </div>
         </div>

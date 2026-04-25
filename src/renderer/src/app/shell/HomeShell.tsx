@@ -20,7 +20,7 @@ export function HomeShell(): JSX.Element {
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-              className="glass-panel rounded-[24px] p-4 lg:p-6 xl:p-8 h-full overflow-hidden"
+              className="glass-panel rounded-[24px] p-4 lg:p-6 xl:p-8 h-full overflow-y-auto custom-scrollbar"
             >
               <div className="flex items-center gap-2 mb-6">
                 <Zap className="fill-current text-orange-500" size={18} />

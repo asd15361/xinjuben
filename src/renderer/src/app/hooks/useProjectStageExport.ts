@@ -5,7 +5,7 @@ import { useWorkflowStore } from '../store/useWorkflowStore.ts'
 function stageLabel(stage: ExportableProjectStage): string {
   switch (stage) {
     case 'outline':
-      return '粗略大纲'
+      return '剧本骨架'
     case 'character':
       return '人物小传'
     case 'detailed_outline':

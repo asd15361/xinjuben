@@ -58,7 +58,7 @@ function renderOutlineMarkdown(project) {
   const episodes = outline?.summaryEpisodes || []
   const facts = outline?.facts || []
   return [
-    `# ${project?.name || '未命名项目'}｜粗略大纲`,
+    `# ${project?.name || '未命名项目'}｜剧本骨架`,
     '',
     `- 题材：${outline?.genre || project?.genre || '未填'}`,
     `- 主角：${outline?.protagonist || '未填'}`,

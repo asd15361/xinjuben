@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getChatStagePrimaryActionLabel } from '../../../chat/ui/chat-stage-entry'
 
 export function ChatComposer(props: {
@@ -12,8 +12,21 @@ export function ChatComposer(props: {
   onGenerate: () => void
 }): JSX.Element {
   const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
 
   const sendDisabled = props.disabled || props.busy || !draft.trim()
+
+  useEffect(() => {
+    if (!props.disabled && !props.busy) {
+      inputRef.current?.focus()
+    }
+  }, [props.busy, props.disabled])
+
+  function focusComposerSoon(): void {
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
+  }
 
   function handleKeyDown(e: React.KeyboardEvent): void {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -22,6 +35,7 @@ export function ChatComposer(props: {
       if (text) {
         setDraft('')
         props.onSend(text)
+        focusComposerSoon()
       }
     }
   }
@@ -33,7 +47,7 @@ export function ChatComposer(props: {
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           <p className="text-[11px] text-white/50 tracking-wider">
-            {props.canGenerate ? '信息已经锁住，下一步先确认七问' : '先把题材、主角、冲突说出来'}
+            {props.canGenerate ? '信息总结已就绪，下一步进入人物小传' : '先把题材、主角、冲突说出来'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -42,7 +56,7 @@ export function ChatComposer(props: {
             disabled={!props.canConfirm}
             className="rounded-lg px-4 py-2 text-[11px] font-black border border-white/10 text-white disabled:opacity-30 transition-all hover:bg-white/5 active:scale-[0.98]"
           >
-            {props.confirmed ? '信息已确认' : '我聊完了，确定信息'}
+            {props.confirmed ? '信息总结已就绪' : '确认当前总结'}
           </button>
           <button
             onClick={props.onGenerate}
@@ -58,6 +72,7 @@ export function ChatComposer(props: {
       {/* 输入区 */}
       <div className="relative group">
         <textarea
+          ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -71,6 +86,7 @@ export function ChatComposer(props: {
             if (!text) return
             setDraft('')
             props.onSend(text)
+            focusComposerSoon()
           }}
           disabled={sendDisabled}
           className="absolute right-3 bottom-3 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest border border-white/10 text-white hover:bg-white/10 transition-all disabled:opacity-0 pointer-events-auto"

@@ -35,6 +35,7 @@ import {
   isLikelyTruncatedJsonResponse
 } from './rough-outline-parse-retry'
 import { runRoughOutlineStageWithRetries } from './rough-outline-retry-policy'
+import { resolveProjectMarketPlaybook } from '@shared/domain/market-playbook/playbook-prompt-block'
 
 const OUTLINE_OVERVIEW_MAX_OUTPUT_TOKENS = 2200
 const OUTLINE_BATCH_MAX_OUTPUT_TOKENS = 3200
@@ -238,6 +239,10 @@ async function generateOutlineOverview(input: {
     logContext: `totalEpisodes=${input.totalEpisodes}`,
     log: (message) => appendRuntimeDiagnosticLog('rough_outline', message),
     run: async () => {
+      const marketPlaybook = resolveProjectMarketPlaybook({
+        audienceLane: input.marketProfile?.audienceLane,
+        subgenre: input.marketProfile?.subgenre
+      })
       const prompt = buildOutlineOverviewPrompt({
         generationBriefText: input.generationBriefText,
         totalEpisodes: input.totalEpisodes,
@@ -246,7 +251,8 @@ async function generateOutlineOverview(input: {
         characterProfiles: input.characterProfiles,
         characterProfilesV2: input.characterProfilesV2,
         factionMatrix: input.factionMatrix,
-        marketProfile: input.marketProfile
+        marketProfile: input.marketProfile,
+        marketPlaybook
       })
       const overview = await invokeRoughOutlineStage<OutlineOverviewPayload>({
         prompt,
@@ -302,6 +308,10 @@ async function generateOutlineEpisodeBatch(input: {
     logContext: `range=${input.startEpisode}-${input.endEpisode}`,
     log: (message) => appendRuntimeDiagnosticLog('rough_outline', message),
     run: async () => {
+      const marketPlaybook = resolveProjectMarketPlaybook({
+        audienceLane: input.marketProfile?.audienceLane,
+        subgenre: input.marketProfile?.subgenre
+      })
       const prompt = buildOutlineEpisodeBatchPrompt({
         generationBriefText: input.generationBriefText,
         totalEpisodes: input.totalEpisodes,
@@ -314,7 +324,8 @@ async function generateOutlineEpisodeBatch(input: {
         characterProfiles: input.characterProfiles,
         characterProfilesV2: input.characterProfilesV2,
         factionMatrix: input.factionMatrix,
-        marketProfile: input.marketProfile
+        marketProfile: input.marketProfile,
+        marketPlaybook
       })
       const batch = await invokeRoughOutlineStage<OutlineEpisodeBatchPayload>({
         prompt,

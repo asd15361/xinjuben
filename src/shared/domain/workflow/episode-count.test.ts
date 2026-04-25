@@ -110,6 +110,49 @@ test('resolveProjectEpisodeCount falls back in order: outline then fallbackCount
   assert.equal(resolveProjectEpisodeCount({ fallbackCount: 24 }), 24)
 })
 
+test('resolveProjectEpisodeCount reads episode count from story synopsis hint and transcript', () => {
+  assert.equal(
+    resolveProjectEpisodeCount({
+      storyIntent: {
+        officialKeyCharacters: [],
+        lockedCharacterNames: [],
+        themeAnchors: [],
+        worldAnchors: [],
+        relationAnchors: [],
+        dramaticMovement: [],
+        storySynopsis: {
+          logline: '',
+          openingPressureEvent: '',
+          protagonistCurrentDilemma: '',
+          firstFaceSlapEvent: '',
+          antagonistForce: '',
+          antagonistPressureMethod: '',
+          corePayoff: '',
+          stageGoal: '',
+          episodePlanHint: '20集短剧，前期压迫和首次觉醒',
+          finaleDirection: ''
+        }
+      }
+    }),
+    20
+  )
+
+  assert.equal(
+    resolveProjectEpisodeCount({
+      storyIntent: {
+        officialKeyCharacters: [],
+        lockedCharacterNames: [],
+        themeAnchors: [],
+        worldAnchors: [],
+        relationAnchors: [],
+        dramaticMovement: [],
+        confirmedChatTranscript: '用户：你给我搞一个20集的剧本就可以了'
+      }
+    }),
+    20
+  )
+})
+
 test('deriveOutlineEpisodeCount trusts summaryEpisodes.length over summary text parsing', () => {
   // Case from E2E bug: 30-item summaryEpisodes but summary has no "第X集" markers.
   // parseEpisodeCountFromSummary returns 0, but episodes.length = 30 must win.

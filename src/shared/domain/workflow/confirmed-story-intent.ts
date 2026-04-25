@@ -74,6 +74,8 @@ export function buildConfirmedStoryIntent(input: {
     manualRequirementNotes: input.storyIntent.manualRequirementNotes || '',
     freeChatFinalSummary: input.storyIntent.freeChatFinalSummary || '',
     generationBriefText: input.generationBriefText,
-    confirmedChatTranscript: input.chatTranscript
+    confirmedChatTranscript: input.chatTranscript,
+    creativeSummary: input.storyIntent.creativeSummary || '',
+    storySynopsis: input.storyIntent.storySynopsis ?? null
   }
 }

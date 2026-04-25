@@ -5,6 +5,7 @@ import type {
   ProjectSnapshotDto,
   ProjectSummaryDto
 } from '@shared/contracts/project'
+import type { MarketPlaybookSelectionDto } from '@shared/contracts/market-playbook'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { ProjectEntityStoreDto } from '@shared/contracts/entities'
 import type { ChatMessageDto } from '@shared/contracts/chat'
@@ -14,7 +15,8 @@ import type {
   DetailedOutlineSegmentDto,
   DetailedOutlineBlockDto,
   CharacterBlockDto,
-  ScriptSegmentDto
+  ScriptSegmentDto,
+  SevenQuestionsSessionDto
 } from '@shared/contracts/workflow'
 import type { ProjectGenerationStatusDto } from '@shared/contracts/generation'
 import type { ScriptStateLedgerDto } from '@shared/contracts/script-ledger'
@@ -31,7 +33,9 @@ import {
   guardianEnforceDetailedOutlineSave,
   guardianEnforceOutlineSave
 } from '@shared/domain/workflow/stage-guardians'
+import { resolveMarketPlaybookSelection } from '@shared/domain/market-playbook/market-playbook-registry'
 import { authenticateAdmin, pb, TABLES } from './client'
+import { MarketPlaybookRepository } from './market-playbook-repository'
 import {
   mapProjectSnapshot,
   mapProjectSummary,
@@ -69,7 +73,8 @@ function toProjectRecordShape(record: PbRecord): ProjectRecordShape {
     entityStoreJson: record.entityStoreJson as string | null | undefined,
     visibleResultJson: record.visibleResultJson as string | null | undefined,
     formalReleaseJson: record.formalReleaseJson as string | null | undefined,
-    marketProfileJson: record.marketProfileJson as string | null | undefined
+    marketProfileJson: record.marketProfileJson as string | null | undefined,
+    marketPlaybookSelectionJson: record.marketPlaybookSelectionJson as string | null | undefined
   }
 }
 
@@ -131,9 +136,25 @@ async function upsertVersionedByProject(input: {
 }
 
 function extractPocketBaseErrorDetails(error: unknown, payload: Record<string, unknown>): string {
+  function valueLength(value: unknown): number {
+    if (typeof value === 'string') return value.length
+    try {
+      return JSON.stringify(value).length
+    } catch {
+      return 0
+    }
+  }
+
   if (error && typeof error === 'object') {
     const err = error as Record<string, unknown>
-    const data = err.data as Record<string, unknown> | undefined
+    const response = err.response as Record<string, unknown> | undefined
+    const errorData = err.data as Record<string, unknown> | undefined
+    const responseData = response?.data as Record<string, unknown> | undefined
+    const data =
+      (errorData?.data as Record<string, unknown> | undefined) ||
+      errorData ||
+      (responseData?.data as Record<string, unknown> | undefined) ||
+      responseData
     if (data) {
       const fieldErrors: string[] = []
       for (const [fieldName, fieldError] of Object.entries(data)) {
@@ -146,18 +167,26 @@ function extractPocketBaseErrorDetails(error: unknown, payload: Record<string, u
       }
       if (fieldErrors.length > 0) {
         const payloadSizes = Object.entries(payload)
-          .map(([k, v]) => `${k}.len=${typeof v === 'string' ? v.length : JSON.stringify(v).length}`)
+          .map(([k, v]) => `${k}.len=${valueLength(v)}`)
           .join(',')
         return `fields=[${fieldErrors.join(';')}] payload_sizes={${payloadSizes}}`
       }
     }
-    return err instanceof Error ? err.message : String(error)
+    const message =
+      (typeof response?.message === 'string' && response.message) ||
+      (err instanceof Error ? err.message : '')
+    const status = response?.status ? `status=${response.status}:` : ''
+    return message ? `${status}${message}` : String(error)
   }
   return String(error)
 }
 
 export class ProjectRepository {
-  constructor(private readonly pocketbase: PocketBase = pb) {}
+  private readonly marketPlaybookRepository: MarketPlaybookRepository
+
+  constructor(private readonly pocketbase: PocketBase = pb) {
+    this.marketPlaybookRepository = new MarketPlaybookRepository(pocketbase)
+  }
 
   async ensureAdminReady(): Promise<void> {
     await authenticateAdmin()
@@ -175,6 +204,20 @@ export class ProjectRepository {
   async createProject(userId: string, input: CreateProjectInputDto): Promise<ProjectSnapshotDto> {
     await this.ensureAdminReady()
     const now = new Date().toISOString()
+
+    // P4: 创建项目时自动选择打法包并锁定
+    const resolved = resolveMarketPlaybookSelection({
+      audienceLane: input.marketProfile.audienceLane,
+      subgenre: input.marketProfile.subgenre,
+      customPlaybooks: await this.marketPlaybookRepository.listActivePlaybooks(userId)
+    })
+
+    if (resolved.selection?.selectedPlaybookId) {
+      console.log(
+        `[market_playbook_locked] projectId=pending playbookId=${resolved.selection.selectedPlaybookId} version=${resolved.selection.selectedVersion ?? '?'} sourceMonth=${resolved.selection.selectedSourceMonth ?? '?'} reason=${resolved.reason}`
+      )
+    }
+
     const created = await this.pocketbase.collection(TABLES.projects).create<PbRecord>({
       user: userId,
       name: input.name.trim(),
@@ -182,6 +225,7 @@ export class ProjectRepository {
       stage: 'chat',
       genre: input.genre?.trim() || '',
       marketProfileJson: stringifyJson(input.marketProfile),
+      marketPlaybookSelectionJson: stringifyJson(resolved.selection),
       generationStatusJson: stringifyJson(null),
       storyIntentJson: stringifyJson(null),
       entityStoreJson: stringifyJson({
@@ -230,7 +274,9 @@ export class ProjectRepository {
     ])
 
     return mapProjectSnapshot(toProjectRecordShape(projectRecord), {
-      chat: chat ? { messagesJson: chat.messagesJson as string } : undefined,
+      chat: chat
+        ? { messagesJson: chat.messagesJson as string | ChatMessageDto[] | null }
+        : undefined,
       outline: outline ? { outlineDraftJson: outline.outlineDraftJson as string } : undefined,
       characters: characters
         ? {
@@ -272,6 +318,7 @@ export class ProjectRepository {
     stage?: ProjectSnapshotDto['stage']
     genre?: string
     marketProfile?: MarketProfileDto | null
+    marketPlaybookSelection?: MarketPlaybookSelectionDto | null
     storyIntent?: StoryIntentPackageDto | null
     entityStore?: ProjectEntityStoreDto
     generationStatus?: ProjectGenerationStatusDto | null
@@ -291,13 +338,17 @@ export class ProjectRepository {
       )
     }
 
-    await this.pocketbase.collection(TABLES.projects).update(project.id, {
+    const payload = {
       stage: input.stage ?? project.stage,
       genre: input.genre ?? project.genre ?? '',
       marketProfileJson:
         input.marketProfile === undefined
           ? project.marketProfileJson
           : stringifyJson(input.marketProfile),
+      marketPlaybookSelectionJson:
+        input.marketPlaybookSelection === undefined
+          ? project.marketPlaybookSelectionJson
+          : stringifyJson(input.marketPlaybookSelection),
       storyIntentJson:
         input.storyIntent === undefined
           ? project.storyIntentJson
@@ -319,7 +370,15 @@ export class ProjectRepository {
           ? project.formalReleaseJson
           : stringifyJson(input.formalRelease),
       projectVersion: currentVersion + 1
-    })
+    }
+
+    try {
+      await this.pocketbase.collection(TABLES.projects).update(project.id, payload)
+    } catch (updateError: unknown) {
+      const errorInfo = extractPocketBaseErrorDetails(updateError, payload)
+      console.error(`[ProjectRepository] Update failed for ${TABLES.projects}: ${errorInfo}`)
+      throw new Error(`pocketbase_update_failed:${TABLES.projects}:${errorInfo}`)
+    }
 
     return this.getProject(input.userId, input.projectId)
   }
@@ -357,6 +416,41 @@ export class ProjectRepository {
       projectId: input.projectId,
       payload: { outlineDraftJson: stringifyJson(input.outlineDraft) },
       expectedVersion: input.expectedVersion
+    })
+    return this.getProject(input.userId, input.projectId)
+  }
+
+  async saveSevenQuestionsSession(input: {
+    userId: string
+    projectId: string
+    session: SevenQuestionsSessionDto | null
+  }): Promise<ProjectSnapshotDto | null> {
+    await this.ensureAdminReady()
+    const existing = await this.getProject(input.userId, input.projectId)
+    if (!existing) return null
+
+    const baseOutline = existing.outlineDraft ?? {
+      title: existing.name ?? '',
+      genre: '',
+      theme: '',
+      mainConflict: '',
+      protagonist: '',
+      summary: '',
+      summaryEpisodes: [],
+      facts: []
+    }
+
+    const nextOutline: OutlineDraftDto = {
+      ...baseOutline,
+      sevenQuestionsSession: input.session ?? undefined
+    }
+
+    await upsertVersionedByProject({
+      pocketbase: this.pocketbase,
+      collection: TABLES.projectOutlines,
+      userId: input.userId,
+      projectId: input.projectId,
+      payload: { outlineDraftJson: stringifyJson(nextOutline) }
     })
     return this.getProject(input.userId, input.projectId)
   }

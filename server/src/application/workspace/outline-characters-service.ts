@@ -18,6 +18,7 @@ export interface OutlineAndCharactersProjectRequest {
 export interface OutlineAndCharactersProjectResponse {
   project: ProjectSnapshotDto
   success: boolean
+  outlineGenerationError?: string
 }
 
 const projectRepository = new ProjectRepository()
@@ -103,7 +104,7 @@ export async function generateOutlineAndCharactersForProject(
   const project = await projectRepository.saveProjectMeta({
     userId: request.userId,
     projectId: request.projectId,
-    stage: 'outline',
+    stage: 'character',
     genre: result.outlineDraft.genre,
     storyIntent: result.storyIntent,
     entityStore: result.entityStore
@@ -115,6 +116,7 @@ export async function generateOutlineAndCharactersForProject(
 
   return {
     project,
-    success: true
+    success: true,
+    outlineGenerationError: result.outlineGenerationError
   }
 }

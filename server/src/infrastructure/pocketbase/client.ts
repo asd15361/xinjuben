@@ -26,6 +26,7 @@ export const TABLES = {
   projectCharacters: `${APP_ID}_project_characters`,
   projectDetailedOutlines: `${APP_ID}_project_detailed_outlines`,
   projectScripts: `${APP_ID}_project_scripts`,
+  marketPlaybooks: `${APP_ID}_market_playbooks`,
   transactions: `${APP_ID}_transactions`,
   userApps: 'user_apps',
   userWallets: 'user_wallets'

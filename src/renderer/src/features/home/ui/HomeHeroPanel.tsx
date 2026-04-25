@@ -1,4 +1,4 @@
-import type { AudienceLane, MarketProfileDto, Subgenre } from '../../../../../shared/contracts/project.ts'
+import type { AudienceLane, Subgenre } from '../../../../../shared/contracts/project.ts'
 
 interface HomeHeroPanelProps {
   status: string

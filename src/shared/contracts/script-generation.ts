@@ -1,6 +1,7 @@
 import type { InputContractIssueDto } from './input-contract'
 import type { ModelRouteLane } from './ai'
 import type { ProjectEntityStoreDto } from './entities'
+import type { MarketPlaybookDto, MarketPlaybookSelectionDto } from './market-playbook'
 import type { ShortDramaConstitutionDto, StoryIntentPackageDto } from './intake'
 import type { ScriptLedgerPostflightDto, ScriptStateLedgerDto } from './script-ledger'
 import type {
@@ -151,6 +152,8 @@ export interface StartScriptGenerationInputDto {
   segments?: DetailedOutlineSegmentDto[]
   detailedOutlineBlocks?: DetailedOutlineBlockDto[]
   existingScript: ScriptSegmentDto[]
+  marketPlaybookSelection?: MarketPlaybookSelectionDto | null
+  customMarketPlaybooks?: MarketPlaybookDto[]
 }
 
 export interface StartScriptGenerationResultDto {

@@ -10,6 +10,11 @@ import {
 import { buildProjectStageExportDraft } from '../application/workspace/export-project-stage-markdown.ts'
 import type { ExportProjectStageMarkdownInputDto, SaveScriptGenerationResultInputDto } from '../../shared/contracts/workspace.ts'
 import type { ScriptSegmentDto } from '../../shared/contracts/workflow.ts'
+import type {
+  ScriptGenerationFailureResolutionDto,
+  ScriptGenerationProgressBoardDto
+} from '../../shared/contracts/script-generation.ts'
+import type { ScriptStateLedgerDto } from '../../shared/contracts/script-ledger.ts'
 
 /**
  * workspace IPC handlers - 桌面壳能力 + 本地内容存储
@@ -24,7 +29,7 @@ import type { ScriptSegmentDto } from '../../shared/contracts/workflow.ts'
 function stageLabel(stage: ExportProjectStageMarkdownInputDto['stage']): string {
   switch (stage) {
     case 'outline':
-      return '粗略大纲'
+      return '剧本骨架'
     case 'character':
       return '人物小传'
     case 'detailed_outline':
@@ -108,9 +113,9 @@ export function registerWorkspaceProjectHandlers(): void {
     async (_event, input: {
       userId: string
       projectId: string
-      scriptProgressBoard: unknown
-      scriptFailureResolution: unknown
-      scriptStateLedger: unknown
+      scriptProgressBoard: ScriptGenerationProgressBoardDto | null
+      scriptFailureResolution: ScriptGenerationFailureResolutionDto | null
+      scriptStateLedger: ScriptStateLedgerDto | null
       scriptRuntimeFailureHistory?: string[]
     }) => {
       await saveRuntimeState(input.userId, input.projectId, {

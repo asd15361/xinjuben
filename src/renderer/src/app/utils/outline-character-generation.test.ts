@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   buildOutlineCharacterGenerationFailureNotice,
+  buildOutlineCharacterPartialSuccessNotice,
   buildOutlineCharacterGenerationSuccessNotice,
   getOutlineCharacterGenerationActionLabel
 } from './outline-character-generation.ts'
@@ -13,7 +14,7 @@ test('getOutlineCharacterGenerationActionLabel stays on generate before any outl
       outlineEpisodeCount: 0,
       characterCount: 0
     }),
-    '生成粗纲和人物'
+    '生成人物小传和骨架'
   )
 })
 
@@ -23,7 +24,7 @@ test('getOutlineCharacterGenerationActionLabel flips to regenerate once outline 
       outlineEpisodeCount: 3,
       characterCount: 0
     }),
-    '重新生成粗纲和人物'
+    '重新生成人物小传和骨架'
   )
 
   assert.equal(
@@ -31,7 +32,7 @@ test('getOutlineCharacterGenerationActionLabel flips to regenerate once outline 
       outlineEpisodeCount: 0,
       characterCount: 2
     }),
-    '重新生成粗纲和人物'
+    '重新生成人物小传和骨架'
   )
 })
 
@@ -41,26 +42,39 @@ test('buildOutlineCharacterGenerationSuccessNotice keeps character-stage follow-
     hadExistingContent: true
   })
 
-  assert.equal(notice.title, '粗纲和人物已经重新生成好了')
+  assert.equal(notice.title, '人物小传和骨架已经重新生成好了')
   assert.equal(notice.primaryAction?.label, '继续看人物')
   assert.equal(notice.primaryAction?.stage, 'character')
   assert.equal(notice.secondaryAction?.label, '去详细大纲')
   assert.equal(notice.secondaryAction?.stage, 'detailed_outline')
 })
 
-test('buildOutlineCharacterGenerationFailureNotice sends missing seven questions back to chat confirmation', () => {
+test('buildOutlineCharacterPartialSuccessNotice explains recovered rough outline failure', () => {
+  const notice = buildOutlineCharacterPartialSuccessNotice({
+    currentStage: 'character',
+    hadExistingContent: false
+  })
+
+  assert.equal(notice.kind, 'warning')
+  assert.equal(notice.title, '人物小传已经生成，骨架用了临时版本')
+  assert.match(notice.detail, /人物小传和世界底账/)
+  assert.equal(notice.primaryAction?.label, '继续看人物')
+  assert.equal(notice.secondaryAction?.label, '去剧本骨架')
+  assert.equal(notice.secondaryAction?.stage, 'outline')
+})
+
+test('buildOutlineCharacterGenerationFailureNotice treats missing seven questions as legacy detail', () => {
   const notice = buildOutlineCharacterGenerationFailureNotice({
     currentStage: 'outline',
     hadExistingContent: true,
     error: new Error('rough_outline_requires_confirmed_seven_questions')
   })
 
-  assert.equal(notice.title, '这次没能重新生成粗纲和人物')
-  assert.equal(notice.detail, '先去确认七问，再继续生成粗纲和人物')
-  assert.equal(notice.primaryAction?.label, '回聊天确认七问')
-  assert.equal(notice.primaryAction?.stage, 'chat')
-  assert.equal(notice.secondaryAction?.label, '继续看粗纲')
-  assert.equal(notice.secondaryAction?.stage, 'outline')
+  assert.equal(notice.title, '这次没能重新生成人物小传和骨架')
+  assert.equal(notice.detail, '这次卡在旧七问前置条件，请直接重新生成人物小传和骨架')
+  assert.equal(notice.primaryAction?.label, '继续看粗纲')
+  assert.equal(notice.primaryAction?.stage, 'outline')
+  assert.equal(notice.secondaryAction, undefined)
 })
 
 test('buildOutlineCharacterGenerationFailureNotice sends missing story intent back to chat confirmation', () => {
@@ -70,7 +84,7 @@ test('buildOutlineCharacterGenerationFailureNotice sends missing story intent ba
     error: new Error('confirmed_story_intent_missing')
   })
 
-  assert.equal(notice.title, '这次没能生成粗纲和人物')
+  assert.equal(notice.title, '这次没能生成人物小传和骨架')
   assert.equal(notice.detail, '请先重新点一次“确认信息”，这版聊天真相还没正式锁住')
   assert.equal(notice.primaryAction?.label, '回聊天确认信息')
   assert.equal(notice.primaryAction?.stage, 'chat')

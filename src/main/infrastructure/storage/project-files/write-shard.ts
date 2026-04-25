@@ -7,6 +7,7 @@ import type {
   ProjectShellDto,
   ProjectSnapshotDto
 } from '../../../../shared/contracts/project.ts'
+import type { MarketPlaybookSelectionDto } from '../../../../shared/contracts/market-playbook.ts'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow.ts'
 import { resolvePersistedGenerationTruth } from '../../../../shared/domain/workflow/persisted-generation-truth.ts'
 
@@ -27,6 +28,7 @@ export interface ProjectsIndexEntry {
   stage: WorkflowStage
   genre: string
   marketProfile: MarketProfileDto | null
+  marketPlaybookSelection: MarketPlaybookSelectionDto | null
   updatedAt: string
   counts: ProjectCounts
 }
@@ -43,6 +45,7 @@ export interface ProjectMetaShard {
   stage: WorkflowStage
   genre: string
   marketProfile: MarketProfileDto | null
+  marketPlaybookSelection: MarketPlaybookSelectionDto | null
   updatedAt: string
 }
 
@@ -220,6 +223,8 @@ export function toProjectsIndexEntry(project: ProjectSnapshotDto): ProjectsIndex
     workflowType: project.workflowType,
     stage: project.stage,
     genre: project.genre,
+    marketProfile: project.marketProfile ?? null,
+    marketPlaybookSelection: project.marketPlaybookSelection ?? null,
     updatedAt: project.updatedAt,
     counts: getProjectCounts(project)
   }
@@ -234,6 +239,7 @@ export function buildShardPayloads(project: ProjectSnapshotDto): ProjectShardPay
       stage: project.stage,
       genre: project.genre,
       marketProfile: project.marketProfile ?? null,
+      marketPlaybookSelection: project.marketPlaybookSelection ?? null,
       updatedAt: project.updatedAt
     },
     chat: {
@@ -287,6 +293,8 @@ export function createBaseSnapshot(indexEntry: ProjectsIndexEntry): ProjectSnaps
     workflowType: indexEntry.workflowType,
     stage: indexEntry.stage,
     genre: indexEntry.genre,
+    marketProfile: indexEntry.marketProfile ?? null,
+    marketPlaybookSelection: indexEntry.marketPlaybookSelection ?? null,
     updatedAt: indexEntry.updatedAt,
     chatMessages: [],
     generationStatus: null,
@@ -323,6 +331,8 @@ export function toProjectShellFromIndex(
     workflowType: indexEntry.workflowType,
     stage: indexEntry.stage,
     genre: indexEntry.genre,
+    marketProfile: indexEntry.marketProfile ?? null,
+    marketPlaybookSelection: indexEntry.marketPlaybookSelection ?? null,
     updatedAt: indexEntry.updatedAt,
     generationTruth: visibleShard?.visibleResult ?? generationTruth.visibleResult,
     counts: indexEntry.counts

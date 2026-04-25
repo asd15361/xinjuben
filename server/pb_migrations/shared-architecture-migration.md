@@ -78,6 +78,8 @@ registerSource: text (可选)
 | storyIntentJson | json |
 | entityStoreJson | json |
 | generationStatusJson | json |
+| marketProfileJson | json |
+| marketPlaybookSelectionJson | json |
 | projectVersion | number |
 | ... | (其他字段同原表) |
 

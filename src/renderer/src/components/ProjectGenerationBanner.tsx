@@ -2,6 +2,7 @@ import type { ProjectGenerationStatusDto } from '../../../shared/contracts/gener
 import { switchStageSession } from '../app/services/stage-session-service'
 import { useWorkflowStore } from '../app/store/useWorkflowStore'
 import { useProjectGenerationProgress } from '../app/hooks/useProjectGenerationProgress'
+import { getGenerationTimingLabel } from '../app/services/generation-timing-service'
 
 export function ProjectGenerationBanner(props: {
   status: ProjectGenerationStatusDto | null
@@ -12,6 +13,7 @@ export function ProjectGenerationBanner(props: {
   const { elapsedSeconds, estimatedSeconds, progressPercent } = useProjectGenerationProgress(
     props.status
   )
+  const timingLabel = props.status ? getGenerationTimingLabel(props.status.task) : ''
 
   async function handleSwitch(
     stage: NonNullable<NonNullable<typeof notice>['primaryAction']>['stage']
@@ -36,9 +38,12 @@ export function ProjectGenerationBanner(props: {
             </p>
             <p className="text-sm font-black text-white/90">这一步还在处理中，请先别切来切去。</p>
           </div>
-          <p className="shrink-0 text-[11px] text-orange-200/85 font-bold">
-            已处理 {elapsedSeconds}/{estimatedSeconds} 秒 · {progressPercent}%
-          </p>
+          <div className="shrink-0 text-right space-y-0.5">
+            <p className="text-[11px] text-orange-200/85 font-bold">
+              已处理 {elapsedSeconds}/{estimatedSeconds} 秒 · {progressPercent}%
+            </p>
+            <p className="text-[10px] text-white/40 font-medium">{timingLabel}</p>
+          </div>
         </div>
         <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
           <div

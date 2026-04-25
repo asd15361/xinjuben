@@ -33,6 +33,8 @@ export interface ScriptLedgerPostflightDto {
     storyContinuityScore?: number
     /** 垂类市场质量分（男频/女频平均分） */
     marketQualityScore?: number
+    /** MarketPlaybook 对齐度观测分（平均），不进入主评分 */
+    playbookAlignmentScore?: number
   }
   summary: string
   patch: {

@@ -62,7 +62,7 @@ test('buildWorkspaceChatFailureMessage explains missing confirmed story intent p
 test('buildWorkspaceChatFailureMessage explains seven questions confirmation requirement plainly', () => {
   assert.equal(
     buildWorkspaceChatFailureMessage('生成失败', 'seven_questions_confirmation_required'),
-    '生成失败：先去确认七问，再继续生成粗纲和人物'
+    '生成失败：七问已经并入骨架流程，请直接生成人物小传和剧本骨架'
   )
 })
 
@@ -100,7 +100,7 @@ test('buildWorkspaceChatFailureMessage explains missing regenerated outline resu
 test('buildWorkspaceChatFailureMessage explains failed seven questions confirmation save plainly', () => {
   assert.equal(
     buildWorkspaceChatFailureMessage('生成失败', 'seven_questions_confirm_save_failed'),
-    '生成失败：这次七问没有保存住，先重新确认七问再继续'
+    '生成失败：旧七问保存失败；现在请直接重新生成人物小传和骨架'
   )
 })
 

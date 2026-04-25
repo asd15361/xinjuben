@@ -111,3 +111,12 @@ export function getTimingStats(stage: GenerationStageType): {
     avgSeconds: Math.round(avgMs / 1000)
   }
 }
+
+export function getGenerationTimingLabel(stage: GenerationStageType): string {
+  const stats = getTimingStats(stage)
+  if (stats.count === 0 || stats.avgSeconds == null) {
+    return '首次生成，暂无本地均值；完成后会记录本次耗时'
+  }
+
+  return `本地均值 ${stats.avgSeconds} 秒，来自最近 ${stats.count} 次`
+}

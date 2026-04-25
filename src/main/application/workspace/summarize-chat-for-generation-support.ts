@@ -1,4 +1,4 @@
-import type { StoryIntentPackageDto } from '../../../shared/contracts/intake.ts'
+import type { StoryIntentPackageDto, StorySynopsisDto } from '../../../shared/contracts/intake.ts'
 import {
   extractLatestAuthoritativeEpisodeCountFromText,
   extractLatestEpisodeCountFromText
@@ -265,6 +265,32 @@ export function parseStructuredGenerationBrief(
   }
 }
 
+function extractStorySynopsis(
+  payload: Record<string, unknown> | null
+): StorySynopsisDto | null {
+  if (!payload) return null
+  const raw = payload.storySynopsis
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+
+  const record = raw as Record<string, unknown>
+  const logline = String(record.logline || '').trim()
+  if (!logline) return null
+
+  return {
+    logline,
+    openingPressureEvent: String(record.openingPressureEvent || '').trim(),
+    protagonistCurrentDilemma: String(record.protagonistCurrentDilemma || '').trim(),
+    firstFaceSlapEvent: String(record.firstFaceSlapEvent || '').trim(),
+    antagonistForce: String(record.antagonistForce || '').trim(),
+    antagonistPressureMethod: String(record.antagonistPressureMethod || '').trim(),
+    corePayoff: String(record.corePayoff || '').trim(),
+    stageGoal: String(record.stageGoal || '').trim(),
+    keyFemaleCharacterFunction: String(record.keyFemaleCharacterFunction || '').trim() || undefined,
+    episodePlanHint: String(record.episodePlanHint || '').trim() || undefined,
+    finaleDirection: String(record.finaleDirection || '').trim()
+  }
+}
+
 export function normalizeSummaryPayload(
   payload: Record<string, unknown> | null,
   chatTranscript: string
@@ -299,6 +325,8 @@ export function normalizeSummaryPayload(
     pendingConfirmations: draft.pendingConfirmations
   })
   const generationBriefText = renderGenerationBriefTemplate(generationBrief)
+  const creativeSummary = String(payload?.creativeSummary || '').trim() || draft.chainSynopsis
+  const storySynopsis = extractStorySynopsis(payload)
 
   return {
     generationBriefText,
@@ -322,7 +350,9 @@ export function normalizeSummaryPayload(
       dramaticMovement: draft.dramaticMovement,
       manualRequirementNotes: draft.pendingConfirmations.join('；'),
       freeChatFinalSummary: draft.chainSynopsis,
-      generationBriefText
+      generationBriefText,
+      creativeSummary,
+      storySynopsis
     }
   }
 }

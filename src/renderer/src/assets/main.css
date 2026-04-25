@@ -30,6 +30,21 @@ body {
   overflow: hidden;
 }
 
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background: #18181b;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+select option:checked,
+select option:hover {
+  background: #f97316;
+  color: #050505;
+}
+
 #root {
   height: 100%;
   width: 100%;

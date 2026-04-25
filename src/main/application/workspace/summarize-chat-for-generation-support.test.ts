@@ -84,3 +84,104 @@ test('normalizeSummaryPayload lets latest direct user episode change override st
   assert.deepEqual(normalized.storyIntent.officialKeyCharacters, ['黎明', '李科'])
   assert.deepEqual(normalized.storyIntent.lockedCharacterNames, ['黎明', '李科'])
 })
+
+test('normalizeSummaryPayload extracts creativeSummary and storySynopsis from payload', () => {
+  const payload = {
+    projectTitle: '修仙传',
+    episodeCount: 20,
+    genreAndStyle: '玄幻修仙',
+    tone: '爽',
+    audience: '男频',
+    sellingPremise: '废灵根刺客觉醒神尊之力',
+    coreDislocation: '废体其实是神尊封印',
+    emotionalPayoff: '打脸逆袭爽',
+    worldAndBackground: '修仙界',
+    protagonist: '沈烬',
+    antagonist: '宗门长老',
+    coreConflict: '刺客发现组织是世间祸首',
+    endingDirection: '登顶清算',
+    keyCharacters: ['沈烬', '宗门长老'],
+    chainSynopsis: '废灵根刺客发现组织黑幕',
+    dramaticMovement: ['欲望线', '阻力线', '代价线', '关系线', '钩子线'],
+    creativeSummary: '用户想写一个废灵根刺客发现组织黑幕的故事',
+    storySynopsis: {
+      logline: '废灵根刺客发现组织是世间祸首，觉醒神尊之力逆袭',
+      openingPressureEvent: '测灵台当众判废体',
+      protagonistCurrentDilemma: '被宗门判废体，功劳被夺',
+      firstFaceSlapEvent: '测灵石炸裂反噬长老',
+      antagonistForce: '宗门长老',
+      antagonistPressureMethod: '用宗门规矩当众废他灵脉',
+      corePayoff: '废材逆袭',
+      stageGoal: '查清组织黑幕',
+      keyFemaleCharacterFunction: '未婚女修先弃后追',
+      finaleDirection: '登顶仙界清算旧势力'
+    }
+  }
+
+  const result = normalizeSummaryPayload(payload, '')
+
+  assert.equal(result.storyIntent.creativeSummary, '用户想写一个废灵根刺客发现组织黑幕的故事')
+  assert.ok(result.storyIntent.storySynopsis)
+  assert.equal(result.storyIntent.storySynopsis?.logline, '废灵根刺客发现组织是世间祸首，觉醒神尊之力逆袭')
+  assert.equal(result.storyIntent.storySynopsis?.openingPressureEvent, '测灵台当众判废体')
+  assert.equal(result.storyIntent.storySynopsis?.firstFaceSlapEvent, '测灵石炸裂反噬长老')
+  assert.equal(result.storyIntent.storySynopsis?.antagonistPressureMethod, '用宗门规矩当众废他灵脉')
+})
+
+test('normalizeSummaryPayload falls back to chainSynopsis when creativeSummary missing', () => {
+  const payload = {
+    projectTitle: '测试',
+    episodeCount: 10,
+    genreAndStyle: '都市',
+    sellingPremise: '测试',
+    coreDislocation: '测试',
+    emotionalPayoff: '测试',
+    protagonist: '主角',
+    chainSynopsis: '这是默认摘要',
+    keyCharacters: ['主角'],
+    dramaticMovement: ['a', 'b', 'c', 'd', 'e']
+  }
+
+  const result = normalizeSummaryPayload(payload, '')
+  assert.equal(result.storyIntent.creativeSummary, '这是默认摘要')
+})
+
+test('normalizeSummaryPayload returns null storySynopsis when fields missing', () => {
+  const payload = {
+    projectTitle: '测试',
+    episodeCount: 10,
+    genreAndStyle: '都市',
+    sellingPremise: '测试',
+    coreDislocation: '测试',
+    emotionalPayoff: '测试',
+    protagonist: '主角',
+    chainSynopsis: '摘要',
+    keyCharacters: ['主角'],
+    dramaticMovement: ['a', 'b', 'c', 'd', 'e']
+  }
+
+  const result = normalizeSummaryPayload(payload, '')
+  assert.equal(result.storyIntent.storySynopsis, null)
+})
+
+test('normalizeSummaryPayload returns null storySynopsis when logline empty', () => {
+  const payload = {
+    projectTitle: '测试',
+    episodeCount: 10,
+    genreAndStyle: '都市',
+    sellingPremise: '测试',
+    coreDislocation: '测试',
+    emotionalPayoff: '测试',
+    protagonist: '主角',
+    chainSynopsis: '摘要',
+    keyCharacters: ['主角'],
+    dramaticMovement: ['a', 'b', 'c', 'd', 'e'],
+    storySynopsis: {
+      logline: '',
+      openingPressureEvent: '有事件'
+    }
+  }
+
+  const result = normalizeSummaryPayload(payload, '')
+  assert.equal(result.storyIntent.storySynopsis, null)
+})

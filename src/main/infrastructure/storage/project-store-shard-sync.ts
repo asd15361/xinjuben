@@ -34,6 +34,7 @@ export async function mirrorProjectSnapshot(project: ProjectSnapshotDto): Promis
     stage: project.stage,
     genre: project.genre,
     marketProfile: project.marketProfile ?? null,
+    marketPlaybookSelection: project.marketPlaybookSelection ?? null,
     updatedAt: project.updatedAt,
     counts: {
       chatMessages: Array.isArray(project.chatMessages) ? project.chatMessages.length : 0,

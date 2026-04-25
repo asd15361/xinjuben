@@ -16,6 +16,7 @@ function createProject(): ProjectSnapshotDto {
     stage: 'character',
     genre: '玄幻',
     marketProfile: null,
+    marketPlaybookSelection: null,
     updatedAt: new Date().toISOString(),
     chatMessages: [],
     generationStatus: null,

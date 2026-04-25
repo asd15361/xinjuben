@@ -19,7 +19,7 @@ function extractNormalizedErrorCode(error: unknown): string {
 }
 
 function buildFailureTitle(hadExistingContent: boolean): string {
-  return hadExistingContent ? '这次没能重新生成粗纲和人物' : '这次没能生成粗纲和人物'
+  return hadExistingContent ? '这次没能重新生成人物小传和骨架' : '这次没能生成人物小传和骨架'
 }
 
 function buildCurrentStageActionLabel(stage: OutlineCharacterVisibleStage): string {
@@ -35,7 +35,7 @@ export function hasOutlineCharacterStageContent(
 export function getOutlineCharacterGenerationActionLabel(
   input: OutlineCharacterGenerationStateInput
 ): string {
-  return hasOutlineCharacterStageContent(input) ? '重新生成粗纲和人物' : '生成粗纲和人物'
+  return hasOutlineCharacterStageContent(input) ? '重新生成人物小传和骨架' : '生成人物小传和骨架'
 }
 
 export function buildOutlineCharacterGenerationSuccessNotice(input: {
@@ -44,10 +44,10 @@ export function buildOutlineCharacterGenerationSuccessNotice(input: {
 }): GenerationNotice {
   return {
     kind: 'success',
-    title: input.hadExistingContent ? '粗纲和人物已经重新生成好了' : '粗纲和人物已经生成好了',
+    title: input.hadExistingContent ? '人物小传和骨架已经重新生成好了' : '人物小传和骨架已经生成好了',
     detail: input.hadExistingContent
-      ? '当前粗纲和人物已经按新版本覆盖；旧的详细大纲和剧本也已经自动清空。'
-      : '先确认粗纲主线，再继续补人物和后面的详细大纲。',
+      ? '当前人物小传和剧本骨架已经按新版本覆盖；旧的详细大纲和剧本也已经自动清空。'
+      : '先确认人物关系和剧本骨架，再继续后面的详细大纲。',
     primaryAction: {
       label: buildCurrentStageActionLabel(input.currentStage),
       stage: input.currentStage
@@ -56,6 +56,28 @@ export function buildOutlineCharacterGenerationSuccessNotice(input: {
       input.currentStage === 'outline'
         ? { label: '去人物', stage: 'character' }
         : { label: '去详细大纲', stage: 'detailed_outline' }
+  }
+}
+
+export function buildOutlineCharacterPartialSuccessNotice(input: {
+  currentStage: OutlineCharacterVisibleStage
+  hadExistingContent: boolean
+}): GenerationNotice {
+  return {
+    kind: 'warning',
+    title: input.hadExistingContent
+      ? '人物小传已经重新生成，骨架用了临时版本'
+      : '人物小传已经生成，骨架用了临时版本',
+    detail:
+      '这次 AI 在生成剧本骨架批次时返回了不完整 JSON，系统保住了人物小传和世界底账，并用创作信息生成了临时骨架。下一步先检查人物，再到剧本骨架页重新生成或手动调整。',
+    primaryAction: {
+      label: buildCurrentStageActionLabel(input.currentStage),
+      stage: input.currentStage
+    },
+    secondaryAction:
+      input.currentStage === 'outline'
+        ? { label: '去人物', stage: 'character' }
+        : { label: '去剧本骨架', stage: 'outline' }
   }
 }
 
@@ -71,9 +93,8 @@ export function buildOutlineCharacterGenerationFailureNotice(input: {
     return {
       kind: 'error',
       title: buildFailureTitle(input.hadExistingContent),
-      detail,
-      primaryAction: { label: '回聊天确认七问', stage: 'chat' },
-      secondaryAction: {
+      detail: '这次卡在旧七问前置条件，请直接重新生成人物小传和骨架',
+      primaryAction: {
         label: buildCurrentStageActionLabel(input.currentStage),
         stage: input.currentStage
       }

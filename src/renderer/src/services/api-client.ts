@@ -11,21 +11,29 @@ import type {
   SaveConfirmedSevenQuestionsInputDto,
   SaveDetailedOutlineSegmentsInputDto,
   SaveOutlineDraftInputDto,
-  SaveScriptDraftInputDto,
-  SaveScriptRuntimeStateInputDto,
+  SaveSevenQuestionsSessionInputDto,
   SaveStoryIntentInputDto
 } from '../../../shared/contracts/workspace.ts'
 import type {
   CharacterDraftDto,
   DetailedOutlineSegmentDto,
   OutlineDraftDto,
-  ScriptSegmentDto
+  ScriptSegmentDto,
+  SevenQuestionCandidateDto,
+  SevenQuestionsResultDto
 } from '../../../shared/contracts/workflow.ts'
 import type {
   ScriptGenerationFailureResolutionDto,
   ScriptGenerationProgressBoardDto
 } from '../../../shared/contracts/script-generation.ts'
 import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger.ts'
+import type {
+  SaveActiveMarketPlaybookInputDto,
+  SaveActiveMarketPlaybookResultDto,
+  ListMarketPlaybooksResultDto,
+  MarketPlaybookSelectionDto
+} from '../../../shared/contracts/market-playbook.ts'
+import type { MarketProfileDto } from '../../../shared/contracts/project.ts'
 
 /**
  * src/renderer/src/services/api-client.ts
@@ -269,6 +277,19 @@ export async function apiDeleteProject(projectId: string): Promise<{ ok: boolean
   })
 }
 
+export async function apiListMarketPlaybooks(): Promise<ListMarketPlaybooksResultDto> {
+  return apiRequest('/api/market-playbooks')
+}
+
+export async function apiSaveActiveMarketPlaybook(
+  input: SaveActiveMarketPlaybookInputDto
+): Promise<SaveActiveMarketPlaybookResultDto> {
+  return apiRequest('/api/market-playbooks', {
+    method: 'POST',
+    body: input
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Story Intent
 // ---------------------------------------------------------------------------
@@ -330,6 +351,15 @@ export async function apiSaveConfirmedSevenQuestions(
   })
 }
 
+export async function apiSaveSevenQuestionsSession(
+  input: SaveSevenQuestionsSessionInputDto
+): Promise<{ project: ProjectSnapshotDto | null }> {
+  return apiRequest(`/api/projects/${input.projectId}/seven-questions/session`, {
+    method: 'PUT',
+    body: input
+  })
+}
+
 export async function apiSaveDetailedOutlineSegments(
   input: SaveDetailedOutlineSegmentsInputDto
 ): Promise<{ project: ProjectSnapshotDto | null }> {
@@ -349,6 +379,23 @@ export interface StoryIntent {
   antagonist?: string
   coreConflict?: string
   endingDirection?: string
+  /** 聊天摘要（创作信息总结） */
+  creativeSummary?: string
+  /** 结构化故事梗概 */
+  storySynopsis?: {
+    logline?: string
+    openingPressureEvent?: string
+    protagonistCurrentDilemma?: string
+    firstFaceSlapEvent?: string
+    antagonistForce?: string
+    antagonistPressureMethod?: string
+    corePayoff?: string
+    stageGoal?: string
+    keyFemaleCharacterFunction?: string
+    episodePlanHint?: string
+    finaleDirection?: string
+  }
+  marketProfile?: MarketProfileDto
 }
 
 export interface SevenQuestionsResult {
@@ -374,7 +421,12 @@ export interface SevenQuestionsResult {
 
 export interface GenerateSevenQuestionsResponse {
   success: boolean
-  sevenQuestions: SevenQuestionsResult
+  /** 兼容旧前端：第一个候选的完整结果 */
+  sevenQuestions: SevenQuestionsResultDto | null
+  /** 新字段：七问候选列表 */
+  candidates?: SevenQuestionCandidateDto[]
+  /** 当只生成1个候选时标记 */
+  needsMoreCandidates?: boolean
   lane: string
   model: string
   durationMs: number
@@ -387,6 +439,7 @@ export interface GenerateSevenQuestionsResponse {
 export async function apiGenerateSevenQuestions(input: {
   storyIntent: StoryIntent
   totalEpisodes?: number
+  marketPlaybookSelection?: MarketPlaybookSelectionDto | null
 }): Promise<GenerateSevenQuestionsResponse> {
   return apiRequest<GenerateSevenQuestionsResponse>('/api/generate/seven-questions', {
     method: 'POST',
@@ -424,6 +477,7 @@ export interface OutlineAndCharactersResponse {
   project: ProjectSnapshotDto
   outlineDraft: OutlineDraftDto
   characterDrafts: CharacterDraftDto[]
+  outlineGenerationError?: string
   creditsRemaining: number
 }
 
@@ -479,7 +533,7 @@ export async function apiGenerateDetailedOutline(input: {
 export interface ScriptGenerationStartResponse {
   success: boolean
   taskId: string
-  board: unknown
+  board: ScriptGenerationProgressBoardDto | null
   status: 'running' | 'paused' | 'stopped' | 'completed' | 'failed'
   message: string
 }
@@ -491,7 +545,7 @@ export interface ScriptGenerationStatusResponse {
   totalEpisodes: number
   completedEpisodes: number
   startedAt: string
-  board: unknown
+  board: ScriptGenerationProgressBoardDto | null
   progress: string
   // 完整生成结果（renderer 收到后写本地 content store）
   generatedScenes?: ScriptSegmentDto[]

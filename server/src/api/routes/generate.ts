@@ -13,14 +13,60 @@ import {
 import { generateTextWithRouter } from '../../application/ai/generate-text'
 import {
   buildSevenQuestionsPrompt,
-  parseSevenQuestionsResponse
+  parseSevenQuestionsResponse,
+  type SevenQuestionCandidate,
+  type ValidatedCandidate
 } from '../../application/workspace/seven-questions-agent'
+import { resolveProjectEpisodeCount } from '@shared/domain/workflow/episode-count'
+import { resolveProjectMarketPlaybook } from '@shared/domain/market-playbook/playbook-prompt-block'
 import { authenticateAdmin, PB_URL, cachedAdminToken } from '../../infrastructure/pocketbase/client'
+import { MarketPlaybookRepository } from '../../infrastructure/pocketbase/market-playbook-repository'
 
 export const generateRouter = Router()
 
 const creditService = new CreditService()
 const runtimeConfig = loadRuntimeProviderConfig()
+const marketPlaybookRepository = new MarketPlaybookRepository()
+
+function summarizeSevenQuestionGateFailures(candidates: ValidatedCandidate[]): string {
+  if (candidates.length === 0) return '模型没有返回可解析的候选方案'
+
+  const messages = candidates.flatMap((candidate) =>
+    (candidate.validationErrors || []).map((error) => `${candidate.title || '未命名方案'}：${error.message}`)
+  )
+
+  const uniqueMessages = Array.from(new Set(messages))
+  if (uniqueMessages.length === 0) return '候选方案数量不足，至少需要 2 个合格方案'
+
+  return uniqueMessages.slice(0, 4).join('；')
+}
+
+function buildSevenQuestionRepairPrompt(input: {
+  originalPrompt: string
+  failureSummary: string
+  candidates: ValidatedCandidate[]
+}): string {
+  const failureLines = input.candidates.flatMap((candidate) =>
+    (candidate.validationErrors || []).map(
+      (error) => `- ${candidate.title || '未命名方案'}：${error.field}：${error.message}`
+    )
+  )
+
+  return [
+    input.originalPrompt,
+    '',
+    '【质量门失败后的强制修稿】',
+    '上一版七问没有通过质量门，不能原样返回。你必须根据以下失败原因重新生成完整 candidates JSON。',
+    `失败摘要：${input.failureSummary}`,
+    ...failureLines.slice(0, 12),
+    '',
+    '修稿硬要求：',
+    '- 不要解释，不要道歉，只输出完整 JSON。',
+    '- 必须返回至少 2 个候选，每个候选都要合格。',
+    '- 不得复用上一次违规表达。',
+    '- 继续严格遵守“叙事约束锁”“集数硬约束”“男频修仙题材硬约束”。'
+  ].join('\n')
+}
 
 // 积分扣费中间件
 async function deductCreditsMiddleware(
@@ -127,7 +173,7 @@ generateRouter.post(
       return
     }
 
-    const { storyIntent, totalEpisodes } = req.body
+    const { storyIntent, totalEpisodes, marketPlaybookSelection } = req.body
 
     if (!storyIntent) {
       res.status(400).json({
@@ -139,17 +185,31 @@ generateRouter.post(
 
     const startedAt = Date.now()
 
+    // 解析 MarketPlaybook（B 层）
+    const customPlaybooks = await marketPlaybookRepository.listActivePlaybooks(req.user!.id)
+    const marketPlaybook = resolveProjectMarketPlaybook({
+      marketPlaybookSelection,
+      audienceLane: storyIntent.marketProfile?.audienceLane,
+      subgenre: storyIntent.marketProfile?.subgenre,
+      customPlaybooks
+    })
+
     try {
+      const resolvedTotalEpisodes = resolveProjectEpisodeCount({
+        storyIntent,
+        fallbackCount: Number(totalEpisodes) || 10
+      })
+
       // 构建七问 Prompt
-      const prompt = buildSevenQuestionsPrompt(storyIntent, totalEpisodes || 10)
+      const prompt = buildSevenQuestionsPrompt(storyIntent, resolvedTotalEpisodes, marketPlaybook)
 
       // 调用 AI
-      const result = await generateTextWithRouter(
+      let result = await generateTextWithRouter(
         {
           task: 'seven_questions',
           prompt,
           temperature: 0.4,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 3200,
           responseFormat: 'json_object',
           timeoutMs: 120000
         },
@@ -157,20 +217,79 @@ generateRouter.post(
       )
 
       // 解析结果
-      const parsed = parseSevenQuestionsResponse(result.text)
+      let parsed = parseSevenQuestionsResponse(result.text, resolvedTotalEpisodes, storyIntent)
+      let validCandidates: SevenQuestionCandidate[] = parsed.candidates.filter(
+        (candidate) => candidate.isValid
+      )
 
-      if (!parsed) {
+      if (validCandidates.length < 2) {
+        const firstFailureSummary = summarizeSevenQuestionGateFailures(parsed.candidates)
+        console.warn('[Generate] Seven questions quality gate retrying:', {
+          expectedEpisodes: resolvedTotalEpisodes,
+          validCount: validCandidates.length,
+          candidateCount: parsed.candidates.length,
+          summary: firstFailureSummary
+        })
+
+        const repairResult = await generateTextWithRouter(
+          {
+            task: 'seven_questions',
+            prompt: buildSevenQuestionRepairPrompt({
+              originalPrompt: prompt,
+              failureSummary: firstFailureSummary,
+              candidates: parsed.candidates
+            }),
+            temperature: 0.25,
+            maxOutputTokens: 3200,
+            responseFormat: 'json_object',
+            timeoutMs: 120000
+          },
+          runtimeConfig
+        )
+
+        result = {
+          ...repairResult,
+          durationMs:
+            (result.durationMs || Date.now() - startedAt) + (repairResult.durationMs || 0),
+          inputTokens: (result.inputTokens || 0) + (repairResult.inputTokens || 0),
+          outputTokens: (result.outputTokens || 0) + (repairResult.outputTokens || 0)
+        }
+        parsed = parseSevenQuestionsResponse(repairResult.text, resolvedTotalEpisodes, storyIntent)
+        validCandidates = parsed.candidates.filter((candidate) => candidate.isValid)
+      }
+
+      if (validCandidates.length < 2) {
+        const failureSummary = summarizeSevenQuestionGateFailures(parsed.candidates)
+        console.warn('[Generate] Seven questions quality gate failed:', {
+          expectedEpisodes: resolvedTotalEpisodes,
+          validCount: validCandidates.length,
+          candidateCount: parsed.candidates.length,
+          failures: parsed.candidates.map((candidate) => ({
+            title: candidate.title,
+            errors: candidate.validationErrors
+          }))
+        })
+
         await executeDeduction(req, false, {
           task: 'seven_questions',
           lane: result.lane,
           model: result.model,
           durationMs: result.durationMs || Date.now() - startedAt,
-          errorMessage: 'parse_failed'
+          errorMessage: 'quality_gate_failed'
         })
 
         res.status(500).json({
-          error: 'parse_failed',
-          message: '七问解析失败，请重试'
+          error: 'quality_gate_failed',
+          message: `七问没有通过质量门：${failureSummary}`,
+          details: {
+            expectedEpisodes: resolvedTotalEpisodes,
+            validCount: validCandidates.length,
+            candidateCount: parsed.candidates.length,
+            failures: parsed.candidates.map((candidate) => ({
+              title: candidate.title,
+              validationErrors: candidate.validationErrors
+            }))
+          }
         })
         return
       }
@@ -188,9 +307,15 @@ generateRouter.post(
       // 获取新余额
       const newBalance = await creditService.getBalance(req.user!.id)
 
+      // 兼容旧前端：把第一个候选的 result 作为旧 sevenQuestions 返回
+      const firstCandidate = validCandidates[0]
+      const legacySevenQuestions = firstCandidate ? firstCandidate.result : null
+
       res.json({
         success: true,
-        sevenQuestions: parsed,
+        sevenQuestions: legacySevenQuestions,
+        candidates: validCandidates,
+        needsMoreCandidates: validCandidates.length < 2,
         lane: result.lane,
         model: result.model,
         durationMs: result.durationMs || Date.now() - startedAt,

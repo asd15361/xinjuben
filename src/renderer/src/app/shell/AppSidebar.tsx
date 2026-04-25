@@ -6,26 +6,41 @@ import {
   FileText,
   PenTool,
   Zap,
-  MessageCircle,
-  GitBranch
+  MessageCircle
 } from 'lucide-react'
 import type { WorkflowStage } from '../../../../shared/contracts/workflow'
+import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation'
+import { useProjectGenerationProgress } from '../hooks/useProjectGenerationProgress'
 import { switchStageSession } from '../services/stage-session-service'
+import { getGenerationTimingLabel } from '../services/generation-timing-service'
 import { useWorkflowStore } from '../store/useWorkflowStore'
 
 const STAGES = [
   { id: 'chat', label: '灵感对话', icon: MessageCircle, desc: '先把故事说清楚' },
-  { id: 'seven_questions', label: '七问篇章', icon: GitBranch, desc: '先确认篇章骨架' },
-  { id: 'outline', label: '粗略大纲', icon: Sparkles, desc: '先把十集骨架立住' },
-  { id: 'character', label: '人物小传', icon: Users, desc: '把角色发动机写实' },
+  { id: 'character', label: '人物小传', icon: Users, desc: '先锁角色关系' },
+  { id: 'outline', label: '剧本骨架', icon: Sparkles, desc: '统一主线账本' },
   { id: 'detailed_outline', label: '详细大纲', icon: FileText, desc: '把推进和钩子排顺' },
   { id: 'script', label: '剧本定稿', icon: PenTool, desc: '把场景真正写出来' }
 ] as const
+
+function isGenerationVisibleOnStage(
+  status: ProjectGenerationStatusDto | null,
+  stage: WorkflowStage
+): boolean {
+  if (!status) return false
+  if (status.task === 'outline_and_characters') {
+    return stage === 'outline' || stage === 'character'
+  }
+  return status.stage === stage
+}
 
 export function AppSidebar(): JSX.Element {
   const currentStage = useWorkflowStore((state) => state.currentStage)
   const clearGenerationNotice = useWorkflowStore((state) => state.clearGenerationNotice)
   const projectId = useWorkflowStore((state) => state.projectId)
+  const generationStatus = useWorkflowStore((state) => state.generationStatus)
+  const { elapsedSeconds, estimatedSeconds, progressPercent } =
+    useProjectGenerationProgress(generationStatus)
 
   async function handleStageChange(targetStage: WorkflowStage): Promise<void> {
     clearGenerationNotice()
@@ -66,6 +81,11 @@ export function AppSidebar(): JSX.Element {
             const lockedByProject = !projectId && stage.id !== 'chat'
             const isLocked = lockedByProject
             const lockHint = lockedByProject ? '先在首页选择一个项目' : ''
+            const isStageGenerating = isGenerationVisibleOnStage(
+              generationStatus,
+              stage.id as WorkflowStage
+            )
+            const timingLabel = generationStatus ? getGenerationTimingLabel(generationStatus.task) : ''
 
             return (
               <motion.button
@@ -90,10 +110,27 @@ export function AppSidebar(): JSX.Element {
                 >
                   <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <div className="hidden lg:block text-left">
+                <div className="hidden lg:block text-left min-w-0 flex-1">
                   <p className="text-sm font-bold tracking-tight">{stage.label}</p>
-                  <p className="hidden xl:block text-[10px] opacity-50 font-medium">{stage.desc}</p>
+                  <p className="hidden xl:block text-[10px] opacity-50 font-medium">
+                    {isStageGenerating
+                      ? `${elapsedSeconds}/${estimatedSeconds}秒 · ${progressPercent}%`
+                      : stage.desc}
+                  </p>
                   {isLocked && <p className="text-[10px] text-white/25 mt-1">{lockHint}</p>}
+                  {isStageGenerating && (
+                    <div className="mt-2 space-y-1">
+                      <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-orange-500 transition-[width] duration-700"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                      <p className="hidden xl:block text-[9px] text-white/30 leading-tight">
+                        {timingLabel}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 {isActive && (
                   <motion.div layoutId="active-indicator" className="absolute right-4">

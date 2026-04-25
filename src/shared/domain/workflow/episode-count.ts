@@ -37,7 +37,8 @@ function extractDeclaredEpisodeCountFromLine(line: string): number {
   const patterns = [
     /不做\s*\d+\s*集[^。！？!\n]*?(?:要|改成|改为|改做|做|写)[^\d]{0,6}(\d+)\s*集/g,
     /(?:改成|改为|改做|改写成|改到|现在要|现在做|现在写|这次要|这次做|这次写|要做|要写|想写|先按|按)[^\d]{0,6}(\d+)\s*集/g,
-    /(?:做|写)[^\d]{0,6}(?:一个|一部|个)?\s*(\d+)\s*集/g
+    /(?:做|写|搞)[^\d]{0,10}(?:一个|一部|个)?\s*(\d+)\s*集/g,
+    /^(\d+)\s*集(?:短剧|剧本|故事|项目|$)/g
   ]
 
   for (const pattern of patterns) {
@@ -143,8 +144,20 @@ export function resolveProjectEpisodeCount(input: {
   fallbackCount?: number
 }): number {
   const fromBrief = extractEpisodeCountFromGenerationBrief(input.storyIntent?.generationBriefText)
+  const fromCreativeSummary = extractLatestAuthoritativeEpisodeCountFromText(
+    input.storyIntent?.creativeSummary
+  )
+  const fromSynopsisHint = extractLatestAuthoritativeEpisodeCountFromText(
+    input.storyIntent?.storySynopsis?.episodePlanHint
+  )
+  const fromTranscript = extractLatestAuthoritativeEpisodeCountFromText(
+    input.storyIntent?.confirmedChatTranscript
+  )
   const fromOutline = deriveOutlineEpisodeCount(input.outline, 0)
   if (fromBrief > 0) return clampEpisodeCount(fromBrief)
+  if (fromCreativeSummary > 0) return clampEpisodeCount(fromCreativeSummary)
+  if (fromSynopsisHint > 0) return clampEpisodeCount(fromSynopsisHint)
+  if (fromTranscript > 0) return clampEpisodeCount(fromTranscript)
   if (fromOutline > 0) return clampEpisodeCount(fromOutline)
   if ((input.fallbackCount || 0) > 0) return clampEpisodeCount(input.fallbackCount)
   return DEFAULT_EPISODE_COUNT

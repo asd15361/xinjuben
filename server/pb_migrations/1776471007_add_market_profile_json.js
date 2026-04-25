@@ -3,7 +3,7 @@ migrate((db) => {
   const dao = new Dao(db);
   const collection = dao.findCollectionByNameOrId("3opxj4f3n6d8q1a");
 
-  collection.schema.push(new SchemaField({
+  collection.schema.addField(new SchemaField({
     "system": false,
     "id": "prjmrk01",
     "name": "marketProfileJson",
@@ -21,10 +21,8 @@ migrate((db) => {
   const dao = new Dao(db);
   const collection = dao.findCollectionByNameOrId("3opxj4f3n6d8q1a");
 
-  const idx = collection.schema.findIndex(f => f.name === "marketProfileJson");
-  if (idx >= 0) {
-    collection.schema.splice(idx, 1);
-  }
+  const field = collection.schema.getFieldByName("marketProfileJson");
+  if (field) collection.schema.removeField(field.id);
 
   return dao.saveCollection(collection);
 })

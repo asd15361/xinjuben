@@ -6,17 +6,17 @@
  * 保证原子写入（先写 tmp，再 rename）
  */
 
-import { readFile, mkdir, unlink } from 'fs/promises'
+import { readFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { app } from 'electron'
 import { writeJsonAtomic } from './project-files/write-shard'
 import type { ProjectScriptShard } from './project-files/write-shard'
+import type { ScriptSegmentDto } from '../../../shared/contracts/workflow'
 import type {
-  ScriptSegmentDto,
   ScriptGenerationProgressBoardDto,
-  ScriptGenerationFailureResolutionDto,
-  ScriptStateLedgerDto
-} from '../../../shared/contracts'
+  ScriptGenerationFailureResolutionDto
+} from '../../../shared/contracts/script-generation'
+import type { ScriptStateLedgerDto } from '../../../shared/contracts/script-ledger'
 
 /**
  * 本地内容存储结构

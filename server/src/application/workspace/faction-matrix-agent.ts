@@ -189,6 +189,8 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
   const antagonist = input.storyIntent.antagonist || '反派'
   const genre = input.storyIntent.genre || '短剧'
   const worldView = input.storyIntent.shortDramaConstitution?.worldViewBrief || '待补'
+  const thresholds = resolveFactionMatrixThresholds(input.totalEpisodes)
+  const isShortSeries = input.totalEpisodes <= 24
 
   return [
     '【势力拆解表 Agent · 世界观矩阵生成指令】',
@@ -196,26 +198,41 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
     '',
     '【核心铁律】',
     `1. 这是一个 ${input.totalEpisodes} 集${genre}项目，必须撑起足够复杂的多势力博弈。`,
-    '2. 至少拆解出 3 个一级势力（如：正派、反派联盟、第三方中立），每个一级势力下至少 2 个二级分支（如：激进派、保守派）。',
-    '3. 每个二级分支必须包含至少 3 个人物占位符：1个领袖（定策略）+ 1-2个干将（执行冲突）+ 1个变数/内鬼。',
-    '4. 必须生成 crossRelations（势力交织表），明确指出：谁是安插在谁那里的卧底、谁和谁表面盟友实则死敌、谁是双面间谍。冲突从人升维到阵营。',
+    `2. 至少拆解出 ${thresholds.minFactions} 个一级势力（如：主角归属方、反派压力方${isShortSeries ? '' : '、第三方中立'}），每个一级势力下至少 ${thresholds.minBranchesPerFaction} 个二级分支。`,
+    `3. 每个二级分支必须包含至少 ${thresholds.minCharactersPerBranch} 个人物占位符：短剧只保留能直接制造冲突、递情报、压主角或反转立场的人。`,
+    `4. 必须生成至少 ${thresholds.minCrossRelations} 条 crossRelations（势力交织表），明确指出关键利用、暗盟、暗敌、卧底或人质羁绊。冲突从人升维到阵营。`,
     '5. 势力格局不能写成好人打坏人，必须每个势力都有合理诉求和软肋。',
     '',
-    '【1+2+X 编制铁律】',
+    isShortSeries ? '【短剧轻量编制铁律】' : '【1+2+X 编制铁律】',
     '每个二级分支的人物编制：',
-    '  - 1 个领袖：定策略、拍板、分配资源',
-    '  - 1-2 个干将：执行冲突、打手、冲锋陷阵',
-    '  - 1 个变数/内鬼：立场摇摆、暗棋、可能倒戈',
-    '  - X 个功能性龙套：只生成"身份+核心动机"一行字',
+    ...(isShortSeries
+      ? [
+          '  - 1 个领袖/拍板者：定策略、给主角压力或提供保护',
+          '  - 1 个执行者/变数：具体制造冲突、递线索、背刺或救场',
+          '  - 不要为了凑世界观额外扩写功能性龙套；20集优先少而准'
+        ]
+      : [
+          '  - 1 个领袖：定策略、拍板、分配资源',
+          '  - 1-2 个干将：执行冲突、打手、冲锋陷阵',
+          '  - 1 个变数/内鬼：立场摇摆、暗棋、可能倒戈',
+          '  - X 个功能性龙套：只生成"身份+核心动机"一行字'
+        ]),
     '',
     '【势力交叉渗透铁律】',
-    '  - 至少 2 个卧底关系（谁安插在谁那里）',
-    '  - 至少 1 对表面盟友实为暗敌',
-    '  - 至少 1 个双面间谍',
+    ...(isShortSeries
+      ? [
+          '  - 至少 1 条关键交叉关系：利用、暗敌、卧底、人质羁绊任选其一',
+          '  - 20集不强求双面间谍和多重卧底，避免人物过载'
+        ]
+      : [
+          '  - 至少 2 个卧底关系（谁安插在谁那里）',
+          '  - 至少 1 对表面盟友实为暗敌',
+          '  - 至少 1 个双面间谍'
+        ]),
     '  - 每个交叉关系必须写明预计爆发集数区间',
     '',
     '【人员层级差异化】',
-    '  - 核心人物（3-5人）：depthLevel="core"，需要超详尽的人物定义',
+    `  - 核心人物（${isShortSeries ? '2-4人' : '3-5人'}）：depthLevel="core"，需要超详尽的人物定义`,
     '  - 势力中层人物：depthLevel="mid"，重点填身份+价值观+功能',
     '  - 功能性龙套：depthLevel="extra"，只生成一行"身份+核心动机"',
     '',

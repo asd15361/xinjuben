@@ -70,6 +70,7 @@ export async function createProject(input: CreateProjectInputDto): Promise<Proje
       stage: 'chat',
       genre: input.genre?.trim() || '',
       marketProfile: input.marketProfile ?? null,
+      marketPlaybookSelection: null,
       updatedAt: now,
       chatMessages: [],
       generationStatus: null,

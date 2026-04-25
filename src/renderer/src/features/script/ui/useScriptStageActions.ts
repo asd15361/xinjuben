@@ -9,13 +9,16 @@ import type { useScriptGenerationPlan } from '../../../app/hooks/useScriptGenera
 import type { useScriptAudit } from '../../../app/hooks/useScriptAudit.ts'
 import { resolveScriptEstimatedSeconds } from '../../../app/utils/stage-estimates.ts'
 import {
+  getEstimatedSeconds,
+  recordGenerationDuration
+} from '../../../app/services/generation-timing-service.ts'
+import {
   resolveEffectiveScriptGenerationPlan,
   resolveRequestedScriptGenerationMeta
 } from './script-stage-actions.ts'
 import {
   apiStartScriptGeneration,
   apiGetScriptGenerationStatus,
-  apiGetProject,
   apiRewriteScriptEpisode
 } from '../../../services/api-client.ts'
 
@@ -103,6 +106,11 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
 
     // Clear previous generation results
     setScriptStateLedger(null)
+    const generationStartedAt = Date.now()
+    const estimatedSeconds = getEstimatedSeconds(
+      'script',
+      resolveScriptEstimatedSeconds(normalizedTargetEpisodes)
+    )
 
     // Set generation status to show progress bar
     setGenerationStatus({
@@ -110,8 +118,8 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
       stage: 'script',
       title: '正在生成剧本',
       detail: `正在生成 ${normalizedTargetEpisodes} 集剧本，请稍候...`,
-      startedAt: Date.now(),
-      estimatedSeconds: resolveScriptEstimatedSeconds(normalizedTargetEpisodes),
+      startedAt: generationStartedAt,
+      estimatedSeconds,
       scope: 'project'
     })
 
@@ -148,8 +156,8 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
             stage: 'script',
             title: `正在生成剧本 (${completedCount}/${totalCount}集)`,
             detail: `已完成 ${completedCount} 集，共 ${totalCount} 集`,
-            startedAt: Date.now(),
-            estimatedSeconds: resolveScriptEstimatedSeconds(totalCount - completedCount),
+            startedAt: generationStartedAt,
+            estimatedSeconds,
             scope: 'project'
           })
 
@@ -193,6 +201,7 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
             setGenerationStatus(null)
 
             if (statusResult.status === 'completed') {
+              recordGenerationDuration('script', Date.now() - generationStartedAt)
               setScriptRuntimeFailureHistory([])
               setGenerationNotice({
                 kind: 'success',
@@ -306,13 +315,14 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
 
       const requestProjectId = projectId
       clearGenerationNotice()
+      const rewriteStartedAt = Date.now()
       setGenerationStatus({
         task: 'script',
         stage: 'script',
         title: `正在重写第 ${episodeNo} 集`,
         detail: '我会沿用同一个写作专家，按硬问题清单直接改这一集，不会整轮重写。',
-        startedAt: Date.now(),
-        estimatedSeconds: resolveScriptEstimatedSeconds(1),
+        startedAt: rewriteStartedAt,
+        estimatedSeconds: getEstimatedSeconds('script', resolveScriptEstimatedSeconds(1)),
         scope: 'project'
       })
 
@@ -335,8 +345,9 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
               requestProjectId
             )
             const existingDraft = existingContent?.scriptDraft ?? []
+            const rewrittenScene = rewriteResult.rewrittenScene
             const updatedScript = existingDraft.map((s) =>
-              s.sceneNo === episodeNo ? rewriteResult.rewrittenScene : s
+              s.sceneNo === episodeNo ? rewrittenScene : s
             )
             await window.api.workspace.saveScriptGenerationResult({
               userId,
@@ -350,6 +361,7 @@ export function useScriptStageActions(input: UseScriptStageActionsInput): {
             if (useWorkflowStore.getState().projectId === requestProjectId) {
               replaceScript(updatedScript)
               setScriptStateLedger(rewriteResult.ledger ?? null)
+              recordGenerationDuration('script', Date.now() - rewriteStartedAt)
               setGenerationNotice({
                 kind: 'success',
                 title: `第 ${episodeNo} 集已经改好`,

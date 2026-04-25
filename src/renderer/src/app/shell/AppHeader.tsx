@@ -28,8 +28,8 @@ export function AppHeader(): JSX.Element {
   }, [initializeAuth])
   const currentStageLabel = {
     chat: '灵感对话',
-    seven_questions: '七问篇章',
-    outline: '粗略大纲',
+    seven_questions: '剧本骨架',
+    outline: '剧本骨架',
     character: '人物小传',
     detailed_outline: '详细大纲',
     script: '剧本定稿'
@@ -37,8 +37,15 @@ export function AppHeader(): JSX.Element {
   const noticeToneClass =
     generationNotice?.kind === 'error'
       ? 'border-rose-500/20 bg-rose-500/10'
+      : generationNotice?.kind === 'warning'
+        ? 'border-amber-500/20 bg-amber-500/10'
       : 'border-emerald-500/20 bg-emerald-500/10'
-  const noticeTextClass = generationNotice?.kind === 'error' ? 'text-rose-300' : 'text-emerald-300'
+  const noticeTextClass =
+    generationNotice?.kind === 'error'
+      ? 'text-rose-300'
+      : generationNotice?.kind === 'warning'
+        ? 'text-amber-300'
+        : 'text-emerald-300'
 
   const backToHome = (): void => {
     // Hard reset: avoid "串项目" and multi-truth leaks.

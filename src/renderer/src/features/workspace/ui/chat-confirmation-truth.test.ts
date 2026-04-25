@@ -17,7 +17,7 @@ test('confirmation truth ignores assistant summary messages when checking transc
     { role: 'user' as const, text: '把这个剧本改成30集' },
     {
       role: 'assistant' as const,
-      text: '我已经把当前聊天整理成正式创作信息，后面只按这版往下走：\n\n【项目】修仙传｜30集'
+      text: '我已经把当前聊天整理成一版创作信息总结，你可以继续补充，也可以进入人物小传和剧本骨架。\n\n【项目】修仙传｜30集'
     }
   ]
   const truthTranscript = buildTruthTranscript(messages)

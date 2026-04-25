@@ -8,7 +8,9 @@ import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-
 import type { FactionMatrixDto, FactionDto, CharacterPlaceholderDto } from '@shared/contracts/faction-matrix'
 import type { PromptVariables } from '@shared/contracts/prompt-variables'
 import type { MarketProfileDto } from '@shared/contracts/project'
+import type { MarketPlaybookDto } from '@shared/contracts/market-playbook'
 import { buildMarketProfilePromptSection } from './build-market-profile-prompt-section'
+import { buildMarketPlaybookPromptBlock } from '@shared/domain/market-playbook/playbook-prompt-block'
 
 export type RoughOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
 
@@ -38,6 +40,8 @@ export interface RoughOutlineOverviewInput {
   promptVars?: PromptVariables
   /** 市场定位（男频/女频 + 垂类） */
   marketProfile?: MarketProfileDto | null
+  /** 市场打法包（B 层，可选） */
+  marketPlaybook?: MarketPlaybookDto | null
 }
 
 function renderEpisodeRange(startEpisode: number, endEpisode: number): string {
@@ -287,10 +291,16 @@ export function buildOutlineOverviewPrompt(input: RoughOutlineOverviewInput): st
     stage: 'roughOutline'
   })
 
+  const playbookBlock = buildMarketPlaybookPromptBlock({
+    playbook: input.marketPlaybook,
+    stage: 'script_skeleton'
+  })
+
   return [
     '你是短剧总编剧。你正在规划整季粗纲骨架。',
     '【短剧黄金铁律 · 必须刻进系统】',
     ...(marketProfileSection ? [marketProfileSection] : []),
+    ...(playbookBlock ? [playbookBlock] : []),
     '1. 极限密度：每集只干一件事：施压 → 反击 → 留钩子。',
     '2. 黄金节奏：第1集开局30秒必须有巨大危机（死人/丢官/退婚/被夺/被冤枉），1分钟必须有反转或打脸。',
     '3. 主角风骨：主角可以战略性忍让，但眼神必须冷、定、稳，绝对禁止真窝囊、真崩溃、持续吐血求饶。',
@@ -390,6 +400,8 @@ export interface RoughOutlineEpisodeBatchInput {
   promptVars?: PromptVariables
   /** 市场定位（男频/女频 + 垂类） */
   marketProfile?: MarketProfileDto | null
+  /** 市场打法包（B 层，可选） */
+  marketPlaybook?: MarketPlaybookDto | null
 }
 
 export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchInput): string {
@@ -447,10 +459,16 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
     stage: 'roughOutline'
   })
 
+  const playbookBlock = buildMarketPlaybookPromptBlock({
+    playbook: input.marketPlaybook,
+    stage: 'script_skeleton'
+  })
+
   return [
     '你是短剧总编剧。你正在生成当前批次的分集粗纲。',
     '【单集标准结构 · 固定三段式】',
     ...(marketProfileSection ? [marketProfileSection] : []),
+    ...(playbookBlock ? [playbookBlock] : []),
     '每一集必须严格按照以下三幕结构进行规划：',
     '1. 第一幕：施压 (0-20秒) —— 反派拿把柄/规则压人，把主角逼到无路可退。',
     '2. 第二幕：反转 (20-45秒) —— 主角拿出证据/底牌/后手，让反派当众吃瘪。',

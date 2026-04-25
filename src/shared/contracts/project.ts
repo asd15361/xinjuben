@@ -17,6 +17,7 @@ import type {
   ScriptSegmentDto
 } from './workflow'
 import type { WorkflowStage } from './workflow'
+import type { MarketPlaybookSelectionDto } from './market-playbook'
 
 export type AudienceLane = 'male' | 'female'
 
@@ -43,6 +44,7 @@ export interface ProjectSummaryDto {
   stage: WorkflowStage
   genre: string
   marketProfile: MarketProfileDto | null
+  marketPlaybookSelection?: MarketPlaybookSelectionDto | null
   updatedAt: string
 }
 
