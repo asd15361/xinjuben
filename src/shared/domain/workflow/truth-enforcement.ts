@@ -60,12 +60,6 @@ export const EnforcementContext = {
   GET_RUNTIME_CONSOLE_STATE: 'workflow:get-runtime-console-state',
   BUILD_SCRIPT_LEDGER_PREVIEW: 'workflow:build-script-ledger-preview',
 
-  // IPC handlers - workspace generation
-  CREATE_OUTLINE_SEED: 'workspace:create-outline-seed',
-  LEGACY_GENERATE_OUTLINE_AND_CHARACTERS_BLOCKED: 'workspace:generate-outline-and-characters',
-  GENERATE_DETAILED_OUTLINE: 'workspace:generate-detailed-outline',
-  GENERATE_DETAILED_OUTLINE_BLOCKS: 'workspace:generate-detailed-outline-blocks',
-
   // IPC handlers - formal facts
   DECLARE_FORMAL_FACT: 'workflow:declare-formal-fact',
   CONFIRM_FORMAL_FACT: 'workflow:confirm-formal-fact',
@@ -184,15 +178,6 @@ export const SCRIPT_GENERATION_ENTRY_DOMAINS: TruthDomainType[] = [
 ]
 
 /**
- * Truth domains that should be enforced at workspace generation IPC entry.
- * These are the domains that get written when outline/character generation occurs.
- */
-export const WORKSPACE_GENERATION_ENTRY_DOMAINS: TruthDomainType[] = [
-  TruthDomain.STAGE,
-  TruthDomain.FACTS
-]
-
-/**
  * Truth domains that should be enforced at formal fact IPC entry.
  * These are the domains involved in formal fact operations.
  */
@@ -212,18 +197,6 @@ export const LEDGER_ENTRY_DOMAINS: TruthDomainType[] = [TruthDomain.LEDGER]
  */
 export function enforceScriptGenerationEntry(context: string): void {
   for (const domain of SCRIPT_GENERATION_ENTRY_DOMAINS) {
-    assertMainProducer(domain, context)
-  }
-}
-
-/**
- * Enforce truth domain writes at workspace generation entry.
- * Call at the START of any handler that initiates outline/character generation.
- *
- * @param context - Where in the call stack this enforcement occurs
- */
-export function enforceWorkspaceGenerationEntry(context: string): void {
-  for (const domain of WORKSPACE_GENERATION_ENTRY_DOMAINS) {
     assertMainProducer(domain, context)
   }
 }
@@ -278,10 +251,6 @@ export function getEnforcedDomainsForContext(context: string): TruthDomainType[]
   switch (context) {
     case EnforcementContext.START_SCRIPT_GENERATION:
       return SCRIPT_GENERATION_ENTRY_DOMAINS
-    case EnforcementContext.LEGACY_GENERATE_OUTLINE_AND_CHARACTERS_BLOCKED:
-    case EnforcementContext.GENERATE_DETAILED_OUTLINE:
-    case EnforcementContext.CREATE_OUTLINE_SEED:
-      return WORKSPACE_GENERATION_ENTRY_DOMAINS
     case EnforcementContext.DECLARE_FORMAL_FACT:
     case EnforcementContext.CONFIRM_FORMAL_FACT:
     case EnforcementContext.REMOVE_FORMAL_FACT:
@@ -312,7 +281,6 @@ export function validateTruthEnforcement(): void {
   // Verify enforcement domain groups are valid
   const allDomains = [
     ...SCRIPT_GENERATION_ENTRY_DOMAINS,
-    ...WORKSPACE_GENERATION_ENTRY_DOMAINS,
     ...FORMAL_FACT_ENTRY_DOMAINS,
     ...LEDGER_ENTRY_DOMAINS
   ]

@@ -59,18 +59,31 @@ function buildCharacterContinuityLockLines(ledger: ScriptStateLedgerDto): string
   return lines
 }
 
-function buildTacticBanLines(ledger: ScriptStateLedgerDto): string[] {
+interface BuildLedgerConstraintBlockOptions {
+  allowFantasyVisuals?: boolean
+}
+
+function buildTacticBanLines(
+  ledger: ScriptStateLedgerDto,
+  options: BuildLedgerConstraintBlockOptions = {}
+): string[] {
   const usedTactics = ledger.usedTactics || []
   const paperEvidenceCount = usedTactics.filter((item) => item === 'paper_evidence').length
   const fantasyVisualCount = usedTactics.filter((item) => item === 'fantasy_visual').length
 
   const lines: string[] = []
   if (paperEvidenceCount >= 2) {
+    const alternatives = options.allowFantasyVisuals
+      ? '法阵、妖兽、血脉、灵力、法器或实物争夺'
+      : '口供、监控、录音、转账记录、现场实物、关系证据或当场翻供'
+    const forbiddenPaper = options.allowFantasyVisuals
+      ? '账本、密信、血契、契据、残页、卷轴'
+      : '账本、密信、契据、残页、卷宗、纸质合同'
     lines.push(
-      `- 已多次使用纸质证据翻盘（当前计数=${paperEvidenceCount}）。接下来一批禁止再靠账本、密信、血契、契据、残页、卷轴直接拍脸收账，必须换成法阵、妖兽、血脉、灵力、法器或实物争夺。`
+      `- 已多次使用纸质证据翻盘（当前计数=${paperEvidenceCount}）。接下来一批禁止再靠${forbiddenPaper}直接拍脸收账，必须换成${alternatives}。`
     )
   }
-  if (fantasyVisualCount === 0) {
+  if (options.allowFantasyVisuals && fantasyVisualCount === 0) {
     lines.push(
       '- 当前修仙爽点偏弱。下一集必须补至少一种可视化修仙手段：妖兽异动、法阵反噬、血脉爆发、灵力碾压、法器换手、禁制触发。'
     )
@@ -79,8 +92,14 @@ function buildTacticBanLines(ledger: ScriptStateLedgerDto): string[] {
   return lines
 }
 
-export function buildLedgerConstraintBlock(ledger: ScriptStateLedgerDto): string {
-  const lines = [...buildCharacterContinuityLockLines(ledger), ...buildTacticBanLines(ledger)]
+export function buildLedgerConstraintBlock(
+  ledger: ScriptStateLedgerDto,
+  options: BuildLedgerConstraintBlockOptions = {}
+): string {
+  const lines = [
+    ...buildCharacterContinuityLockLines(ledger),
+    ...buildTacticBanLines(ledger, options)
+  ]
 
   if (lines.length === 0) {
     return ''

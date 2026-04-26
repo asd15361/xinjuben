@@ -132,6 +132,10 @@ test('buildEntityStoreFromDecomposition creates linked world entities from decom
   assert.ok(slotCharacters.some((item) => item.factionRole === '长老位'))
   assert.ok(slotCharacters.some((item) => item.factionRole === '执事位'))
   assert.ok(slotCharacters.every((item) => item.linkedFactionIds.includes(faction.id)))
+  assert.equal(slotCharacters.some((item) => item.goals.some((goal) => goal.includes('这条线撑住'))), false)
+  assert.equal(slotCharacters.some((item) => item.goals.some((goal) => goal.includes('自己这条线'))), false)
+  assert.ok(slotCharacters.some((item) => item.goals.some((goal) => goal.includes('规则定责'))))
+  assert.ok(slotCharacters.some((item) => item.goals.some((goal) => goal.includes('具体差事'))))
 
   assert.ok(location)
   assert.equal(location.controllingFactionId, faction.id)

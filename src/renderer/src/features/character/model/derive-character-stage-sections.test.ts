@@ -310,6 +310,105 @@ test('buildCharacterStageSections surfaces synthesized slot cards as real light 
   )
 })
 
+test('buildCharacterStageSections dedupes light card goal and pressure previews', () => {
+  const sections = buildCharacterStageSections({
+    characterDrafts: [],
+    entityStore: {
+      characters: [
+        {
+          id: 'char_left_guard',
+          projectId: 'project-1',
+          type: 'character',
+          name: '左护法',
+          aliases: [],
+          summary: '仙盟左护法',
+          tags: ['活跃人物'],
+          roleLayer: 'active',
+          goals: [
+            '秩序高于一切，忠诚即为正义，为达成目标可牺牲任何代价。',
+            '秩序高于一切，忠诚即为正义，为达成目标可牺牲任何代价'
+          ],
+          pressures: [
+            '左护法把仙盟命令当作活下去的根。',
+            '左护法把仙盟命令当作活下去的根'
+          ],
+          linkedFactionIds: ['faction_xianmeng'],
+          linkedLocationIds: [],
+          linkedItemIds: [],
+          provenance: {
+            provenanceTier: 'plot_inferred',
+            originAuthorityType: 'plot_inferred',
+            originDeclaredBy: 'system',
+            sourceStage: 'chat',
+            createdAt: '2026-04-09T00:00:00.000Z',
+            updatedAt: '2026-04-09T00:00:00.000Z'
+          }
+        }
+      ],
+      factions: [
+        {
+          id: 'faction_xianmeng',
+          projectId: 'project-1',
+          type: 'faction',
+          name: '天衍仙盟',
+          aliases: [],
+          summary: '正道联盟',
+          tags: ['势力'],
+          factionType: 'organization',
+          memberCharacterIds: ['char_left_guard'],
+          provenance: {
+            provenanceTier: 'plot_inferred',
+            originAuthorityType: 'plot_inferred',
+            originDeclaredBy: 'system',
+            sourceStage: 'chat',
+            createdAt: '2026-04-09T00:00:00.000Z',
+            updatedAt: '2026-04-09T00:00:00.000Z'
+          }
+        }
+      ],
+      locations: [],
+      items: [],
+      relations: []
+    }
+  })
+
+  assert.equal(sections.lightCards[0]?.goalPreview.includes(' / '), false)
+  assert.equal(sections.lightCards[0]?.pressurePreview.includes(' / '), false)
+})
+
+test('buildCharacterStageSections hides same-name full profiles from light cards even when stale entity ids differ', () => {
+  const staleStore = makeEntityStore()
+  staleStore.characters.push({
+    ...staleStore.characters[1],
+    id: 'char_guard_duplicate',
+    name: '陆青禾',
+    linkedFactionIds: ['faction_xuanyu']
+  })
+
+  const sections = buildCharacterStageSections({
+    characterDrafts: [
+      {
+        masterEntityId: 'char_guard',
+        name: '陆青禾',
+        biography: '已升完整的人物。',
+        publicMask: '',
+        hiddenPressure: '',
+        fear: '',
+        protectTarget: '',
+        conflictTrigger: '',
+        advantage: '',
+        weakness: '',
+        goal: '',
+        arc: '',
+        roleLayer: 'active'
+      }
+    ],
+    entityStore: staleStore
+  })
+
+  assert.equal(sections.lightCards.some((card) => card.name === '陆青禾'), false)
+})
+
 test('createCharacterDraftFromEntityStore upgrades light card into full draft with master entity id', () => {
   const draft = createCharacterDraftFromEntityStore({
     entityStore: makeEntityStore(),

@@ -33,6 +33,10 @@ import {
 } from '@shared/domain/script/screenplay-content-quality'
 import { parseScreenplayScenes } from '@shared/domain/script/screenplay-format'
 import { EPISODE_CHAR_COUNT } from '@shared/domain/workflow/contract-thresholds'
+import {
+  detectStrategyContamination,
+  resolveGenerationStrategy
+} from '@shared/domain/generation-strategy/generation-strategy'
 
 /** 内容质量低分项阈值 */
 const CONTENT_REPAIR_THRESHOLD = 50
@@ -112,6 +116,60 @@ const MAX_EPISODE_GENERATION_ATTEMPTS = 2
 
 export { collectEpisodeGuardFailures, shouldAcceptRepairCandidate, shouldReplaceBestAttempt }
 
+function buildSceneStrategyText(scene: ScriptSegmentDto): string {
+  const parts: Array<string | undefined> = [
+    scene.screenplay,
+    scene.action,
+    scene.dialogue,
+    scene.emotion,
+    scene.screenplayScenes
+      ?.map((item) =>
+        [
+          item.sceneCode,
+          item.sceneHeading,
+          ...(item.characterRoster || []),
+          item.body
+        ].join('\n')
+      )
+      .join('\n')
+  ]
+
+  return parts
+    .filter((part): part is string => typeof part === 'string' && part.trim().length > 0)
+    .join('\n')
+}
+
+export function collectGenerationStrategyEpisodeGuardFailures(input: {
+  scene: ScriptSegmentDto
+  generationInput: StartScriptGenerationInputDto
+  outline: OutlineDraftDto
+}): EpisodeGuardFailure[] {
+  const resolution = resolveGenerationStrategy({
+    marketProfile: input.generationInput.storyIntent?.marketProfile,
+    genre: input.outline.genre,
+    storyIntentGenre: [
+      input.generationInput.mainConflict,
+      input.outline.mainConflict,
+      input.outline.summary
+    ]
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .join('\n'),
+    title: input.outline.title || input.generationInput.outlineTitle
+  })
+  const seen = new Set<string>()
+
+  return detectStrategyContamination(resolution.strategy, buildSceneStrategyText(input.scene))
+    .filter((issue) => {
+      if (seen.has(issue.term)) return false
+      seen.add(issue.term)
+      return true
+    })
+    .map((issue) => ({
+      code: 'strategy_contamination',
+      detail: `题材串味：当前题材策略「${resolution.strategy.label}」不应出现「${issue.term}」。`
+    }))
+}
+
 export function buildEpisodeRetryPrompt(
   promptText: string,
   failures: EpisodeGuardFailure[]
@@ -123,6 +181,12 @@ export function buildEpisodeRetryPrompt(
   if (failures.some((failure) => failure.code === 'voice_over')) {
     extraInstructions.push(
       '上一版发现了（画外音）/旁白/OS。未进场人物的声音必须改成动作描述，例如：△门外传来某人的喊声："……"；不能继续写成角色对白行。'
+    )
+  }
+
+  if (failures.some((failure) => failure.code === 'strategy_contamination')) {
+    extraInstructions.push(
+      '上一版出现当前题材禁用词。必须改回当前题材世界里的机构、身份、道具和冲突，不准保留串题材词。'
     )
   }
 
@@ -198,6 +262,11 @@ function buildEpisodeIssueTicket(
   if (failures.some((failure) => failure.code === 'template_pollution')) {
     guidance.push('- 清掉待补、模板、伪剧本壳和重复假场头，只保留真实可拍的动作和对白。')
   }
+  if (failures.some((failure) => failure.code === 'strategy_contamination')) {
+    guidance.push(
+      '- 题材串味。只保留当前题材里的机构、身份、道具和冲突；把禁用题材词改成当前题材可用表达。'
+    )
+  }
   if (failures.some((failure) => failure.code === 'scene_count')) {
     guidance.push('- 场次数没过。严格按上一版原有场数和场号改，不准新增场、拆场、并场。')
   }
@@ -271,7 +340,10 @@ export function pickEpisodeRetryMode(
 ): 'retry_parse' | 'retry_coverage' | 'retry_runtime' {
   if (
     failures.some(
-      (failure) => failure.code === 'scene_count' || failure.code === 'template_pollution'
+      (failure) =>
+        failure.code === 'scene_count' ||
+        failure.code === 'template_pollution' ||
+        failure.code === 'strategy_contamination'
     )
   ) {
     return 'retry_parse'
@@ -460,13 +532,23 @@ export async function runScriptGenerationBatch(input: {
         })
 
         const parsedScene = parseGeneratedScene(result.text, episode.episodeNo)
-        const failures = collectEpisodeGuardFailures(parsedScene)
+        const failures = [
+          ...collectEpisodeGuardFailures(parsedScene),
+          ...collectGenerationStrategyEpisodeGuardFailures({
+            scene: parsedScene,
+            generationInput: input.generationInput,
+            outline: input.outline
+          })
+        ]
 
         const shouldTakeCandidate =
           !bestAttempt ||
           (attempt === 1
             ? shouldReplaceBestAttempt(bestAttempt, { failures })
-            : shouldAcceptRepairCandidate(bestAttempt.parsedScene, parsedScene))
+            : shouldAcceptRepairCandidate(bestAttempt.parsedScene, parsedScene, {
+                originalFailures: bestAttempt.failures,
+                candidateFailures: failures
+              }))
 
         if (shouldTakeCandidate) {
           bestAttempt = {
@@ -522,7 +604,14 @@ export async function runScriptGenerationBatch(input: {
               promptLength: repairPrompt.length
             })
             const repairedScene = parseGeneratedScene(repairResult.text, episode.episodeNo)
-            const repairGuardFailures = collectEpisodeGuardFailures(repairedScene)
+            const repairGuardFailures = [
+              ...collectEpisodeGuardFailures(repairedScene),
+              ...collectGenerationStrategyEpisodeGuardFailures({
+                scene: repairedScene,
+                generationInput: input.generationInput,
+                outline: input.outline
+              })
+            ]
 
             if (repairGuardFailures.length === 0) {
               const repairedSignal = inspectContentQualityEpisode(repairedScene, {

@@ -20,6 +20,11 @@ function block(title: string, lines: string[]): string {
 
 export function buildCharacterProfileCopyText(character: CharacterDraftDto): string {
   return block(clean(character.name) || '未命名人物', [
+    ...line('外在形象', character.appearance),
+    ...line('性格特点', character.personality),
+    ...line('身份', character.identity),
+    ...line('价值观', character.values),
+    ...line('剧情作用', character.plotFunction),
     ...line('最想守', character.protectTarget),
     ...line('最怕失去', character.fear),
     ...line('一碰就炸', character.conflictTrigger),

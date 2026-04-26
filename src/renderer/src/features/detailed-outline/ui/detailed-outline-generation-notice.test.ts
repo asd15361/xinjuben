@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 
 import { buildDetailedOutlineFailureNotice } from './detailed-outline-generation-notice.ts'
 
-test('buildDetailedOutlineFailureNotice strips remote invoke noise for anchor roster gate', () => {
+test('buildDetailedOutlineFailureNotice maps anchor roster contract gate code', () => {
   const notice = buildDetailedOutlineFailureNotice(
-    "Error invoking remote method 'workspace:generate-detailed-outline': Error: detailed_outline_anchor_roster_missing"
+    'detailed_outline_anchor_roster_missing'
   )
 
   assert.equal(notice.title, '还不能直接生成详细大纲')
@@ -13,9 +13,9 @@ test('buildDetailedOutlineFailureNotice strips remote invoke noise for anchor ro
   assert.equal(notice.primaryAction?.label, '回人物页补齐')
 })
 
-test('buildDetailedOutlineFailureNotice explains timeout plainly', () => {
+test('buildDetailedOutlineFailureNotice explains API timeout error plainly', () => {
   const notice = buildDetailedOutlineFailureNotice(
-    "Error invoking remote method 'workspace:generate-detailed-outline': TimeoutError: ai_request_timeout:60000ms"
+    'detailed_outline_generation_failed:ai_request_timeout:60000ms'
   )
 
   assert.equal(notice.title, '详细大纲这次超时了')
@@ -33,7 +33,7 @@ test('buildDetailedOutlineFailureNotice explains incomplete model payload plainl
 
 test('buildDetailedOutlineFailureNotice explains replaced run plainly', () => {
   const notice = buildDetailedOutlineFailureNotice(
-    "Error invoking remote method 'workspace:generate-detailed-outline': Error: detailed_outline_generation_failed:workspace_generation_aborted:replaced"
+    'detailed_outline_generation_failed:workspace_generation_aborted:replaced'
   )
 
   assert.equal(notice.title, '上一轮详细大纲请求已被新请求替换')

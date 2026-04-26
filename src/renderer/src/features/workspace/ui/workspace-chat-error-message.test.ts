@@ -14,9 +14,9 @@ test('normalizeWorkspaceChatErrorMessage strips remote invoke and summary wrappe
   assert.equal(message, 'AI 请求超时（35 秒）')
 })
 
-test('normalizeWorkspaceChatErrorMessage strips remote invoke timeout error name noise', () => {
+test('normalizeWorkspaceChatErrorMessage normalizes API timeout payload', () => {
   const message = normalizeWorkspaceChatErrorMessage(
-    "Error invoking remote method 'workspace:generate-outline-and-characters': TimeoutError: ai_request_timeout:45000ms"
+    'summary_generation_failed:ai_request_timeout:45000ms'
   )
 
   assert.equal(message, 'AI 请求超时（45 秒）')
@@ -124,11 +124,11 @@ test('buildWorkspaceChatFailureMessage explains character profile v2 parse failu
   )
 })
 
-test('buildWorkspaceChatFailureMessage explains authority failure for character contract plainly', () => {
+test('buildWorkspaceChatFailureMessage explains authority failure for character contract (legacy)', () => {
   assert.equal(
     buildWorkspaceChatFailureMessage(
       '生成失败',
-      'Error invoking remote method \'workspace:generate-outline-and-characters-from-confirmed-seven-questions\': AuthorityFailureError: [AUTHORITY_FAILURE_INCOMPLETE_RESULT] Authority failure for "characterDrafts": [guardian:character-persistence] Character save would create invalid upstream state. Upstream outline incomplete. Issues: character_contract_incomplete.'
+      'AuthorityFailureError: [AUTHORITY_FAILURE_INCOMPLETE_RESULT] Authority failure for "characterDrafts": [guardian:character-persistence] Character save would create invalid upstream state. Upstream outline incomplete. Issues: character_contract_incomplete.'
     ),
     '生成失败：人物结果生成出来了，但保存时被旧人物合同拦住了；请先检查主角、对手和当前人物小传是否完整'
   )

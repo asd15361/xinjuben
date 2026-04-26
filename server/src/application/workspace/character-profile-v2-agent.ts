@@ -16,8 +16,16 @@ import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { MarketProfileDto } from '@shared/contracts/project'
-import type { FactionDto, FactionMatrixDto } from '@shared/contracts/faction-matrix'
-import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-v2'
+import type {
+  CharacterPlaceholderDto,
+  FactionBranchDto,
+  FactionDto,
+  FactionMatrixDto
+} from '@shared/contracts/faction-matrix'
+import {
+  mapV2ToLegacyCharacterDraft,
+  type CharacterProfileV2Dto
+} from '@shared/contracts/character-profile-v2'
 import { buildMarketProfilePromptSection } from './build-market-profile-prompt-section'
 
 export interface CharacterProfileV2AgentInput {
@@ -35,7 +43,7 @@ export interface CharacterProfileV2Result {
 }
 
 const CHARACTER_PROFILE_V2_FACTION_CONCURRENCY_LIMIT = 2
-const CHARACTER_PROFILE_V2_SPLIT_CONCURRENCY_LIMIT = 1
+const CHARACTER_PROFILE_V2_SPLIT_CONCURRENCY_LIMIT = 2
 const CHARACTER_PROFILE_V2_MAX_ATTEMPTS = 3
 const CHARACTER_PROFILE_V2_BACKOFF_MS = [2000, 5000, 10000] as const
 const CHARACTER_PROFILE_V2_MAX_OUTPUT_TOKENS = 3500
@@ -46,10 +54,53 @@ function hasText(value: unknown): value is string {
 }
 
 function normalizeJsonEnvelope(rawText: string): string {
-  return rawText
+  const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```$/i, '')
     .trim()
+  const fencedJson = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fencedJson?.[1]) {
+    return fencedJson[1].trim()
+  }
+
+  const start = cleaned.indexOf('{')
+  if (start < 0) {
+    return cleaned
+  }
+
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let index = start; index < cleaned.length; index += 1) {
+    const char = cleaned[index]
+    if (inString) {
+      if (escaped) {
+        escaped = false
+      } else if (char === '\\') {
+        escaped = true
+      } else if (char === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      continue
+    }
+    if (char === '{') {
+      depth += 1
+      continue
+    }
+    if (char === '}') {
+      depth -= 1
+      if (depth === 0) {
+        return cleaned.slice(start, index + 1).trim()
+      }
+    }
+  }
+
+  return cleaned.slice(start).trim()
 }
 
 function isTransientCharacterProfileRuntimeError(message: string): boolean {
@@ -147,6 +198,12 @@ function buildCharacterProfileV2RetryPrompt(input: {
     '这次只输出合法 JSON，不要解释，不要 markdown，不要 ```json。',
     '每个人物都必须保住 5 个基础维度：appearance / personality / identity / values / plotFunction。',
     'core 人物还必须补齐：hiddenPressure / fear / protectTarget / conflictTrigger / advantage / weakness / goal / arc / publicMask。',
+    'biography 必须是一段自然人物小传，不要把 identity、values、plotFunction 硬拼成一串。',
+    'biography 必须融合五维：外在形象、身份处境、价值观、隐藏压力、剧中动作方式，写成可交给编剧的自然段。',
+    'plotFunction 必须点名他和谁形成对手戏，以及用什么手段推进主线；禁止只写“推动剧情”。',
+    'conflictTrigger 必须写具体可拍场面；advantage 必须写能直接进剧本的行动抓手。',
+    'publicMask 必须写可拍的表面动作或演法，不能只写“冷淡/善良/忠诚/神秘”这类态度。',
+    'arc 必须写成：起点 → 触发事件 → 中段摇摆 → 代价选择 → 终局变化。禁止只写“最终背叛/最终战死/最终醒悟”。',
     `上一版问题：${input.parseIssues.join('、') || 'unknown'}`,
     '如果你写不下长文案，优先缩短每个字段的长度，也不要删字段。',
     '只输出这个结构：',
@@ -241,6 +298,18 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
     '  3. identity（身份）：职业或剧中身份（如：县令之子、客栈小二、集团二把手、江湖游侠）。锚定社会角色。',
     '  4. values（价值观）：人物行动的根源信条（如：秩序至上、弱肉强食、家族荣耀高于一切）。这是塑造人物弧光的关键。',
     '  5. plotFunction（剧情作用）：人物在全剧中提供的核心功能（如：用工业技术在古代建功、替主角挡刀的忠诚者、制造信息差的卧底）。聚焦"在故事中起什么作用"，而非流水账。',
+    '',
+    '【剧本可用性 · 禁止设定表假完成】',
+    'biography 必须是一段自然人物小传：用 1-2 句写清“他是谁、被什么压力推着动、在戏里怎么制造冲突”。',
+    'biography 必须自然融合五维：外在形象、身份处境、价值观、隐藏压力、剧中动作方式；不能只把五个字段并排复述。',
+    '不要把 identity、values、plotFunction 硬拼成小传，不要出现“身份。价值观。剧情作用。”这种条目揉段落。',
+    'plotFunction 必须点名对手戏对象或关系杠杆，并写清他是逼供、做局、护短、递假消息、压规则、抢证据还是反咬。',
+    'publicMask 必须是可拍演法：表面怎么装、怎么藏、怎么拖；不要只写“冷淡/无害/忠诚/神秘/正道楷模”。',
+    'conflictTrigger 必须写具体可拍场面：谁做了什么、碰到什么底线、他会怎么动作；禁止只写“被逼急时”。',
+    'advantage 必须写能直接进剧本的行动抓手：能调动谁、藏什么证据、递什么假消息、用什么规则反咬。',
+    'advantage 和 weakness 都必须落到人、物、证据、规矩、位置或关系上；禁止“聪明、勇敢、实力强、资源多”这类空词。',
+    'arc 必须写成：起点 → 触发事件 → 中段摇摆 → 代价选择 → 终局变化。',
+    '禁止只写“最终背叛/最终战死/最终醒悟”；必须写清让他变化的条件、心理代价和选择成本。',
     '',
     '【差异化层级】',
     '  - 核心人物（depthLevel="core"，3-5人）：超详尽五维 + 成长弧光 + hiddenPressure/fear/protectTarget/conflictTrigger/advantage/weakness/goal/arc/publicMask 全填',
@@ -348,7 +417,13 @@ function buildSingleCharacterProfileV2AgentPrompt(input: {
       : '旧版参考：无',
     '五维必填：appearance/personality/identity/values/plotFunction。',
     '如果 depthLevel=core，还必须补 hiddenPressure/fear/protectTarget/conflictTrigger/advantage/weakness/goal/arc/publicMask。',
-    '字段可以短，但绝不能缺字段，biography 用 1-2 句总结人物本质和剧情功能。',
+    '字段可以短，但绝不能缺字段。',
+    'biography 必须是一段自然人物小传，不要把 identity、values、plotFunction 硬拼；要写清压力、动作和戏剧功能。',
+    'biography 必须融合五维：外在形象、身份处境、价值观、隐藏压力、剧中动作方式，不能像字段表。',
+    'plotFunction 必须写清此人和谁形成对手戏，以及靠什么手段制造冲突。',
+    'publicMask 必须写可拍演法：表面怎么装、怎么藏、怎么拖。',
+    'conflictTrigger 必须写具体可拍场面；advantage 必须写能直接进剧本的行动抓手。',
+    'arc 必须写成：起点 → 触发事件 → 中段摇摆 → 代价选择 → 终局变化，禁止只写“最终背叛/最终战死/最终醒悟”。',
     '输出结构：',
     '{',
     '  "characters": [',
@@ -414,7 +489,18 @@ export function parseCharacterProfileV2Response(rawText: string): CharacterProfi
       }
     }
 
-    return parsed as CharacterProfileV2Result
+    const result = parsed as CharacterProfileV2Result
+    return {
+      characters: result.characters.map((character) => {
+        const legacy = mapV2ToLegacyCharacterDraft(character)
+        return {
+          ...character,
+          biography: legacy.biography,
+          publicMask: legacy.publicMask,
+          arc: character.depthLevel === 'core' ? legacy.arc : character.arc
+        }
+      })
+    }
   } catch {
     return null
   }
@@ -475,6 +561,121 @@ function createFactionScopedMatrix(
     factions: [scopedFaction],
     crossRelations: relevantCrossRelations
   }
+}
+
+function buildFallbackCharacterProfileFromPlaceholder(input: {
+  storyIntent: StoryIntentPackageDto
+  faction: FactionDto
+  branch: FactionBranchDto
+  placeholder: CharacterPlaceholderDto
+}): CharacterProfileV2Dto {
+  const { storyIntent, faction, branch, placeholder } = input
+  const protagonist = storyIntent.protagonist || '主角'
+  const antagonist = storyIntent.antagonist || '对手'
+  const placeholderText = [
+    placeholder.name,
+    placeholder.identity,
+    placeholder.coreMotivation,
+    placeholder.plotFunction,
+    branch.name,
+    branch.positioning,
+    branch.coreDemand
+  ].join('\n')
+  const isSeniorDisciple = /亲传|大弟子|师兄|同门|师父|掌门派/u.test(placeholderText)
+  const roleAction =
+    placeholder.roleInFaction === 'leader'
+      ? `拍板${faction.name}的关键选择`
+      : placeholder.roleInFaction === 'enforcer'
+        ? `把${branch.name}的压力落到${protagonist}身上`
+        : placeholder.roleInFaction === 'variable'
+          ? `在${protagonist}和${antagonist}之间制造立场反转`
+          : `把${faction.name}的现场信息递到主线里`
+  const pressureTarget =
+    placeholder.coreMotivation || branch.coreDemand || faction.coreDemand || faction.coreValues
+  const conflictTrigger =
+    isSeniorDisciple
+      ? `${protagonist}被逼到无路可退，或证据指向${branch.name}时`
+      : placeholder.roleInFaction === 'leader'
+      ? `${protagonist}动摇${faction.name}利益时`
+      : placeholder.roleInFaction === 'enforcer'
+        ? `${protagonist}拿到能反咬${branch.name}的证据时`
+        : placeholder.roleInFaction === 'variable'
+          ? `两边都逼他交出真实立场时`
+          : `现场消息断掉或上层命令压下来时`
+  const advantage =
+    isSeniorDisciple
+      ? '亲传大弟子的威望、同门人脉和戒律流程，能把门规压力变成现场缓冲'
+      : placeholder.roleInFaction === 'leader'
+      ? `调动${faction.name}资源压场`
+      : placeholder.roleInFaction === 'enforcer'
+        ? '熟悉门路、敢下脏手、能把刁难变成现场压力'
+        : placeholder.roleInFaction === 'variable'
+          ? '掌握两边都不敢公开的暗线消息'
+          : '跑腿传话、探路放风、把风声带到台前'
+  const hiddenPressure = isSeniorDisciple
+    ? `${placeholder.name}夹在师父命令、同门规矩和对${protagonist}的关心之间，越按程序施压，越可能亲手把${protagonist}逼进绝境`
+    : `${placeholder.name}夹在${branch.name}职责、${pressureTarget}和${protagonist}带来的现场变局之间，继续服从或临场改口都会留下代价`
+  const fear = isSeniorDisciple
+    ? `继续服从师命反而害死${protagonist}，也怕同门因一次放水被${antagonist}清算`
+    : `失去${pressureTarget}，或在${protagonist}反击后替${branch.name}背下现场后果`
+  const protectTarget = isSeniorDisciple
+    ? `师父的托付、同门安危和${protagonist}尚未暴露前的退路`
+    : `${pressureTarget}、${faction.name}的基本秩序，以及自己还能补救的现场关系`
+  const weakness = isSeniorDisciple
+    ? '太习惯按师命和同门规矩处理问题，一旦局势绕过程序，动作会慢半拍'
+    : `过度依赖${faction.name}和${branch.name}给出的身份，一旦局势绕过程序就会慢半拍`
+  const biography = isSeniorDisciple
+    ? `${placeholder.name}是${placeholder.identity}，隶属${faction.name}${branch.name}。表面按门规把压力落到${protagonist}身上，私下却受师父托付和同门情义牵制，必须在执行命令与替${protagonist}留退路之间做选择。`
+    : `${placeholder.name}是${placeholder.identity}，隶属${faction.name}${branch.name}。表面执行阵营命令，私下受${pressureTarget}牵制，负责${roleAction}。`
+
+  return {
+    id: placeholder.id,
+    name: placeholder.name,
+    depthLevel: placeholder.depthLevel,
+    factionId: faction.id,
+    branchId: branch.id,
+    roleInFaction: placeholder.roleInFaction,
+    appearance: `${placeholder.identity}，外在特征后续可重绘细化`,
+    personality:
+      placeholder.roleInFaction === 'enforcer'
+        ? '行动直接，遇到阻力先压人再解释'
+        : placeholder.roleInFaction === 'variable'
+          ? '表面顺从，心里一直给自己留退路'
+          : '受位置和职责驱动，习惯先按阵营利益判断',
+    identity: placeholder.identity,
+    values: pressureTarget,
+    plotFunction: `${placeholder.plotFunction}，并负责${roleAction}`,
+    hiddenPressure,
+    fear,
+    protectTarget,
+    conflictTrigger,
+    advantage,
+    weakness,
+    goal: placeholder.coreMotivation || `完成${faction.name}交代的任务`,
+    arc: `起点：${placeholder.name}依靠${branch.name}给出的身份行动；触发：${conflictTrigger}；摇摆：${placeholder.name}发现继续服从会让自己背下现场后果；代价选择：守住${protectTarget}还是承认局势已经失控；终局变化：${placeholder.name}在关键选择后承担站队代价。`,
+    publicMask: `${placeholder.identity}，按${faction.name}规矩办事`,
+    biography
+  }
+}
+
+function buildFallbackCharacterProfilesFromFaction(input: {
+  storyIntent: StoryIntentPackageDto
+  faction: FactionDto
+  characterNames?: string[]
+}): CharacterProfileV2Dto[] {
+  const allowedNames = input.characterNames ? new Set(input.characterNames) : null
+  return input.faction.branches.flatMap((branch) =>
+    branch.characters
+      .filter((placeholder) => (allowedNames ? allowedNames.has(placeholder.name) : true))
+      .map((placeholder) =>
+        buildFallbackCharacterProfileFromPlaceholder({
+          storyIntent: input.storyIntent,
+          faction: input.faction,
+          branch,
+          placeholder
+        })
+      )
+  )
 }
 
 async function runWithConcurrencyLimit<TInput, TResult>(input: {
@@ -674,14 +875,29 @@ async function generateCharacterProfileV2ForFactionWithAdaptiveSplit(input: {
     const isRuntimeFailure = normalizedError.message.startsWith(
       `character_profile_v2_generation_failed:${input.faction.name}:`
     )
+    const isParseFailure = normalizedError.message.startsWith(
+      `character_profile_v2_parse_failed:${input.faction.name}:`
+    )
 
-    if (!isRuntimeFailure || !shouldSplitFactionIntoSingleCharacterCalls(normalizedError.message)) {
+    if (
+      (!isRuntimeFailure && !isParseFailure) ||
+      (isRuntimeFailure && !shouldSplitFactionIntoSingleCharacterCalls(normalizedError.message))
+    ) {
       throw normalizedError
     }
 
     const totalCharacters = input.faction.branches.flatMap((branch) => branch.characters)
     if (totalCharacters.length <= 1) {
-      throw normalizedError
+      if (!isParseFailure) {
+        throw normalizedError
+      }
+      await input.log(
+        `faction_parse_fallback faction=${input.faction.name} elapsedMs=${Date.now() - input.startedAt} characterCount=${totalCharacters.length} reason=${normalizedError.message}`
+      )
+      return buildFallbackCharacterProfilesFromFaction({
+        storyIntent: input.storyIntent,
+        faction: input.faction
+      })
     }
 
     await input.log(
@@ -691,11 +907,31 @@ async function generateCharacterProfileV2ForFactionWithAdaptiveSplit(input: {
     const splitResults = await runWithConcurrencyLimit({
       items: totalCharacters,
       concurrency: CHARACTER_PROFILE_V2_SPLIT_CONCURRENCY_LIMIT,
-      worker: async (character) =>
-        generateCharacterProfileV2ForFaction({
-          ...input,
-          characterNames: [character.name]
-        })
+      worker: async (character) => {
+        try {
+          return await generateCharacterProfileV2ForFaction({
+            ...input,
+            characterNames: [character.name]
+          })
+        } catch (splitError) {
+          const normalizedSplitError =
+            splitError instanceof Error ? splitError : new Error(String(splitError || 'unknown'))
+          const splitParseFailure = normalizedSplitError.message.startsWith(
+            `character_profile_v2_parse_failed:${input.faction.name}:`
+          )
+          if (!splitParseFailure) {
+            throw normalizedSplitError
+          }
+          await input.log(
+            `faction_parse_fallback faction=${input.faction.name} elapsedMs=${Date.now() - input.startedAt} character=${character.name} reason=${normalizedSplitError.message}`
+          )
+          return buildFallbackCharacterProfilesFromFaction({
+            storyIntent: input.storyIntent,
+            faction: input.faction,
+            characterNames: [character.name]
+          })
+        }
+      }
     })
 
     const merged = splitResults.flat()

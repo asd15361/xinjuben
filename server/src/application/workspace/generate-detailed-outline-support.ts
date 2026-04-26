@@ -15,6 +15,12 @@ import {
 } from '@shared/domain/workflow/episode-count'
 import { deriveActiveCharacterPackage } from '@shared/domain/workflow/active-character-package'
 import { ensureOutlineEpisodeShape } from '@shared/domain/workflow/outline-episodes'
+import {
+  repairStrategyContaminationValue,
+  resolveGenerationStrategy,
+  summarizeStrategyContaminationReplacements
+} from '@shared/domain/generation-strategy/generation-strategy'
+import type { GenerationStrategy } from '@shared/domain/generation-strategy/generation-strategy'
 import { buildDetailedOutlineActPrompt } from './generation-stage-prompts'
 import { generateEpisodeControlCardsForSegment } from './episode-control-agent'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
@@ -95,6 +101,22 @@ function emitDetailedOutlineDiagnostic(
   } catch {
     // 诊断日志只能旁路记录，不能反过来打断正式生成链。
   }
+}
+
+function repairDetailedOutlineSegmentsForStrategy(input: {
+  segments: DetailedOutlineSegmentDto[]
+  strategy: GenerationStrategy
+  diagnosticLogger?: DetailedOutlineDiagnosticLogger
+}): DetailedOutlineSegmentDto[] {
+  const repair = repairStrategyContaminationValue(input.strategy, input.segments)
+  if (repair.replacements.length > 0) {
+    emitDetailedOutlineDiagnostic(
+      input.diagnosticLogger,
+      `strategy_contamination_repaired stage=detailed_outline strategy=${input.strategy.id} replacements=${summarizeStrategyContaminationReplacements(repair.replacements)}`
+    )
+  }
+
+  return repair.value
 }
 
 function normalizeWhitespace(text: string): string {
@@ -556,8 +578,24 @@ export async function generateDetailedOutlineFromContext(
       throw new Error('detailed_outline_model_incomplete')
     }
 
-    return {
+    const strategy = resolveGenerationStrategy({
+      marketProfile: input.storyIntent?.marketProfile,
+      genre: normalizedOutline.genre || input.storyIntent?.genre,
+      storyIntentGenre: input.storyIntent?.genre,
+      title: normalizedOutline.title || input.storyIntent?.titleHint
+    }).strategy
+    const repairedSegments = repairDetailedOutlineSegmentsForStrategy({
       segments,
+      strategy,
+      diagnosticLogger: input.diagnosticLogger
+    })
+
+    if (!isDetailedOutlineModelResultComplete(repairedSegments, totalEpisodes)) {
+      throw new Error('detailed_outline_model_incomplete_after_strategy_repair')
+    }
+
+    return {
+      segments: repairedSegments,
       source: 'model',
       diagnostic: `router_ok:model:batches=${batchPlans.length}`
     }

@@ -214,9 +214,7 @@ test('recoverCorruptProjectStoreIfNeeded does not overwrite current store with o
     'utf8'
   )
 
-  const didRecover = await recoverCorruptProjectStoreIfNeeded(currentStorePath, root, {
-    allowValidStoreReplacement: true
-  })
+  const didRecover = await recoverCorruptProjectStoreIfNeeded(currentStorePath, root)
   const currentRaw = await readFile(currentStorePath, 'utf8')
   const current = JSON.parse(currentRaw) as { projects?: Record<string, { name?: string }> }
 

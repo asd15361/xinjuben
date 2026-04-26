@@ -126,7 +126,7 @@ export function getCharacterContractIssues(
   const candidate = character as CharacterContractCandidate
   const missingLegacyFields = collectMissingLegacyFields(candidate)
   const missingV2Fields = collectMissingV2Fields(candidate)
-  if (missingLegacyFields.length === 0 || missingV2Fields.length === 0) {
+  if (missingLegacyFields.length === 0 && missingV2Fields.length === 0) {
     return null
   }
   return {
@@ -149,7 +149,9 @@ export function resolveCharacterContractAnchors(input: {
   const protagonist =
     storyProtagonist && !isGenericRoleAnchor(storyProtagonist)
       ? storyProtagonist
-      : outlineProtagonist || storyProtagonist
+      : outlineProtagonist && !isGenericRoleAnchor(outlineProtagonist)
+        ? outlineProtagonist
+        : ''
   const antagonist = input.storyIntent?.antagonist?.trim() || ''
 
   return {
@@ -172,12 +174,12 @@ export function getCharacterBundleContractIssues(input: {
     incompleteCharacters: characters
       .map((item) => getCharacterContractIssues(item))
       .filter((item): item is CharacterContractIssueDto => Boolean(item)),
-    protagonistCovered: input.protagonist?.trim()
+    protagonistCovered: input.protagonist?.trim() && !isGenericRoleAnchor(input.protagonist.trim())
       ? characters.some((character) =>
           isAnchorCoveredByCharacterText(character, input.protagonist!.trim())
         )
       : true,
-    antagonistCovered: input.antagonist?.trim()
+    antagonistCovered: input.antagonist?.trim() && !isGenericRoleAnchor(input.antagonist.trim())
       ? characters.some((character) =>
           isAnchorCoveredByCharacterText(character, input.antagonist!.trim())
         )

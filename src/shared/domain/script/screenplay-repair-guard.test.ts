@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compactOverlongScreenplay } from './screenplay-repair-guard.ts'
+import { compactOverlongScreenplay, shouldAcceptRepairCandidate } from './screenplay-repair-guard.ts'
 import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
 
 function createOverlongScene(): ScriptSegmentDto {
@@ -38,4 +38,32 @@ test('compactOverlongScreenplay refuses compacted versions that would fall below
   const result = compactOverlongScreenplay(scene)
 
   assert.equal(result.screenplay, scene.screenplay)
+})
+
+test('shouldAcceptRepairCandidate can accept a rewrite that removes strategy contamination', () => {
+  const contaminated: ScriptSegmentDto = {
+    sceneNo: 1,
+    action: '',
+    dialogue: '',
+    emotion: '',
+    screenplay: '第1集\n\n1-1 集团会议室［内］［日］\n人物：苏晚，顾沉\n△宗门审判声响起。\n苏晚：我不会交出魔尊血脉。\n顾沉：先稳住。',
+    screenplayScenes: []
+  }
+  const clean: ScriptSegmentDto = {
+    ...contaminated,
+    screenplay: '第1集\n\n1-1 集团会议室［内］［日］\n人物：苏晚，顾沉\n△集团会议室里，股权协议被推到苏晚面前。\n苏晚：我不会签这份契约。\n顾沉：先稳住。'
+  }
+
+  assert.equal(
+    shouldAcceptRepairCandidate(contaminated, clean, {
+      originalFailures: [
+        {
+          code: 'strategy_contamination',
+          detail: '题材串味：当前题材策略「女频霸总甜宠」不应出现「魔尊血脉」。'
+        }
+      ],
+      candidateFailures: []
+    }),
+    true
+  )
 })

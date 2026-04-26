@@ -39,11 +39,33 @@ test('hidden bloodline xianxia prompt forbids turning protagonist into a public 
     totalEpisodes: 20
   })
 
+  assert.match(prompt, /题材策略层/)
   assert.match(prompt, /隐藏血脉修仙项目/)
   assert.match(prompt, /禁止把主角前期写成魔渊宗宗主/)
   assert.match(prompt, /真女主和反派大小姐必须分开/)
   assert.match(prompt, /吊坠碎片是贯穿线索/)
   assert.match(prompt, /禁止自动加入退婚/)
+})
+
+test('marketProfile strategy prevents xianxia fallback rules from leaking into female CEO projects', () => {
+  const prompt = buildFactionMatrixAgentPrompt({
+    storyIntent: {
+      ...buildStoryIntent(),
+      genre: '男频修仙',
+      marketProfile: {
+        audienceLane: 'female',
+        subgenre: '女频霸总甜宠'
+      },
+      generationBriefText:
+        '用户旧描述里误写过魔尊血脉和宗门，但当前项目选择是女频霸总甜宠。'
+    },
+    totalEpisodes: 20
+  })
+
+  assert.match(prompt, /策略：女频霸总甜宠/)
+  assert.match(prompt, /集团|豪门/)
+  assert.doesNotMatch(prompt, /隐藏血脉修仙项目/)
+  assert.doesNotMatch(prompt, /魔渊宗宗主/)
 })
 
 test('60 episode faction matrix prompt keeps full roster requirements', () => {

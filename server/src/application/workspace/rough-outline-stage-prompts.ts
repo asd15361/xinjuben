@@ -11,6 +11,11 @@ import type { MarketProfileDto } from '@shared/contracts/project'
 import type { MarketPlaybookDto } from '@shared/contracts/market-playbook'
 import { buildMarketProfilePromptSection } from './build-market-profile-prompt-section'
 import { buildMarketPlaybookPromptBlock } from '@shared/domain/market-playbook/playbook-prompt-block'
+import {
+  detectStrategyContamination,
+  resolveGenerationStrategy,
+  type GenerationStrategy
+} from '@shared/domain/generation-strategy/generation-strategy'
 
 export type RoughOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
 
@@ -82,6 +87,109 @@ function buildRankIdentityRules(generationBriefText: string, vars: PromptVariabl
     `5.6. 如果底稿里有"排行/庶出/私生/最小徒弟"这类身份事实，至少一集要显性写出这身份被点名、被轻视、被拿来压规矩或当众羞辱；不能只把它挂在设定清单。`,
     `5.7. 这类身份事实要变成可拍压强，比如"按排行${vars.protagonist}先跪下""最小徒弟没资格碰账册"这类能直接拍到的台词/动作，不要只写成人物介绍。`
   ]
+}
+
+function resolveOutlineGenerationStrategy(input: {
+  marketProfile?: MarketProfileDto | null
+  promptVars?: PromptVariables
+  generationBriefText: string
+}): GenerationStrategy {
+  return resolveGenerationStrategy({
+    marketProfile: input.marketProfile,
+    genre: input.promptVars?.genre,
+    storyIntentGenre: input.generationBriefText
+  }).strategy
+}
+
+function strategyToPromptArchetype(strategy: GenerationStrategy): PromptVariables['genreArchetype'] {
+  if (strategy.id === 'male_xianxia') return 'xianxia'
+  if (strategy.id === 'female_ancient_housefight' || strategy.id === 'male_history_military') {
+    return 'period_palace'
+  }
+  if (strategy.id === 'female_ceo_romance') return 'urban_romance'
+  if (strategy.id === 'urban_legal') return 'modern_revenge'
+  if (strategy.id === 'female_modern_counterattack' || strategy.id === 'male_urban_counterattack') {
+    return 'modern_revenge'
+  }
+  return 'default'
+}
+
+function buildDefaultPromptVars(strategy: GenerationStrategy, generationBriefText: string): PromptVariables {
+  return {
+    protagonist: '主角',
+    antagonist: '对手',
+    leverageCharacter: '关键人物',
+    coreItem: strategy.worldLexicon.conflictObjects[0] || '核心筹码',
+    organization: strategy.worldLexicon.factionTypes[0] || '组织',
+    worldElement: strategy.worldLexicon.payoffActions[0] || '外部压力',
+    ruleLeverCharacter: strategy.worldLexicon.roleTitles[0] || '规则掌控者',
+    extraCharacters: [],
+    genre: strategy.label || (generationBriefText.includes('修仙') ? '修仙' : '短剧'),
+    genreArchetype: strategyToPromptArchetype(strategy)
+  }
+}
+
+function coercePromptVarsToStrategy(
+  vars: PromptVariables,
+  strategy: GenerationStrategy
+): PromptVariables {
+  const hasContamination = (value: string) => detectStrategyContamination(strategy, value).length > 0
+  const fallbackCoreItem = strategy.worldLexicon.conflictObjects[0] || '核心筹码'
+  const fallbackOrganization = strategy.worldLexicon.factionTypes[0] || '组织'
+  const fallbackWorldElement = strategy.worldLexicon.payoffActions[0] || '外部压力'
+  const fallbackRuleLever = strategy.worldLexicon.roleTitles[0] || '规则掌控者'
+
+  return {
+    ...vars,
+    genre: strategy.label,
+    genreArchetype: strategyToPromptArchetype(strategy),
+    coreItem:
+      !vars.coreItem.trim() || vars.coreItem === '核心筹码' || hasContamination(vars.coreItem)
+        ? fallbackCoreItem
+        : vars.coreItem,
+    organization:
+      !vars.organization.trim() || vars.organization === '组织' || hasContamination(vars.organization)
+        ? fallbackOrganization
+        : vars.organization,
+    worldElement:
+      !vars.worldElement.trim() || vars.worldElement === '外部威胁' || hasContamination(vars.worldElement)
+        ? fallbackWorldElement
+        : vars.worldElement,
+    ruleLeverCharacter:
+      !vars.ruleLeverCharacter.trim() ||
+      vars.ruleLeverCharacter === '规则掌控者' ||
+      hasContamination(vars.ruleLeverCharacter)
+        ? fallbackRuleLever
+        : vars.ruleLeverCharacter
+  }
+}
+
+function buildOutlineStrategyPromptSection(strategy: GenerationStrategy): string {
+  return [
+    '【题材策略 · 不得串味】',
+    `策略：${strategy.label}`,
+    `势力类型：${strategy.worldLexicon.factionTypes.join('、')}`,
+    `角色称谓：${strategy.worldLexicon.roleTitles.join('、')}`,
+    `冲突物件：${strategy.worldLexicon.conflictObjects.join('、')}`,
+    `爽点动作：${strategy.worldLexicon.payoffActions.join('、')}`,
+    '题材边界：只使用上方策略词库；旧素材里不属于当前策略的世界词不要沿用。'
+  ].join('\n')
+}
+
+function getExternalPressureExamples(strategy: GenerationStrategy): string {
+  if (strategy.id === 'male_xianxia') return '妖兽/灾变/高手'
+  if (strategy.id === 'urban_legal') return '舆论压力/程序风险/新证人变卦'
+  if (strategy.id === 'female_ceo_romance') return '热搜舆论/家族长辈/集团危机'
+  if (strategy.id === 'female_ancient_housefight') return '宫宴问责/长辈施压/名声危机'
+  if (strategy.id === 'male_history_military') return '军情突变/朝堂问责/敌军压境'
+  return '舆论/更高层压力/现实危机'
+}
+
+function getStagnantMechanismExamples(strategy: GenerationStrategy): string {
+  if (strategy.id === 'male_xianxia') return '法阵、封印、议事或世界异象'
+  if (strategy.id === 'urban_legal') return '背景解释、会议空转、舆论概念或抽象总结'
+  if (strategy.id === 'female_ancient_housefight') return '礼法说教、后宅会议、名声概念或空泛哭诉'
+  return '背景解释、会议空转、抽象表态或概念推进'
 }
 
 /**
@@ -217,8 +325,8 @@ function renderFactionMatrixSummary(
  * 构建泛化版的粗纲规则文本。
  * 所有硬编码人名/地名/物品名已替换为变量占位符。
  */
-function buildGeneralizedPromptRules(vars: PromptVariables): string[] {
-  if (vars.genreArchetype === 'xianxia') {
+function buildGeneralizedPromptRules(vars: PromptVariables, strategy: GenerationStrategy): string[] {
+  if (strategy.id === 'male_xianxia') {
     return [
       `2.7. 正确方向示意：${vars.protagonist}先因${vars.coreItem}被毁或被夺受辱，血脉、封印和身世线索被迫露出一角；随后${vars.antagonist}伪装善意继续利用，${vars.leverageCharacter}暗中保护却被冷落，主角从误信到识破，再掌控力量完成复仇与守护。不要照抄这个例句，只学"压迫、觉醒、误信、识破、掌控"的整季弧线。`,
       `10.5. 如果底稿里有${vars.worldElement}、血脉、封印、吊坠残片或身世禁忌，开局和当前批次末两集都要显性落一次；不准把它只写成背景后面彻底消失。`,
@@ -237,7 +345,7 @@ function buildGeneralizedPromptRules(vars: PromptVariables): string[] {
     // ── 2.7 示例 ──
     `2.7. 正确方向示意：${vars.protagonist}先被${vars.antagonist}拿${vars.leverageCharacter}逼到亮底，随后借${vars.worldElement}、${vars.coreItem}和${vars.organization}旧规把人账、证据账、规则账越拧越紧，前半程藏锋挨压，后半程转为借力反咬，最终在亮出底牌后接住伤势、职责和余波。不要照抄这个例句，只学"整季一段拉通"的写法。`,
     // ── 10.5 外压落地 ──
-    `10.5. 如果已确认事实里有${vars.worldElement}或封印外压，开局和当前批次末两集都要显性落一次；不准把它只写成前半段背景然后后面彻底消失。`,
+    `10.5. 如果已确认事实里有${vars.worldElement}或外部压强，开局和当前批次末两集都要显性落一次；不准把它只写成前半段背景然后后面彻底消失。`,
     // ── 10.6 直给压法 ──
     `10.6. "拿刀抵喉/绑住人逼交${vars.coreItem}/抓住${vars.leverageCharacter}逼${vars.protagonist}现身"这种直给压法全季最多 2 次；用过后就换成证据、旧规、伤势、父辈、名声、残党或职责筹码，别十集都靠同一种逼法。`,
     // ── 10.8 主题词 ──
@@ -247,33 +355,26 @@ function buildGeneralizedPromptRules(vars: PromptVariables): string[] {
     // ── 13.95 外部势力 ──
     `13.95. 当前 5 集批次如果出现其他势力或更高层问责，他们只能拿现有旧账加压，不能接管主戏；主推进仍要落在${vars.protagonist}、${vars.leverageCharacter}、${vars.antagonist}、${vars.coreItem}、伤势、残党和证据上。`,
     // ── 14.5 末段开场 ──
-    `14.5. 当前批次末段不准从${vars.organization}合议或${vars.ruleLeverCharacter}收${vars.coreItem}开场；必须从主角或情感杠杆角色正在处理上一集留下的伤势、血契、碎${vars.coreItem}、残党动作或未完追压起手。`,
+    `14.5. 当前批次末段不准从${vars.organization}合议或${vars.ruleLeverCharacter}收${vars.coreItem}开场；必须从主角或情感杠杆角色正在处理上一集留下的伤势、关键文件、被毁或被抢的${vars.coreItem}、追压动作起手。`,
     // ── 15 杠杆角色 ──
     `15. ${vars.leverageCharacter}或其他情感杠杆角色至少一次主动带出证据、换条件、传信、自救或反咬，不准一路只被押、被绑、等人来救。`,
     // ── 15.6 ──
     `15.6. 当前批次末两集不准把"谁来问责${vars.organization}/谁来重议权责"写成主戏眼；这只能是背景压强，真正推进仍要落在人、${vars.coreItem}、证据、伤势和职责落身上。`,
     // ── 16.6 ──
-    `16.6. 当前 5 集批次主推进优先写医庐、静室交易、旧巢、山门、居所、追残党、接职责；不要再让${vars.organization}追责、内部清洗、权位重排自己长成新的主戏。`
+    `16.6. 当前 5 集批次主推进优先写救治现场、私下交易、旧地点、门外堵截、居所、追人、接职责；不要再让${vars.organization}追责、内部清洗、权位重排自己长成新的主戏。`
   ]
 }
 
 export function buildOutlineOverviewPrompt(input: RoughOutlineOverviewInput): string {
-  const vars = input.promptVars || {
-    protagonist: '主角',
-    antagonist: '对手',
-    leverageCharacter: '关键人物',
-    coreItem: '核心筹码',
-    organization: '组织',
-    worldElement: '外部威胁',
-    ruleLeverCharacter: '规则掌控者',
-    extraCharacters: [],
-    genre: input.generationBriefText?.includes('修仙') ? '修仙' : '短剧',
-    genreArchetype: 'default' as const
-  }
+  const strategy = resolveOutlineGenerationStrategy(input)
+  const vars = coercePromptVarsToStrategy(
+    input.promptVars || buildDefaultPromptVars(strategy, input.generationBriefText),
+    strategy
+  )
 
   const rankIdentityRules = buildRankIdentityRules(input.generationBriefText, vars)
   const factionMatrix = input.factionMatrix
-  const generalizedRules = buildGeneralizedPromptRules(vars)
+  const generalizedRules = buildGeneralizedPromptRules(vars, strategy)
 
   const lines: string[] = []
 
@@ -305,6 +406,7 @@ export function buildOutlineOverviewPrompt(input: RoughOutlineOverviewInput): st
     marketProfile: input.marketProfile,
     stage: 'roughOutline'
   })
+  const strategySection = marketProfileSection ? '' : buildOutlineStrategyPromptSection(strategy)
 
   const playbookBlock = buildMarketPlaybookPromptBlock({
     playbook: input.marketPlaybook,
@@ -315,6 +417,7 @@ export function buildOutlineOverviewPrompt(input: RoughOutlineOverviewInput): st
     '你是短剧总编剧。你正在规划整季粗纲骨架。',
     '【短剧黄金铁律 · 必须刻进系统】',
     ...(marketProfileSection ? [marketProfileSection] : []),
+    ...(strategySection ? [strategySection] : []),
     ...(playbookBlock ? [playbookBlock] : []),
     '1. 极限密度：每集只干一件事：施压 → 反击 → 留钩子。',
     '2. 黄金节奏：第1集开局30秒必须有巨大危机（死人/丢官/退婚/被夺/被冤枉），1分钟必须有反转或打脸。',
@@ -357,21 +460,21 @@ export function buildOutlineOverviewPrompt(input: RoughOutlineOverviewInput): st
     '5.5. facts 只准写能被拿、抢、藏、毁、验、换、交出来的硬事实和硬筹码；不要把"象征了什么""说明了什么"写进 facts。',
     ...rankIdentityRules,
     '6. 不要输出 storyIntent，不要重复改写确认信息。',
-    '7. 如果底稿明确写了权谋、智斗、借力周旋，就把整季主打法写成做局、借势、反证、调包、错判或站队变化；不要自动滑成纯打怪升级或纯修炼闯关。',
+    '7. 如果底稿明确写了权谋、智斗、借力周旋，就把整季主打法写成做局、借势、反证、调包、错判或站队变化；不要自动滑成纯升级闯关。',
     '8. 中后段至少两次换压力来源、换战场、换筹码或换关系位次，不能十集都靠同一招重复加码。',
     '9. 至少两集要出现误判、倒挂、借力反打或局面反转，让主角不只是被动挨打后再升级。',
-    '10. 外压（妖兽/灾变/高手等）只能放大人祸，不能反客为主变成主发动机；就算有怪物，也要写清是谁在借它做局、谁在拿它逼人、谁因此失势。',
+    `10. 外压（${getExternalPressureExamples(strategy)}等）只能放大人祸，不能反客为主变成主发动机；就算有外部冲击，也要写清是谁在借它做局、谁在拿它逼人、谁因此失势。`,
     ...generalizedRules.slice(1, 4),
     '10.7. 禁止使用"人账""证据账""规则账""争证据""争站队""争时间""主导权"这类 writer-room 词；要翻成谁抢盒、谁堵门、谁把哪页账拍到谁脸上。',
     ...generalizedRules.slice(4, 6),
     '10.9. 第6集以后，每集 summary 第一短句优先落在搜屋、拦路、医治、抢证、追残党、毁契或换手这类外场动作；如果第一句就是执事、公审、合议、问责，说明主戏眼写歪了。',
-    '10.9.5. 第4集以后，分集 summary 第一短句如果还是堂上流程、关押问话或盖章程序，直接重写成路上截人、住处搜物、暗巷换手、山林追逃。',
+    '10.9.5. 第4集以后，分集 summary 第一短句如果还是堂上流程、关押问话或盖章程序，直接重写成路上截人、住处搜物、暗巷换手、外场追逃。',
     '10.9.6. 当前 5 集批次如果必须有程序场，它们只能缩成半句过门：收证、定时限、转身离开。真正主句必须落在伏击、抢物、截使、醒来、追人、夺账这些私人动作上。',
     '10.9.7. 反例：先盖章再去追人。正例：主角刚出门就被伏击、刚醒来就收到急信、刚收证就有人烧账。',
     '10.10. 规则杠杆角色不能带着新证据进门直接替主角揭底；关键证据必须先由主角或情感杠杆角色拿到、藏住、换出或逼出来，他们最多负责验真和落锤。',
     '11. 最后 3 集优先回收人账、证据账、规则账、关系账：谁被揭穿、谁被追责、谁失去筹码、谁被迫站队，至少落两条，再写外压余波。',
-    '12. 最后 3 集不准连续主要靠法阵、封印、议事或世界异象推进；规则杠杆角色出场只能改规则、压时限、逼表态，不能替主角把收尾做完。',
-    '13. 当前批次末集的余波优先留在人际站位、职责变化、证据外流、伤势代价或谁盯上这笔旧账；不要临时再抬出更大一层怪物、更高一层封印或新世界设定把本批次终点顶掉。',
+    `12. 最后 3 集不准连续主要靠${getStagnantMechanismExamples(strategy)}推进；规则杠杆角色出场只能改规则、压时限、逼表态，不能替主角把收尾做完。`,
+    '13. 当前批次末集的余波优先留在人际站位、职责变化、证据外流、伤势代价或谁盯上这笔旧账；不要临时再抬出更大外部设定或新世界秘密把本批次终点顶掉。',
     '13.5. 当前批次末集不准临时引入新名字、新亲属、新残党领头人或新上位者来接管尾声；余波只能落回现有人物和现有旧账。',
     '14. 后 4 集里，至少两集的主推进必须由主角或情感杠杆角色亲自拿证据、换条件、做局、反咬或逼表态完成，不能让规则杠杆角色或公审替他们把人账收完。',
     '14.2. 每 3 集至少安排 1 次"主角或情感杠杆角色先让对手吃实亏"的主动回合：调包、反证、诈供、抢先递证、借规矩压回去、抢走筹码至少一种成立。',
@@ -391,7 +494,11 @@ export function buildOutlineOverviewPrompt(input: RoughOutlineOverviewInput): st
     renderAnchorBlock(input.generationBriefText),
     '',
     '底稿只认上面这些锚点与事实，不继承原底稿里的讲经句、百科句、人物评语和待确认口气。',
-    '如果原底稿同时写了"权谋智斗"和"悟道/大道/不争"，分集输出优先继承前者的动作打法；后者只留在主题字段和极后段余波。'
+    ...(strategy.id === 'male_xianxia'
+      ? [
+          '如果原底稿同时写了"权谋智斗"和"悟道/大道/不争"，分集输出优先继承前者的动作打法；后者只留在主题字段和极后段余波。'
+        ]
+      : [])
   ].join('\n')
 }
 
@@ -421,24 +528,17 @@ export interface RoughOutlineEpisodeBatchInput {
 
 export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchInput): string {
   const batchEpisodeCount = input.endEpisode - input.startEpisode + 1
-  const vars = input.promptVars || {
-    protagonist: '主角',
-    antagonist: '对手',
-    leverageCharacter: '关键人物',
-    coreItem: '核心筹码',
-    organization: '组织',
-    worldElement: '外部威胁',
-    ruleLeverCharacter: '规则掌控者',
-    extraCharacters: [],
-    genre: input.generationBriefText?.includes('修仙') ? '修仙' : '短剧',
-    genreArchetype: 'default' as const
-  }
+  const strategy = resolveOutlineGenerationStrategy(input)
+  const vars = coercePromptVarsToStrategy(
+    input.promptVars || buildDefaultPromptVars(strategy, input.generationBriefText),
+    strategy
+  )
 
   const rankIdentityRules = buildRankIdentityRules(input.generationBriefText, vars)
   const factionRotationRules = input.factionMatrix
     ? buildFactionRotationRules(input.totalEpisodes)
     : []
-  const generalizedRules = buildGeneralizedPromptRules(vars)
+  const generalizedRules = buildGeneralizedPromptRules(vars, strategy)
 
   const lines: string[] = []
 
@@ -473,6 +573,7 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
     marketProfile: input.marketProfile,
     stage: 'roughOutline'
   })
+  const strategySection = marketProfileSection ? '' : buildOutlineStrategyPromptSection(strategy)
 
   const playbookBlock = buildMarketPlaybookPromptBlock({
     playbook: input.marketPlaybook,
@@ -483,6 +584,7 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
     '你是短剧总编剧。你正在生成当前批次的分集粗纲。',
     '【单集标准结构 · 固定三段式】',
     ...(marketProfileSection ? [marketProfileSection] : []),
+    ...(strategySection ? [strategySection] : []),
     ...(playbookBlock ? [playbookBlock] : []),
     '每一集必须严格按照以下三幕结构进行规划：',
     '1. 第一幕：施压 (0-20秒) —— 反派拿把柄/规则压人，把主角逼到无路可退。',
@@ -522,27 +624,27 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
     '8. 这一批分集要接住整季总纲和对应四段推进，不要写成孤立段子。',
     '9. batchSummary 只总结这一批 5 集在打什么仗、玩法怎么变，控制在 2-3 句。',
     '10. 结尾不要老停在沉思、凝视、意识到、风更冷了这类虚收口；钩子要是下一轮更糟或更狠的具体局面。',
-    '10.2. batchSummary 和 episodes 里都不要解释"象征了什么""说明了什么""哪套大道被领悟"；主题只能藏在动作后果里，不准翻成作者解说。',
+    '10.2. batchSummary 和 episodes 里都不要解释"象征了什么""说明了什么""哪套道理被领悟"；主题只能藏在动作后果里，不准翻成作者解说。',
     ...rankIdentityRules,
-    '11. 外压（妖兽/灾变/高手等）只能放大人祸，不能替代人祸；哪怕打起来，也要写清是谁借外压逼人、谁借外压翻盘。',
+    `11. 外压（${getExternalPressureExamples(strategy)}等）只能放大人祸，不能替代人祸；哪怕外部冲击发生，也要写清是谁借外压逼人、谁借外压翻盘。`,
     ...generalizedRules.slice(2, 4),
     '11.7. 禁止使用"人账""证据账""规则账""争证据""争站队""争时间""主导权"这类 writer-room 词；要翻成谁抢盒、谁堵门、谁把哪页账拍到谁脸上。',
     ...generalizedRules.slice(4, 6),
     '11.9. 第6集以后，每集 summary 第一短句必须先落在搜屋、拦路、医治、抢证、追残党、毁契、换手或逃跑这类私人动作；如果第一句就是执事、公审、合议、问责，说明主戏眼写歪了。',
-    '11.9.5. 第4集以后，分集 summary 第一短句如果还是堂上流程、关押问话或盖章程序，直接重写成路上截人、住处搜物、暗巷换手、山林追逃。',
+    '11.9.5. 第4集以后，分集 summary 第一短句如果还是堂上流程、关押问话或盖章程序，直接重写成路上截人、住处搜物、暗巷换手、外场追逃。',
     '11.9.6. 当前 5 集批次如果必须有程序场，它们只能缩成半句过门：收证、定时限、转身离开。summary 的真正主句必须落在伏击、抢物、截副本、急醒、追人、夺账这些私人动作上。',
     '11.9.7. 反例：先盖章再去追人。正例：刚离现场就被伏击、刚醒就得知副本出城、刚收证就有人烧账。',
     '11.10. 规则杠杆角色不能带着新证据进门直接替主角揭底；关键证据必须先由主角或情感杠杆角色拿到、藏住、换出或逼出来，他们最多负责验真和落锤。',
-    '12. 如果当前批次已经进入后半程或收束段，每集至少落一笔人账、证据账、规则账或关系账，不能连续把主推进写成法阵、封印、开会或天象异变。',
+    `12. 如果当前批次已经进入后半程或收束段，每集至少落一笔人账、证据账、规则账或关系账，不能连续把主推进写成${getStagnantMechanismExamples(strategy)}。`,
     '13. 收束段优先写谁被揭穿、谁失去筹码、谁被迫表态、谁拿证据换命、谁被追责；外压只能把这些账推得更狠，不能自己变成主角。',
     '13.5. 后半程全季里，程序场主场最多 2 集；一旦某集用了，后面至少 2 集转去追逃、密室套话、旧巢取证、抢人、伤势处理或私下交易。',
     '13.6. 不要把第5-10集写成"对质 -> 威胁 -> 查证 -> 再质询"的循环；后半程主发动机必须轮换到外场动作、关系账和现实代价。',
     '13.7. 一旦组织问责入场，它只能当压力容器；真正推进要落在押送途中、门外堵截、证据换手、私下封口、追逃、抢人或路上投毒，不要把"被带去问话"本身写成整集。',
-    '13.8. 中段（尤其第4-7集）如果上一集已经用了程序场，下一集第一场必须转去路上、医庐、旧屋、山林、宅邸或暗巷，不能再让堂上场连续坐庄。',
-    '13.85. 如果第4集已经从程序场起手，第5集第一句必须改成逃跑、押送、潜入、医治、换手或山林动作；不要再从堂上场开场。',
+    '13.8. 中段（尤其第4-7集）如果上一集已经用了程序场，下一集第一场必须转去路上、旧屋、居所、外场或暗巷，不能再让堂上场连续坐庄。',
+    '13.85. 如果第4集已经从程序场起手，第5集第一句必须改成逃跑、押送、潜入、医治、换手或外场动作；不要再从堂上场开场。',
     '13.9. 同一集 summary 里如果已经用了问责、对质或程序场，后半句必须转成门外堵截、住处夜袭、押送路上、私下传证、路上封口或追逃；不要一集都泡在制度空间里。',
     ...generalizedRules.slice(5, 6),
-    '14. 当前批次末集结尾不要再临时开"更大怪物/更高封印/更深世界秘密"这种新口；余波优先留给权位重排、旧账未清、伤势后果或谁开始盯上主角手里的位置与责任。',
+    '14. 当前批次末集结尾不要再临时开更大外部设定或更深世界秘密这种新口；余波优先留给权位重排、旧账未清、伤势后果或谁开始盯上主角手里的位置与责任。',
     ...generalizedRules.slice(7, 8),
     '14.6. 当前批次末集第一场不准从疗伤、静室听宣判或领处分起手；必须先处理上一集留下的人、物、伤或追兵，再把制度结果塞进后面最短一场。',
     '14.7. 当前批次末两集如果必须写接任、认罚、宣判或表态，只能用 1-2 句当结果确认，不能把它们写成整集主推进。',
@@ -551,7 +653,7 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
     '15.5. 每 3 集至少安排 1 次主角或情感杠杆角色先让对手吃实亏：调包、反证、抢先递证、借规矩压回去、夺物或诈供至少一种成立。',
     '16. 当前批次末段不要把"揭穿/裁决/表态"写成主推进；正式收账动作必须由主角或关键关系角色先完成，公审只能确认后果。',
     '16.5. 规则杠杆角色不能直接执行"终局动作"来替主角收账；他们最多只确认已经被主角或关键关系角色做成的后果。',
-    '16.6. 当前 5 集批次主推进优先写医庐、静室交易、旧巢、居所、追残党、接职责；不要再让追责、内部清洗、权位重排自己长成新的主戏。',
+    '16.6. 当前 5 集批次主推进优先写救治现场、私下交易、旧地点、居所、追人、接职责；不要再让追责、内部清洗、权位重排自己长成新的主戏。',
     '17. 不要把"象征意义、话语权、势力格局、各方震动"这类抽象词当推进，必须翻成谁拿什么逼谁、谁带着什么跑、谁拦谁、谁换了站队。',
     '17.5. 当前批次末两集不准临时引入新名字、新亲属、新残党领头人接管尾声；余波只能落回现有人物和现有旧账。',
     ...factionRotationRules,
@@ -569,6 +671,10 @@ export function buildOutlineEpisodeBatchPrompt(input: RoughOutlineEpisodeBatchIn
     renderAnchorBlock(input.generationBriefText),
     '',
     '底稿只认上面这些锚点与事实，不继承原底稿里的讲经句、百科句、人物评语和待确认口气。',
-    '如果原底稿同时写了"权谋智斗"和"悟道/大道/不争"，分集输出优先继承前者的动作打法；后者只留在主题字段和极后段余波。'
+    ...(strategy.id === 'male_xianxia'
+      ? [
+          '如果原底稿同时写了"权谋智斗"和"悟道/大道/不争"，分集输出优先继承前者的动作打法；后者只留在主题字段和极后段余波。'
+        ]
+      : [])
   ].join('\n')
 }

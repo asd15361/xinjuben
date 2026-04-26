@@ -1,5 +1,5 @@
 /**
- * src/main/application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.ts
+ * server/src/application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.ts
  *
  * 生成人物小传和粗纲骨架。
  *
@@ -25,6 +25,11 @@ import type {
   CharacterDraftDto,
   SevenQuestionsResultDto
 } from '@shared/contracts/workflow'
+import type {
+  GenerationDiagnosticDto,
+  GenerationWarningDto,
+  OutlineCharacterGenerationBundleDto
+} from '@shared/contracts/outline-character-generation-bundle'
 import {
   normalizeOutlineEpisodes,
   outlineEpisodesToSummary,
@@ -40,6 +45,14 @@ import {
   isCharacterBundleStructurallyComplete,
   resolveCharacterContractAnchors
 } from '@shared/domain/workflow/character-contract'
+import {
+  buildStrategyProtagonistFallback,
+  detectStrategyContamination,
+  repairStrategyContaminationValue,
+  resolveGenerationStrategy,
+  summarizeStrategyContaminationReplacements
+} from '@shared/domain/generation-strategy/generation-strategy'
+import type { GenerationStrategyContaminationReplacement } from '@shared/domain/generation-strategy/generation-strategy'
 import { mapV2ToLegacyCharacterDraft } from '@shared/contracts/character-profile-v2'
 import { normalizeOutlineStoryIntent } from './outline-story-intent'
 import { validateStructuredOutline } from './rough-outline-validation'
@@ -98,6 +111,15 @@ interface CharacterProfilesGenerationResult {
   factionMatrix?: FactionMatrixDto
 }
 
+export interface OutlineAndCharactersGenerationResult {
+  storyIntent: StoryIntentPackageDto
+  outlineDraft: OutlineDraftDto
+  characterDrafts: CharacterDraftDto[]
+  entityStore: ProjectEntityStoreDto
+  sevenQuestions: SevenQuestionsResultDto | null
+  outlineGenerationError?: string
+}
+
 const SHORT_SERIES_FULL_PROFILE_LIMIT = 8
 const MID_SERIES_FULL_PROFILE_LIMIT = 12
 const LONG_SERIES_FULL_PROFILE_LIMIT = 22
@@ -120,6 +142,157 @@ const CHARACTER_DRAFT_TEXT_FIELDS: Array<keyof CharacterDraftDto> = [
   'values',
   'plotFunction'
 ]
+
+function buildStrategyRepairWarning(input: {
+  stage: GenerationWarningDto['stage']
+  label: string
+  strategyLabel: string
+  replacements: GenerationStrategyContaminationReplacement[]
+}): GenerationWarningDto | null {
+  if (input.replacements.length === 0) return null
+
+  return {
+    stage: input.stage,
+    code: 'generation_strategy_contamination_repaired',
+    message: `${input.label}已按题材策略「${input.strategyLabel}」清理串题材词：${summarizeStrategyContaminationReplacements(input.replacements)}`
+  }
+}
+
+function repairOutlineCharacterBundleStrategyContamination(input: {
+  storyIntent: StoryIntentPackageDto
+  outlineDraft: OutlineDraftDto
+  factionMatrix?: FactionMatrixDto
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  normalizedDrafts: CharacterDraftDto[]
+  fullProfileDrafts: CharacterDraftDto[]
+  visibleCharacterDrafts: CharacterDraftDto[]
+  entityStore: ProjectEntityStoreDto
+}): {
+  outlineDraft: OutlineDraftDto
+  factionMatrix?: FactionMatrixDto
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  normalizedDrafts: CharacterDraftDto[]
+  fullProfileDrafts: CharacterDraftDto[]
+  visibleCharacterDrafts: CharacterDraftDto[]
+  entityStore: ProjectEntityStoreDto
+  warnings: GenerationWarningDto[]
+} {
+  const strategy = resolveGenerationStrategy({
+    marketProfile: input.storyIntent.marketProfile,
+    genre: input.outlineDraft.genre || input.storyIntent.genre,
+    storyIntentGenre: input.storyIntent.genre,
+    title: input.outlineDraft.title || input.storyIntent.titleHint
+  }).strategy
+
+  const outlineRepair = repairStrategyContaminationValue(strategy, input.outlineDraft)
+  const factionMatrixRepair = repairStrategyContaminationValue(strategy, input.factionMatrix)
+  const profilesRepair = repairStrategyContaminationValue(strategy, input.characterProfilesV2)
+  const normalizedDraftsRepair = repairStrategyContaminationValue(strategy, input.normalizedDrafts)
+  const fullProfileDraftsRepair = repairStrategyContaminationValue(
+    strategy,
+    input.fullProfileDrafts
+  )
+  const visibleDraftsRepair = repairStrategyContaminationValue(
+    strategy,
+    input.visibleCharacterDrafts
+  )
+  const entityStoreRepair = repairStrategyContaminationValue(strategy, input.entityStore)
+
+  const outlineWarning = buildStrategyRepairWarning({
+    stage: 'rough_outline',
+    label: '剧本骨架',
+    strategyLabel: strategy.label,
+    replacements: outlineRepair.replacements
+  })
+  const characterWarning = buildStrategyRepairWarning({
+    stage: 'character_ledger',
+    label: '人物底账',
+    strategyLabel: strategy.label,
+    replacements: [
+      ...factionMatrixRepair.replacements,
+      ...profilesRepair.replacements,
+      ...normalizedDraftsRepair.replacements,
+      ...fullProfileDraftsRepair.replacements,
+      ...visibleDraftsRepair.replacements,
+      ...entityStoreRepair.replacements
+    ]
+  })
+
+  return {
+    outlineDraft: outlineRepair.value,
+    factionMatrix: factionMatrixRepair.value,
+    characterProfilesV2: profilesRepair.value,
+    normalizedDrafts: normalizedDraftsRepair.value,
+    fullProfileDrafts: fullProfileDraftsRepair.value,
+    visibleCharacterDrafts: visibleDraftsRepair.value,
+    entityStore: entityStoreRepair.value,
+    warnings: [characterWarning, outlineWarning].filter(
+      (warning): warning is GenerationWarningDto => Boolean(warning)
+    )
+  }
+}
+
+function buildStrategyContaminationWarnings(input: {
+  storyIntent: StoryIntentPackageDto
+  outlineDraft: OutlineDraftDto
+  characterDrafts: CharacterDraftDto[]
+  characterProfilesV2?: CharacterProfileV2Dto[]
+  entityStore: ProjectEntityStoreDto
+}): GenerationWarningDto[] {
+  const strategy = resolveGenerationStrategy({
+    marketProfile: input.storyIntent.marketProfile,
+    genre: input.outlineDraft.genre || input.storyIntent.genre,
+    storyIntentGenre: input.storyIntent.genre,
+    title: input.outlineDraft.title || input.storyIntent.titleHint
+  }).strategy
+
+  const blocks: Array<{
+    stage: GenerationWarningDto['stage']
+    label: string
+    text: string
+  }> = [
+    {
+      stage: 'character_ledger',
+      label: '人物底账',
+      text: JSON.stringify({
+        characterDrafts: input.characterDrafts,
+        characterProfilesV2: input.characterProfilesV2 || [],
+        entityStore: input.entityStore
+      })
+    },
+    {
+      stage: 'rough_outline',
+      label: '剧本骨架',
+      text: JSON.stringify({
+        title: input.outlineDraft.title,
+        genre: input.outlineDraft.genre,
+        theme: input.outlineDraft.theme,
+        summary: input.outlineDraft.summary,
+        mainConflict: input.outlineDraft.mainConflict,
+        episodes: input.outlineDraft.summaryEpisodes,
+        facts: input.outlineDraft.facts
+      })
+    }
+  ]
+
+  const warnings: GenerationWarningDto[] = []
+  const seen = new Set<string>()
+  for (const block of blocks) {
+    const issues = detectStrategyContamination(strategy, block.text)
+    for (const issue of issues) {
+      const key = `${block.stage}:${issue.term}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      warnings.push({
+        stage: block.stage,
+        code: 'generation_strategy_contamination',
+        message: `${block.label}疑似串题材：${issue.message}`
+      })
+    }
+  }
+
+  return warnings
+}
 
 function resolveCharacterCardAuthorityNames(generationBriefText: string): string[] {
   const structured = parseStructuredGenerationBrief(generationBriefText)
@@ -375,38 +548,21 @@ function buildMandatoryProtagonistDraft(input: {
   ]
     .filter(Boolean)
     .join('\n')
-  const isHiddenBloodlineXianxia = /修仙|玄幻|仙盟|宗门|魔尊|血脉|吊坠/u.test(sourceText)
   const coreItem = /吊坠|遗物|玉佩/u.test(sourceText) ? '母亲吊坠碎片' : '核心线索'
-
-  if (isHiddenBloodlineXianxia) {
-    return {
-      name: input.name,
-      biography: `${input.name}是被宗门长期当成废柴的男主，体内封着足以引发正道争夺的魔尊血脉。他因${coreItem}被毁开始觉醒，在误信伪善对手和忽视暗中守护者之间不断受挫，最终查清父母旧案并学会掌控血脉。`,
-      publicMask: '表面是修炼迟滞、处处被嘲笑的宗门底层弟子。',
-      hiddenPressure: '他不知道自己为何被压成废柴，也不知道体内魔尊血脉一旦暴露会牵动整个仙盟。',
-      fear: `失去${coreItem}、身世真相和暗中守护自己的人。`,
-      protectTarget: `${coreItem}、自己的身世真相和真正守护他的人。`,
-      conflictTrigger: `有人踩碎、抢夺或利用${coreItem}，或拿暗中守护者逼他交出血脉秘密。`,
-      advantage: '魔尊血脉一旦被逼醒，能在绝境中爆发出压倒性力量。',
-      weakness: '前期自卑又缺真相，容易被伪善对手骗取信任。',
-      goal: '查清父母被害真相，弄清魔尊血脉来源，完成逆袭复仇并守住世界。',
-      arc: '从被蒙蔽的废柴，到识破利用、掌控血脉、愿意承担守护责任的强者。',
-      roleLayer: 'core'
-    }
-  }
-
+  const strategy = resolveGenerationStrategy({
+    marketProfile: input.storyIntent.marketProfile,
+    genre: input.storyIntent.genre,
+    storyIntentGenre: sourceText,
+    title: input.storyIntent.titleHint
+  }).strategy
+  const fallback = buildStrategyProtagonistFallback(strategy, {
+    name: input.name,
+    coreItem,
+    mainConflict: input.outlineDraft.mainConflict || input.storyIntent.coreConflict || ''
+  })
   return {
     name: input.name,
-    biography: `${input.name}是故事主角，围绕"${input.outlineDraft.mainConflict || input.storyIntent.coreConflict}"持续受压、查明真相并完成反击。`,
-    publicMask: '表面被局势压住，只能先忍住寻找破局点。',
-    hiddenPressure: '真正的底牌和身世真相还不能提前暴露。',
-    fear: '失去身边仅有的支持和关键证据。',
-    protectTarget: '关键证据、身边人和自己的选择权。',
-    conflictTrigger: '对手拿身边人或核心证据逼他低头。',
-    advantage: '能在压力场里藏锋、观察和反设局。',
-    weakness: '前期信息不足，容易误判真正敌友。',
-    goal: '查清真相并完成反击。',
-    arc: '从被动受压到主动掌控局面。',
+    ...fallback,
     roleLayer: 'core'
   }
 }
@@ -566,6 +722,20 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   return result
 }
 
+function createDiagnostic(input: {
+  message: string
+  level?: GenerationDiagnosticDto['level']
+}): GenerationDiagnosticDto {
+  const code = input.message.split(/\s+/u)[0]?.replace(/[^a-zA-Z0-9_:.-]/gu, '') || 'diagnostic'
+  return {
+    stage: input.message.startsWith('character_') ? 'character_ledger' : 'rough_outline',
+    level: input.level || 'info',
+    code,
+    message: input.message,
+    createdAt: new Date().toISOString()
+  }
+}
+
 /**
  * 基于确认信息生成人物小传和粗纲。
  *
@@ -575,7 +745,7 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
  * @param input.signal - 中断信号
  * @returns 粗纲、人物、旧七问约束（如存在）
  */
-export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
+export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
   input: {
     projectId: string
     storyIntent: StoryIntentPackageDto
@@ -584,16 +754,15 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     signal?: AbortSignal
   },
   deps: ConfirmedSevenQuestionsGenerationDeps = {}
-): Promise<{
-  storyIntent: StoryIntentPackageDto
-  outlineDraft: OutlineDraftDto
-  characterDrafts: CharacterDraftDto[]
-  entityStore: ProjectEntityStoreDto
-  sevenQuestions: SevenQuestionsResultDto | null
-  outlineGenerationError?: string
-}> {
+): Promise<OutlineCharacterGenerationBundleDto> {
   const generationBriefText = input.storyIntent.generationBriefText?.trim()
-  const appendDiagnosticLog = deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
+  const diagnostics: GenerationDiagnosticDto[] = []
+  const externalAppendDiagnosticLog =
+    deps.appendDiagnosticLog ?? appendConfirmedSevenQuestionsDiagnosticLog
+  const appendDiagnosticLog = async (message: string): Promise<void> => {
+    diagnostics.push(createDiagnostic({ message }))
+    await externalAppendDiagnosticLog(message)
+  }
   if (!generationBriefText) {
     throw new Error('confirmed_story_intent_missing')
   }
@@ -894,12 +1063,72 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     `rough_outline_finish outlineBlocks=${outlineDraft.outlineBlocks?.length || 0} characters=${characterDrafts.length} entityCharacters=${entityStore.characters.length} factions=${entityStore.factions.length}`
   )
 
-  return {
+  const strategyRepairedBundle = repairOutlineCharacterBundleStrategyContamination({
     storyIntent,
     outlineDraft,
-    characterDrafts,
-    entityStore,
+    factionMatrix: characterProfilesResult.factionMatrix,
+    characterProfilesV2: characterProfilesResult.characterProfilesV2,
+    normalizedDrafts: attachedCharacterDrafts,
+    fullProfileDrafts,
+    visibleCharacterDrafts: characterDrafts,
+    entityStore
+  })
+
+  const warnings: GenerationWarningDto[] = [
+    ...(outlineGenerationError
+      ? [
+          {
+            stage: 'rough_outline' as const,
+            code: 'rough_outline_generation_failed',
+            message: outlineGenerationError
+          }
+        ]
+      : []),
+    ...strategyRepairedBundle.warnings,
+    ...buildStrategyContaminationWarnings({
+      storyIntent,
+      outlineDraft: strategyRepairedBundle.outlineDraft,
+      characterDrafts: strategyRepairedBundle.visibleCharacterDrafts,
+      characterProfilesV2: strategyRepairedBundle.characterProfilesV2,
+      entityStore: strategyRepairedBundle.entityStore
+    })
+  ]
+
+  return {
+    storyIntent,
+    outlineDraft: strategyRepairedBundle.outlineDraft,
     sevenQuestions: confirmedSevenQuestions ?? null,
+    characterLedger: {
+      factionMatrix: strategyRepairedBundle.factionMatrix,
+      characterProfilesV2: strategyRepairedBundle.characterProfilesV2 || [],
+      normalizedDrafts: strategyRepairedBundle.normalizedDrafts,
+      fullProfileDrafts: strategyRepairedBundle.fullProfileDrafts,
+      visibleCharacterDrafts: strategyRepairedBundle.visibleCharacterDrafts,
+      entityStore: strategyRepairedBundle.entityStore
+    },
+    diagnostics,
+    warnings,
     outlineGenerationError
+  }
+}
+
+export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
+  input: {
+    projectId: string
+    storyIntent: StoryIntentPackageDto
+    outlineDraft: OutlineDraftDto | null
+    runtimeConfig: RuntimeProviderConfig
+    signal?: AbortSignal
+  },
+  deps: ConfirmedSevenQuestionsGenerationDeps = {}
+): Promise<OutlineAndCharactersGenerationResult> {
+  const bundle = await generateOutlineCharacterBundleFromConfirmedSevenQuestions(input, deps)
+  return {
+    storyIntent: bundle.storyIntent,
+    outlineDraft: bundle.outlineDraft,
+    characterDrafts: bundle.characterLedger.visibleCharacterDrafts,
+    entityStore: bundle.characterLedger.entityStore,
+    sevenQuestions: bundle.sevenQuestions,
+    outlineGenerationError: bundle.outlineGenerationError
   }
 }

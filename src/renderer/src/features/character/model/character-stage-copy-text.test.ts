@@ -12,6 +12,11 @@ import type { CharacterStageSections } from './derive-character-stage-sections.t
 test('buildCharacterProfileCopyText includes the useful full profile fields', () => {
   const text = buildCharacterProfileCopyText({
     name: '秦墨',
+    appearance: '黑衣少年，身形清瘦',
+    personality: '隐忍但不服输',
+    identity: '外门废柴弟子',
+    values: '欠他的必须讨回来',
+    plotFunction: '承接血脉觉醒和复仇主线',
     protectTarget: '母亲吊坠',
     fear: '身世真相被夺',
     conflictTrigger: '吊坠被踩碎',
@@ -25,9 +30,42 @@ test('buildCharacterProfileCopyText includes the useful full profile fields', ()
   })
 
   assert.match(text, /## 秦墨/)
+  assert.match(text, /外在形象：黑衣少年，身形清瘦/)
+  assert.match(text, /性格特点：隐忍但不服输/)
+  assert.match(text, /身份：外门废柴弟子/)
+  assert.match(text, /价值观：欠他的必须讨回来/)
+  assert.match(text, /剧情作用：承接血脉觉醒和复仇主线/)
   assert.match(text, /最想守：母亲吊坠/)
   assert.match(text, /暗里卡着：魔尊血脉被封印/)
   assert.match(text, /人物弧线：从被欺辱到主动掌控力量/)
+})
+
+test('buildCharacterProfileCopyText exposes cleaned biography without field-stitched template phrases', () => {
+  const text = buildCharacterProfileCopyText({
+    name: '李雪儿',
+    appearance: '年约十八，容貌清丽',
+    personality: '正义感强，率真冲动',
+    identity: '掌门之女，青云宗筑基后期弟子',
+    values: '正义、忠诚、家族荣誉',
+    plotFunction: '作为主角在宗门内最直接的盟友',
+    protectTarget: '林尘和父亲李掌门',
+    fear: '父亲身败名裂',
+    conflictTrigger: '有人当面羞辱或陷害林尘时',
+    goal: '帮助林尘洗清冤屈',
+    publicMask: '掌门之女',
+    hiddenPressure: '父亲名声与魔尊血脉之间的矛盾',
+    advantage: '掌门之女身份和青云宗剑法',
+    weakness: '冲动',
+    arc: '起点：天真冲动；触发：林尘被诬陷；摇摆：违反门规；代价选择：放弃精英身份；终局变化：独当一面。',
+    biography:
+      '李雪儿是掌门之女，青云宗筑基后期弟子，年约十八，容貌清丽。正义感强，率真冲动让李雪儿信奉正义、忠诚、家族荣誉。'
+  })
+
+  assert.match(text, /小传：李雪儿是掌门之女/)
+  assert.equal(text.includes('身份是'), false)
+  assert.equal(text.includes('性格底色'), false)
+  assert.equal(text.includes('在戏里'), false)
+  assert.equal(text.includes('牵动他的软肋'), false)
 })
 
 test('buildLightCharacterCopyText includes faction and role data', () => {

@@ -10,6 +10,11 @@ import {
   getSubgenrePolicy,
   getAudienceLanePolicy
 } from '@shared/domain/short-drama/short-drama-market-policy'
+import {
+  resolveGenerationStrategy,
+  type GenerationStrategy,
+  type GenerationStrategyPromptBlocks
+} from '@shared/domain/generation-strategy/generation-strategy'
 import { CHARACTER_PROFILE_ANTI_PATTERNS } from '@shared/domain/short-drama/character-profile-policy'
 import { INFORMATION_DENSITY_RULES } from '@shared/domain/short-drama/information-density-policy'
 
@@ -30,21 +35,35 @@ export function buildMarketProfilePromptSection(input: {
 
   const policy = getSubgenrePolicy(input.marketProfile.subgenre)
   const lanePolicy = getAudienceLanePolicy(input.marketProfile.audienceLane)
+  const strategy = resolveGenerationStrategy({
+    marketProfile: input.marketProfile,
+    genre: input.marketProfile.subgenre
+  }).strategy
 
+  let section = ''
   switch (input.stage) {
     case 'roughOutline':
-      return buildRoughOutlineSection(policy, lanePolicy)
+      section = buildRoughOutlineSection(policy, lanePolicy)
+      break
     case 'characters':
-      return buildCharactersSection(policy, lanePolicy)
+      section = buildCharactersSection(policy, lanePolicy)
+      break
     case 'detailedOutline':
-      return buildDetailedOutlineSection(policy, lanePolicy)
+      section = buildDetailedOutlineSection(policy, lanePolicy)
+      break
     case 'episodeControl':
-      return buildEpisodeControlSection(policy, lanePolicy)
+      section = buildEpisodeControlSection(policy, lanePolicy)
+      break
     case 'scriptGeneration':
-      return buildScriptGenerationSection(policy, lanePolicy)
+      section = buildScriptGenerationSection(policy, lanePolicy)
+      break
     default:
       return ''
   }
+
+  return [section, buildGenerationStrategySection(strategy, input.stage)]
+    .filter((part) => part.trim().length > 0)
+    .join('\n')
 }
 
 function buildRoughOutlineSection(
@@ -266,4 +285,42 @@ function buildScriptGenerationSection(
   lines.push('')
 
   return lines.join('\n')
+}
+
+function buildGenerationStrategySection(
+  strategy: GenerationStrategy,
+  stage: MarketProfileStage
+): string {
+  const promptBlockKey = resolveStrategyPromptBlockKey(stage)
+  const promptBlocks = strategy.promptBlocks[promptBlockKey]
+  const lines = [
+    '【题材策略 · 不得串味】',
+    `策略：${strategy.label}`,
+    `势力类型：${strategy.worldLexicon.factionTypes.join('、')}`,
+    `角色称谓：${strategy.worldLexicon.roleTitles.join('、')}`,
+    `冲突物件：${strategy.worldLexicon.conflictObjects.join('、')}`,
+    `爽点动作：${strategy.worldLexicon.payoffActions.join('、')}`,
+    `核心人物位：${strategy.characterArchetypes
+      .map((archetype) => `${archetype.label}：${archetype.dramaticFunction}`)
+      .join('；')}`,
+    `势力席位：${strategy.factionBlueprints
+      .map((blueprint) => `${blueprint.label}(${blueprint.coreSeats.join('、')})`)
+      .join('；')}`,
+    '本阶段题材规则：',
+    ...promptBlocks.map((block) => `- ${block}`),
+    strategy.id === 'male_xianxia'
+      ? `禁用题材词：${strategy.forbiddenTerms.join('、')}`
+      : '题材边界：只使用上方策略词库；旧素材里不属于当前策略的世界词不要沿用。',
+    ''
+  ]
+
+  return lines.join('\n')
+}
+
+function resolveStrategyPromptBlockKey(
+  stage: MarketProfileStage
+): keyof GenerationStrategyPromptBlocks {
+  if (stage === 'characters') return 'characterProfile'
+  if (stage === 'scriptGeneration') return 'screenplay'
+  return 'outline'
 }

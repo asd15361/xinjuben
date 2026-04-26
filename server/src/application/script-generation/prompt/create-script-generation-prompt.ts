@@ -50,6 +50,10 @@ import { buildMarketProfilePromptSection } from '../../workspace/build-market-pr
 import type { MarketPlaybookDto } from '@shared/contracts/market-playbook'
 import { buildMarketPlaybookPromptBlock } from '@shared/domain/market-playbook/playbook-prompt-block'
 import {
+  resolveGenerationStrategy,
+  type GenerationStrategy
+} from '@shared/domain/generation-strategy/generation-strategy'
+import {
   buildStoryStateSnapshot,
   buildStoryStateSnapshotPromptBlock
 } from '@shared/domain/short-drama/story-state-snapshot'
@@ -133,6 +137,64 @@ const SCREENPLAY_FIRST_DRAFT_MIN_DRAMA_RULE =
 
 const SCREENPLAY_FIRST_DRAFT_BAN_RULE =
   '【首稿禁止事项】不要写画外音、旁白、OS、心理总结、分析句、策划词、占位词、Action/Dialogue/Emotion 旧标签；不要新增场、拆场、并场，也不要把一场写成三轮重复追打或重复逼问。'
+
+function resolveScriptGenerationStrategy(
+  input: StartScriptGenerationInputDto,
+  outline: OutlineDraftDto
+): GenerationStrategy {
+  return resolveGenerationStrategy({
+    marketProfile: input.storyIntent?.marketProfile,
+    genre: input.storyIntent?.genre || outline.genre,
+    storyIntentGenre: input.mainConflict || outline.mainConflict,
+    title: input.outlineTitle || outline.title
+  }).strategy
+}
+
+function buildScreenplaySeasonEndRule(strategy: GenerationStrategy): string {
+  if (strategy.id === 'male_xianxia') return SCREENPLAY_SEASON_END_RULE
+  return '末集余波优先留在人际站位、职责变化、证据外流、现实代价和旧账未清；不要临时抬出更大外部设定或新世界秘密来抢走本批次终点。'
+}
+
+function buildScreenplayFinalOpeningRule(strategy: GenerationStrategy): string {
+  if (strategy.id === 'male_xianxia') return SCREENPLAY_FINAL_OPENING_RULE
+  return '末集第一场必须从上一集留下的人、物、证据、追压或未完选择起手，不准从会议宣读、代表裁决、流程盖章或静坐听处分开场。'
+}
+
+function buildScreenplayEndingEpisodesContract(strategy: GenerationStrategy): string {
+  if (strategy.id === 'male_xianxia') return SCREENPLAY_ENDING_EPISODES_CONTRACT
+  return '【末两集专属合同】末两集不准把 summary 句直接翻成剧本句，不准出现"待补/模板/伪剧本"污染。每场必须有：人物表、至少一条△动作、至少两句对白、末句必须是已发生结果。末两集每场只准完成一个推进回合，不准把两轮追打或两轮嘴仗叠在同一场。末集尾场必须落在被盯梢、证据外泄、现实代价追上门、关系翻面或旧账继续发酵，不准用制度结果收尾。'
+}
+
+function buildCompactEpisodeSceneDirectives(
+  strategy: GenerationStrategy,
+  ledgerDirectives: string[]
+): string[] {
+  if (strategy.id === 'male_xianxia') {
+    return [
+      '每场先争人/物/证据/时间之一，不准解释空转。',
+      '相邻两场换打法；制度场不连开，外场动作接管。',
+      '同类动作、同义威胁、同一情绪不重复。',
+      '情绪只藏在动作和对白里，不另写总结。',
+      '对白必须能听出"这句话为什么非得这个人现在说"；每场至少1-2轮有实质内容的对白，不准整场纯靠动作说明推进。',
+      '人物冲突和博弈优先用对白展现，不准把嘴仗全部转成动作打斗。',
+      '后段师父执事只验真压时限，不带新证据揭底。',
+      '当前批次末两集制度确认最短，余波回到伤势、旧账、残党。'
+    ]
+  }
+
+  if (ledgerDirectives.length > 0) return ledgerDirectives
+
+  return [
+    '每场先争人/物/证据/时间之一，不准解释空转。',
+    '相邻两场换打法；制度场不连开，外场动作接管。',
+    '同类动作、同义威胁、同一情绪不重复。',
+    '情绪只藏在动作和对白里，不另写总结。',
+    '对白必须能听出"这句话为什么非得这个人现在说"；每场至少1-2轮有实质内容的对白，不准整场纯靠动作说明推进。',
+    '人物冲突和博弈优先用对白展现，不准把嘴仗全部转成动作打斗。',
+    '后段规则掌控者只验真压时限，不带新证据替主角揭底。',
+    '当前批次末两集制度确认最短，余波回到现实代价、旧账、证据。'
+  ]
+}
 
 type CurrentEpisodeBeat = NonNullable<
   NonNullable<StartScriptGenerationInputDto['segments']>[number]['episodeBeats']
@@ -535,6 +597,7 @@ export function createScriptGenerationPrompt(
   /** MarketPlaybook B 层打法包（可选） */
   marketPlaybook?: MarketPlaybookDto | null
 ): string {
+  const generationStrategy = resolveScriptGenerationStrategy(input, outline)
   const batchContext = buildScriptBatchContext({
     outline,
     detailedOutlineBlocks: input.detailedOutlineBlocks,
@@ -558,7 +621,10 @@ export function createScriptGenerationPrompt(
   const currentBeat = resolveCurrentEpisodeBeat(input, episodeNo)
   const currentScenes = currentBeat?.sceneByScene || []
   const hasSceneByScene = currentScenes.length > 0
-  const episodeSceneDirectives = buildEpisodeSceneDirectives(outline, episodeNo)
+  const episodeSceneDirectives = buildEpisodeSceneDirectives(outline, episodeNo, {
+    marketProfile: input.storyIntent?.marketProfile,
+    genre: input.storyIntent?.genre
+  })
   const sceneProgressionDirectives = buildSceneProgressionDirectives({
     existingScript: input.existingScript,
     episodeNo,
@@ -566,16 +632,7 @@ export function createScriptGenerationPrompt(
     generatedScenes
   })
   const compactEpisodeSceneDirectives = compactMode
-    ? [
-        '每场先争人/物/证据/时间之一，不准解释空转。',
-        '相邻两场换打法；制度场不连开，外场动作接管。',
-        '同类动作、同义威胁、同一情绪不重复。',
-        '情绪只藏在动作和对白里，不另写总结。',
-        '对白必须能听出"这句话为什么非得这个人现在说"；每场至少1-2轮有实质内容的对白，不准整场纯靠动作说明推进。',
-        '人物冲突和博弈优先用对白展现，不准把嘴仗全部转成动作打斗。',
-        '后段师父执事只验真压时限，不带新证据揭底。',
-        '当前批次末两集制度确认最短，余波回到伤势、旧账、残党。'
-      ]
+    ? buildCompactEpisodeSceneDirectives(generationStrategy, episodeSceneDirectives)
     : episodeSceneDirectives
   const compactSceneProgressionDirectives = compactMode
     ? sceneProgressionDirectives.slice(0, 4)
@@ -607,7 +664,9 @@ export function createScriptGenerationPrompt(
     mentorName: undefined,
     compactMode
   })
-  const ledgerConstraintBlock = buildLedgerConstraintBlock(ledger)
+  const ledgerConstraintBlock = buildLedgerConstraintBlock(ledger, {
+    allowFantasyVisuals: generationStrategy.id === 'male_xianxia'
+  })
 
   const marketProfileSection = buildMarketProfilePromptSection({
     marketProfile: input.storyIntent?.marketProfile,
@@ -689,12 +748,12 @@ export function createScriptGenerationPrompt(
     SCREENPLAY_NO_OFFSCREEN_DIALOGUE_RULE,
     SCREENPLAY_FINAL_RUN_COMPRESSION_RULE,
     SCREENPLAY_FINAL_RUN_LENGTH_RULE,
-    SCREENPLAY_SEASON_END_RULE,
-    SCREENPLAY_FINAL_OPENING_RULE,
+    buildScreenplaySeasonEndRule(generationStrategy),
+    buildScreenplayFinalOpeningRule(generationStrategy),
     SCREENPLAY_NO_NEW_TAKEOVER_RULE,
     SCREENPLAY_INSTITUTION_PASSING_RULE,
     SCREENPLAY_PER_SCENE_HARD_CONTRACT,
-    SCREENPLAY_ENDING_EPISODES_CONTRACT
+    buildScreenplayEndingEpisodesContract(generationStrategy)
   ].flat()
 
   return [

@@ -1,7 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import type { ScriptSegmentDto } from '@shared/contracts/workflow'
-import { buildContentRepairPrompt, shouldAcceptRepair } from './run-script-generation-batch'
+import type { OutlineDraftDto, ScriptSegmentDto } from '@shared/contracts/workflow'
+import type {
+  ScriptGenerationExecutionPlanDto,
+  StartScriptGenerationInputDto
+} from '@shared/contracts/script-generation'
+import {
+  buildContentRepairPrompt,
+  buildEpisodeAttemptRequest,
+  collectGenerationStrategyEpisodeGuardFailures,
+  pickEpisodeRetryMode,
+  shouldAcceptRepair
+} from './run-script-generation-batch'
 import {
   inspectContentQualityEpisode,
   buildContentRepairSignals
@@ -19,6 +29,83 @@ function makeScene(screenplay: string, sceneNo = 1): ScriptSegmentDto {
     dialogue: '',
     emotion: '',
     screenplayScenes: []
+  }
+}
+
+function makeFemaleCeoGenerationContext(): {
+  generationInput: StartScriptGenerationInputDto
+  outline: OutlineDraftDto
+} {
+  const outline = {
+    title: '契约婚姻',
+    genre: '女频霸总甜宠',
+    theme: '女性成长',
+    mainConflict: '苏晚在集团和豪门压力中夺回选择权。',
+    protagonist: '苏晚',
+    summary: '苏晚围绕契约、股权和热搜反击顾家。',
+    summaryEpisodes: [{ episodeNo: 1, summary: '苏晚被顾家逼签补充协议。' }],
+    facts: []
+  } as OutlineDraftDto
+
+  const plan: ScriptGenerationExecutionPlanDto = {
+    mode: 'fresh_start',
+    ready: true,
+    blockedBy: [],
+    contract: {
+      ready: true,
+      targetEpisodes: 20,
+      structuralActs: [],
+      missingActs: [],
+      confirmedFormalFacts: [],
+      missingFormalFactLandings: [],
+      storyContract: {},
+      userAnchorLedger: {},
+      missingAnchorNames: [],
+      heroineAnchorCovered: true
+    },
+    targetEpisodes: 20,
+    existingSceneCount: 0,
+    recommendedPrimaryLane: 'deepseek',
+    recommendedFallbackLane: 'deepseek',
+    runtimeProfile: {
+      contextPressureScore: 0,
+      shouldCompactContextFirst: false,
+      maxStoryIntentChars: 1000,
+      maxCharacterChars: 1000,
+      maxSegmentChars: 1000,
+      recommendedBatchSize: 5,
+      profileLabel: 'test',
+      reason: 'test'
+    },
+    episodePlans: []
+  }
+
+  return {
+    outline,
+    generationInput: {
+      plan,
+      outlineTitle: outline.title,
+      theme: outline.theme,
+      mainConflict: outline.mainConflict,
+      charactersSummary: [],
+      storyIntent: {
+        protagonist: '苏晚',
+        antagonist: '顾家',
+        officialKeyCharacters: [],
+        lockedCharacterNames: [],
+        themeAnchors: [],
+        worldAnchors: [],
+        relationAnchors: [],
+        dramaticMovement: [],
+        marketProfile: {
+          audienceLane: 'female',
+          subgenre: '女频霸总甜宠'
+        }
+      },
+      outline,
+      characters: [],
+      existingScript: []
+    }
   }
 }
 
@@ -71,6 +158,66 @@ test('buildContentRepairPrompt includes low score issues with new structure', ()
   assert.ok(prompt.includes('只输出修完后的纯剧本正文'))
   assert.ok(prompt.includes('当前成稿'))
   assert.ok(prompt.includes('黎明：我认输'))
+})
+
+test('collectGenerationStrategyEpisodeGuardFailures maps off-topic terms into episode guard failures', () => {
+  const { generationInput, outline } = makeFemaleCeoGenerationContext()
+  const scene = makeScene(
+    '第1集\n\n1-1 集团会议室［内］［日］\n人物：苏晚，顾沉\n△宗门审判声响起，仙盟使者逼苏晚交出魔尊血脉。\n苏晚：我不会交。\n顾沉：先稳住。'
+  )
+
+  const failures = collectGenerationStrategyEpisodeGuardFailures({
+    scene,
+    generationInput,
+    outline
+  })
+
+  assert.deepEqual(
+    failures.map((failure) => failure.code),
+    ['strategy_contamination', 'strategy_contamination', 'strategy_contamination']
+  )
+  assert.ok(failures.some((failure) => failure.detail.includes('女频霸总甜宠')))
+  assert.ok(failures.some((failure) => failure.detail.includes('魔尊血脉')))
+})
+
+test('strategy contamination uses parse retry mode and explicit rewrite guidance', () => {
+  const contaminated = makeScene(
+    '第1集\n\n1-1 集团会议室［内］［日］\n人物：苏晚，顾沉\n△宗门审判声响起。\n苏晚：我不会交出魔尊血脉。\n顾沉：先稳住。'
+  )
+  const failures = [
+    {
+      code: 'strategy_contamination' as const,
+      detail: '题材串味：当前题材策略「女频霸总甜宠」不应出现「魔尊血脉」。'
+    }
+  ]
+  const attempt = buildEpisodeAttemptRequest({
+    attempt: 2,
+    basePromptText: 'BASE_PROMPT',
+    bestAttempt: {
+      parsedScene: contaminated,
+      rawText: contaminated.screenplay || '',
+      promptLength: 10,
+      failures
+    },
+    episodeNo: 1,
+    runtimeHints: {
+      episode: 1,
+      totalEpisodes: 20,
+      estimatedContextTokens: 1000,
+      strictness: 'normal',
+      hasP0Risk: false,
+      hasHardAlignerRisk: false,
+      isRewriteMode: false,
+      recoveryMode: 'fresh'
+    }
+  })
+
+  assert.equal(pickEpisodeRetryMode(failures), 'retry_parse')
+  assert.equal(attempt.task, 'episode_rewrite')
+  assert.equal(attempt.runtimeHints?.recoveryMode, 'retry_parse')
+  assert.ok(attempt.prompt.includes('[strategy_contamination]'))
+  assert.ok(attempt.prompt.includes('女频霸总甜宠'))
+  assert.ok(attempt.prompt.includes('只保留当前题材'))
 })
 
 test('buildContentRepairPrompt forbids repair explanation output', () => {

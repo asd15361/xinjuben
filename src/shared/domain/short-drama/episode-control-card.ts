@@ -19,6 +19,10 @@ import {
   buildRetentionCliffhangerFallback,
   resolveViralHookTypeByEpisode
 } from './viral-short-drama-policy.ts'
+import {
+  resolveGenerationStrategy,
+  type GenerationStrategy
+} from '../generation-strategy/generation-strategy.ts'
 
 function cleanText(value: string | undefined, fallback = ''): string {
   const text = String(value || '')
@@ -158,6 +162,7 @@ export function buildRequiredProp(input: {
   firstSceneSetup?: string | null
   firstSceneTension?: string | null
   episodeNo: number
+  strategy?: GenerationStrategy | null
 }): { text: string; source: 'extracted' | 'scheduled' } {
   const searchText = `${input.summary} ${input.firstSceneSetup || ''} ${input.firstSceneTension || ''}`
   const found = extractPropFromText(searchText)
@@ -169,7 +174,10 @@ export function buildRequiredProp(input: {
     }
   }
   // Fallback: deterministic prop based on episode number
-  const fallbackProps = ['密信','令牌','账本','玉佩','供词','契约','钥匙','药瓶','证据','血书']
+  const fallbackProps =
+    input.strategy?.worldLexicon.conflictObjects.length
+      ? input.strategy.worldLexicon.conflictObjects
+      : ['密信','令牌','账本','玉佩','供词','契约','钥匙','药瓶','证据','血书']
   const prop = fallbackProps[(input.episodeNo - 1) % fallbackProps.length]
   return {
     text: `本集需设置一个可承载信息的道具【${prop}】，请合理植入冲突中，并使其${action}。`,
@@ -187,6 +195,12 @@ export function buildEpisodeControlCard(input: {
   const constitution =
     normalizeShortDramaConstitution(input.constitution) ??
     buildShortDramaConstitutionFromStoryIntent(input.storyIntent)
+  const generationStrategy = resolveGenerationStrategy({
+    marketProfile: input.storyIntent?.marketProfile,
+    genre: input.outline?.genre,
+    storyIntentGenre: `${input.storyIntent?.genre || ''}\n${input.storyIntent?.coreConflict || ''}\n${input.outline?.mainConflict || ''}\n${input.outline?.summary || ''}`,
+    title: input.outline?.title || input.storyIntent?.titleHint
+  }).strategy
   const firstScene = getFirstScene(input.beat.sceneByScene)
   const lastScene = getLastScene(input.beat.sceneByScene)
   const episodeNo = input.beat.episodeNo
@@ -267,7 +281,8 @@ export function buildEpisodeControlCard(input: {
     summary,
     firstSceneSetup: firstScene?.setup,
     firstSceneTension: firstScene?.tension,
-    episodeNo
+    episodeNo,
+    strategy: generationStrategy
   })
 
   return {

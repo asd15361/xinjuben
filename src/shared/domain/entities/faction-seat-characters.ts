@@ -58,6 +58,29 @@ function toPublicIdentity(faction: FactionEntityDto, label: string): string {
   return `${faction.name}${label.replace(/位$/u, '')}`
 }
 
+function buildSeatSlotGoals(input: {
+  factionName: string
+  label: string
+  stance: string
+  currentFunction: string
+}): string[] {
+  const label = input.label
+  if (/护法/u.test(label)) return ['守住山门安全，关键冲突里负责武力压场']
+  if (/门下弟子/u.test(label)) return ['递话探路，把上层命令和现场风声带到台前']
+  if (/情报|耳目/u.test(label)) return ['抢先拿到消息，掌控对手下一步动作']
+  if (/执行|执法/u.test(label)) return ['把追人、控场、收尾这些脏活办成']
+  if (/执事|管事/u.test(label)) return ['盯住具体差事，让资源和命令落到人身上']
+  if (/长老|判事/u.test(label)) return ['借规则定责施压，让局面按本方利益走']
+  if (/掌门|宗主|宫主|阁主|殿主|盟主|会主|帮主|首领|领头|掌权|家主/u.test(label)) {
+    return [`拍板${input.factionName}的站队和代价`]
+  }
+  if (/护卫/u.test(label)) return ['护住主家人和关键物件，必要时先动手']
+  if (/继承/u.test(label)) return ['抢住继承资格，在家族内斗里表态']
+  if (/近臣|二把手|副手/u.test(label)) return ['替上位者挡刀压事，同时给自己留后路']
+  if (/骨干/u.test(label)) return ['承接日常推进，把松散命令变成具体行动']
+  return [input.currentFunction || input.stance].filter(Boolean)
+}
+
 function createBlueprint(
   key: string,
   label: string,
@@ -202,8 +225,8 @@ export function buildFactionSeatBlueprints(faction: FactionEntityDto): FactionSe
           '骨干位',
           'active',
           'mid',
-          '先把自己这条线守住',
-          '撑住这股势力的日常推进和执行',
+          '先把日常执行线压稳',
+          '承接这股势力的日常推进和执行',
           '干脆直接，少废话'
         ),
         createBlueprint(
@@ -385,7 +408,12 @@ function createSlotCharacter(input: {
     summary: `${faction.name}里的${blueprint.label}，${blueprint.currentFunction}。`,
     tags: ['轻量人物卡', '势力人物位'],
     roleLayer: blueprint.roleLayer,
-    goals: [`先把${faction.name}这条线撑住`],
+    goals: buildSeatSlotGoals({
+      factionName: faction.name,
+      label: blueprint.label,
+      stance: blueprint.stance,
+      currentFunction: blueprint.currentFunction
+    }),
     pressures: [blueprint.stance],
     linkedFactionIds: [faction.id],
     linkedLocationIds: [],

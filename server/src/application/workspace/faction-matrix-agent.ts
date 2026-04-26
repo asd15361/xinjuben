@@ -15,6 +15,10 @@ import { generateTextWithRuntimeRouter } from '../ai/generate-text'
 import { resolveAiStageTimeoutMs } from '../ai/resolve-ai-stage-timeout'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
+import {
+  buildStrategyFactionMatrixPromptBlock,
+  resolveGenerationStrategy
+} from '@shared/domain/generation-strategy/generation-strategy'
 
 export interface FactionMatrixAgentInput {
   storyIntent: StoryIntentPackageDto
@@ -200,9 +204,16 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
   ]
     .filter(Boolean)
     .join('\n')
-  const isHiddenBloodlineXianxia =
-    /修仙|玄幻|仙盟|宗门/.test(`${genre}\n${sourceText}`) &&
-    /魔尊|血脉|封印|废柴|废材|吊坠|身世/.test(sourceText)
+  const generationStrategy = resolveGenerationStrategy({
+    marketProfile: input.storyIntent.marketProfile,
+    genre,
+    storyIntentGenre: `${sourceText}\n${worldView}`,
+    title: input.storyIntent.titleHint
+  }).strategy
+  const strategyPromptBlock = buildStrategyFactionMatrixPromptBlock(generationStrategy, {
+    genre,
+    sourceText
+  })
 
   return [
     '【势力拆解表 Agent · 世界观矩阵生成指令】',
@@ -214,18 +225,8 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
     `3. 每个二级分支必须包含至少 ${thresholds.minCharactersPerBranch} 个人物占位符：短剧只保留能直接制造冲突、递情报、压主角或反转立场的人。`,
     `4. 必须生成至少 ${thresholds.minCrossRelations} 条 crossRelations（势力交织表），明确指出关键利用、暗盟、暗敌、卧底或人质羁绊。冲突从人升维到阵营。`,
     '5. 势力格局不能写成好人打坏人，必须每个势力都有合理诉求和软肋。',
-    ...(isHiddenBloodlineXianxia
-      ? [
-          '',
-          '【隐藏血脉修仙项目 · 额外铁律】',
-          '1. 如果底稿写的是“废柴被封印/隐藏魔尊血脉/吊坠觉醒”，魔尊血脉是主角身上的秘密和危险，不等于主角已经拥有一个公开魔尊组织。',
-          '2. 禁止把主角前期写成魔渊宗宗主、魔界少主、旧部首领、已掌权魔尊；他前期必须是不知真相、被宗门压住和误解的废柴。',
-          '3. 一级势力优先拆成：保护/压制主角的宗门掌门方、伪善利用主角的正道仙盟方；只有底稿明确出现魔界旧部时，才允许单独生成魔尊旧部势力。',
-          '4. 真女主和反派大小姐必须分开：真女主=宗门老大女儿/暗中守护；反派大小姐=名门正派/仙盟嫡女/伪善利用。禁止合并成同一个人物。',
-          '5. 母亲吊坠/吊坠碎片是贯穿线索或关键物件，不要只当第一集觉醒触发器。',
-          '6. 禁止自动加入退婚、未婚妻、改嫁仙盟天才、婚约羞辱；除非底稿明确出现“退婚/婚约/未婚妻”。反派大小姐的核心打法是伪装善意、骗信任、夺血脉。'
-        ]
-      : []),
+    '',
+    strategyPromptBlock,
     '',
     isShortSeries ? '【短剧轻量编制铁律】' : '【1+2+X 编制铁律】',
     '每个二级分支的人物编制：',
@@ -254,6 +255,9 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
           '  - 至少 1 个双面间谍'
         ]),
     '  - 每个交叉关系必须写明预计爆发集数区间',
+    '  - 人物占位符只能放在自己的主归属势力里；不要为了表达冲突，把仙盟盟主、反派大小姐、世家管家复制到主角宗门成员表。',
+    '  - 如果确实是卧底/安插/潜伏，只能在主归属势力保留实名人物，并用 crossRelations + isSleeper/sleeperForFactionId 标记渗透关系。',
+    '  - 同一人物名不得在多个 faction.branches.characters 里重复出现；跨势力关系写在 crossRelations，不写成两个轻量卡。',
     '',
     '【人员层级差异化】',
     `  - 核心人物（${isShortSeries ? '2-4人' : '3-5人'}）：depthLevel="core"，需要超详尽的人物定义`,

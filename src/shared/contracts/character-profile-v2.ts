@@ -74,6 +74,197 @@ export interface CharacterProfileV2Dto {
   biography?: string
 }
 
+function cleanSentence(value: string | undefined): string {
+  return (value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/。，/gu, '，')
+    .replace(/，。/gu, '。')
+    .replace(/。。+/gu, '。')
+    .replace(/，，+/gu, '，')
+    .replace(/[，,。；;、\s]+$/u, '')
+    .trim()
+}
+
+function stripTrailingTemporalParticle(value: string): string {
+  return value.replace(/(?:的时候|之时|时)$/u, '').trim()
+}
+
+function stripLeadingAdversative(value: string): string {
+  return cleanSentence(value).replace(/^(?:但|但是|然而|可|可是|却)/u, '').trim()
+}
+
+function normalizePlotFunctionText(value: string): string {
+  const text = cleanSentence(value)
+    .replace(/^作为/u, '以')
+    .replace(/是.+在主线里的作用$/u, '')
+    .trim()
+  return text || '推动主线冲突向前'
+}
+
+function joinSentences(...values: Array<string | undefined>): string {
+  return values
+    .map(cleanSentence)
+    .filter(Boolean)
+    .map((value) => `${value}。`)
+    .join('')
+}
+
+function hasNaturalBiography(value: string | undefined): boolean {
+  const text = cleanSentence(value)
+  if (!text) return false
+  if (/[。，]{2,}|。，|。。/u.test(text)) return false
+  if (/^(?:身份|价值观|剧情作用)[:：]/u.test(text)) return false
+  if (/(?:身份|价值观|剧情作用)[:：]/u.test(text.slice(0, 40))) return false
+  if (/身份是|性格底色|在戏里|每次选择都牵动|牵动[他她]的软肋/u.test(text)) return false
+  if (/让.+信奉|在主线里的作用|行动抓手/u.test(text)) return false
+  if (/^.+[，,].+。.+。.+$/u.test(text) && /价值观|剧情作用|身份/u.test(text)) return false
+  return text.length >= 18
+}
+
+function buildNaturalBiography(profile: CharacterProfileV2Dto): string {
+  const appearance = cleanSentence(profile.appearance)
+  const personality = cleanSentence(profile.personality)
+  const identity = cleanSentence(profile.identity)
+  const values = cleanSentence(profile.values)
+  const plotFunction = normalizePlotFunctionText(profile.plotFunction)
+  const pressure =
+    cleanSentence(profile.hiddenPressure) ||
+    cleanSentence(profile.fear) ||
+    cleanSentence(profile.protectTarget)
+  const trigger = cleanSentence(profile.conflictTrigger)
+  const playableHandle = cleanSentence(profile.advantage)
+
+  const triggerText = trigger ? stripTrailingTemporalParticle(trigger) : ''
+  const pressureText = pressure ? stripLeadingAdversative(pressure) : ''
+  const actionText = playableHandle
+    ? `${profile.name}会动用${playableHandle}`
+    : `${profile.name}会被逼出手`
+  const lines = [
+    `${profile.name}是${identity || '局中关键人物'}${appearance ? `，${appearance}` : ''}`,
+    `${profile.name}${personality ? `性子${personality}` : '在压力里会主动动作'}，看重${
+      values || '自己认定的立场'
+    }${pressureText ? `，同时被${pressureText}逼着往前走` : ''}`,
+    `在主线里，${profile.name}${plotFunction}${
+      triggerText || playableHandle ? `；只要${triggerText || '核心矛盾压到眼前'}，${actionText}` : ''
+    }`,
+  ].filter(Boolean)
+
+  return joinSentences(...lines)
+}
+
+function hasStructuredArc(value: string | undefined): boolean {
+  const text = cleanSentence(value)
+  if (!text) return false
+  const hasAllLabels =
+    /起点[:：]/u.test(text) &&
+    /触发[:：]/u.test(text) &&
+    /(?:摇摆|中段摇摆)[:：]/u.test(text) &&
+    /代价选择[:：]/u.test(text) &&
+    /终局(?:变化)?[:：]/u.test(text)
+  if (hasAllLabels) return true
+
+  return /起点/u.test(text) && /触发/u.test(text) && /摇摆/u.test(text) && /代价/u.test(text) && /终局/u.test(text)
+}
+
+function needsStructuredArc(value: string | undefined): boolean {
+  const text = cleanSentence(value)
+  if (!text) return true
+  return !hasStructuredArc(text)
+}
+
+function stripArcStageLabel(value: string): string {
+  const text = cleanSentence(value)
+    .replace(/^(?:起点|触发(?:事件)?|中段摇摆|摇摆|代价选择|终局(?:变化)?)[：:]\s*/u, '')
+    .replace(/^(?:起点|触发(?:事件)?|中段摇摆|摇摆|代价选择|终局(?:变化)?)(?:是|为|于)\s*/u, '')
+    .replace(/^起点的/u, '')
+    .trim()
+  return text || cleanSentence(value)
+}
+
+function normalizeArcStageValue(value: string): string {
+  return stripArcStageLabel(value)
+    .replace(/\s*(?:→|->|=>|—>|-->)\s*(?:起点|触发(?:事件)?|中段摇摆|摇摆|代价选择|终局(?:变化)?)[：:].*$/u, '')
+    .replace(/\s*(?:→|->|=>|—>|-->)\s*(?:起点|触发(?:事件)?|中段摇摆|摇摆|代价选择|终局(?:变化)?)(?:是|为|于).*$/u, '')
+    .trim()
+}
+
+function extractArcStage(rawArc: string, labelPattern: string): string {
+  const match = rawArc.match(
+    new RegExp(`${labelPattern}[：:]\\s*([\\s\\S]*?)(?=；\\s*(?:起点|触发(?:事件)?|中段摇摆|摇摆|代价选择|终局(?:变化)?)[：:]|$)`, 'u')
+  )
+  return normalizeArcStageValue(match?.[1] || '')
+}
+
+function simplifyRepeatedEnding(value: string): string {
+  const text = stripArcStageLabel(value)
+  const finalMatch = text.match(/(最终[^；。]*?(?:反噬|反杀|败亡|陨落|悔悟|堕落|身败名裂|道消身殒|被击败|被清算|承担后果|走向毁灭))/u)
+  if (finalMatch) return cleanSentence(finalMatch[1])
+  const segments = text
+    .split(/[；;]/u)
+    .map(stripArcStageLabel)
+    .filter(Boolean)
+  return segments[segments.length - 1] || text
+}
+
+function hasRepeatedStructuredEnding(value: string | undefined): boolean {
+  const text = cleanSentence(value)
+  const end = extractArcStage(text, '终局(?:变化)?')
+  return Boolean(end && /起点|中期|后期|触发|摇摆|代价选择/u.test(end))
+}
+
+function hasArcTemplateLeak(value: string | undefined): boolean {
+  const text = cleanSentence(value)
+  return /起点(?:是|为)|触发(?:事件)?(?:是|为)|中段摇摆于|代价选择是|(?:→|->|=>|—>|-->)\s*终局/u.test(text)
+}
+
+function buildStructuredArc(profile: CharacterProfileV2Dto): string {
+  const rawArc = cleanSentence(profile.arc)
+  const labeledStart = extractArcStage(rawArc, '起点')
+  const labeledTrigger = extractArcStage(rawArc, '触发(?:事件)?')
+  const labeledWobble = extractArcStage(rawArc, '(?:中段摇摆|摇摆)')
+  const labeledCost = extractArcStage(rawArc, '代价选择')
+  const labeledEnd = extractArcStage(rawArc, '终局(?:变化)?')
+  const chainSteps = rawArc
+    .split(/\s*(?:→|->|=>|—>|-->)\s*/u)
+    .map(stripArcStageLabel)
+    .filter(Boolean)
+  const hasChain = chainSteps.length > 1
+  const start = labeledStart || (hasChain
+    ? chainSteps[0]
+    : rawArc
+      ? stripArcStageLabel(rawArc.replace(/，?最终.+$/u, '').replace(/从/u, '从'))
+      : `${profile.name}被旧处境和原有身份困住`)
+  const trigger =
+    labeledTrigger ||
+    stripTrailingTemporalParticle(cleanSentence(profile.conflictTrigger)) ||
+    `${profile.name}被核心冲突逼到必须动作`
+  const wobble =
+    labeledWobble ||
+    cleanSentence(profile.fear) ||
+    cleanSentence(profile.hiddenPressure) ||
+    cleanSentence(profile.weakness) ||
+    `${profile.name}发现原来的活法已经压不住眼前局面`
+  const cost =
+    normalizeArcStageValue(labeledCost) ||
+    cleanSentence(profile.protectTarget) ||
+    cleanSentence(profile.goal) ||
+    cleanSentence(profile.values) ||
+    '必须在利益、情感和生存之间做选择'
+  const end =
+    simplifyRepeatedEnding(labeledEnd) ||
+    stripArcStageLabel(hasChain ? chainSteps[chainSteps.length - 1] : rawArc) ||
+    `${profile.name}在关键选择后承担后果，位置和关系都被重新改写`
+
+  return `起点：${start}；触发：${trigger}；摇摆：${wobble}；代价选择：${cost}；终局变化：${end}。`
+}
+
+function cleanPublicMask(value: string | undefined): string {
+  return cleanSentence(value)
+    .replace(/^表面[是：:]\s*/u, '')
+    .replace(/^这个人物表面[是：:]\s*/u, '')
+    .trim()
+}
+
 /**
  * 从 CharacterProfileV2Dto 生成兼容旧版 CharacterDraftDto 的字段映射。
  * 用于向下兼容旧的生成管线。
@@ -100,9 +291,10 @@ export function mapV2ToLegacyCharacterDraft(profile: CharacterProfileV2Dto): {
 } {
   return {
     name: profile.name,
-    biography:
-      profile.biography || `${profile.identity}，${profile.values}。${profile.plotFunction}`,
-    publicMask: profile.publicMask || (profile.depthLevel === 'core' ? '待补' : ''),
+    biography: hasNaturalBiography(profile.biography) && cleanSentence(profile.biography).includes(profile.name)
+      ? joinSentences(profile.biography)
+      : buildNaturalBiography(profile),
+    publicMask: cleanPublicMask(profile.publicMask) || (profile.depthLevel === 'core' ? '待补' : ''),
     hiddenPressure: profile.hiddenPressure || '',
     fear: profile.fear || '',
     protectTarget: profile.protectTarget || '',
@@ -110,7 +302,10 @@ export function mapV2ToLegacyCharacterDraft(profile: CharacterProfileV2Dto): {
     advantage: profile.advantage || '',
     weakness: profile.weakness || '',
     goal: profile.goal || profile.values,
-    arc: profile.arc || '',
+    arc:
+      needsStructuredArc(profile.arc) || hasRepeatedStructuredEnding(profile.arc) || hasArcTemplateLeak(profile.arc)
+        ? buildStructuredArc(profile)
+        : profile.arc || '',
     appearance: profile.appearance,
     personality: profile.personality,
     identity: profile.identity,

@@ -131,6 +131,39 @@ describe('build-market-profile-prompt-section', () => {
       assert.ok(result.includes('禁止把人物小传写成剧情梗概'))
       assert.ok(result.includes('反模式'))
     })
+
+    it('includes generation strategy rules without echoing forbidden terms for non-xianxia', () => {
+      const result = buildMarketProfilePromptSection({
+        marketProfile: makeMarketProfile({
+          audienceLane: 'female',
+          subgenre: '女频霸总甜宠'
+        }),
+        stage: 'characters'
+      })
+
+      assert.ok(result.includes('题材策略'))
+      assert.ok(result.includes('策略：女频霸总甜宠'))
+      assert.ok(result.includes('角色称谓：'))
+      assert.ok(result.includes('总裁'))
+      assert.ok(result.includes('题材边界：'))
+      assert.equal(result.includes('宗门'), false)
+      assert.equal(result.includes('仙盟'), false)
+    })
+
+    it('keeps explicit forbidden terms for xianxia strategy diagnostics', () => {
+      const result = buildMarketProfilePromptSection({
+        marketProfile: makeMarketProfile({
+          audienceLane: 'male',
+          subgenre: '男频玄幻修仙'
+        }),
+        stage: 'characters'
+      })
+
+      assert.ok(result.includes('策略：男频玄幻修仙'))
+      assert.ok(result.includes('禁用题材词：'))
+      assert.ok(result.includes('律所'))
+      assert.ok(result.includes('集团'))
+    })
   })
 
   describe('detailedOutline stage', () => {

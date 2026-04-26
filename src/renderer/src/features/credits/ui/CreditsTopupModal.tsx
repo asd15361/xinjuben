@@ -5,6 +5,7 @@
  */
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuthStore } from '../../../app/store/useAuthStore'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001'
@@ -61,10 +62,18 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps): 
   // 加载套餐
   useEffect(() => {
     if (isOpen) {
+      const previousOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
       apiRequest<{ packages: CreditPackage[] }>('/api/pay/packages')
         .then((res) => setPackages(res.packages))
         .catch((err) => console.error('Failed to load packages:', err))
+
+      return () => {
+        document.body.style.overflow = previousOverflow
+      }
     }
+
+    return undefined
   }, [isOpen])
 
   // 轮询订单状态
@@ -109,15 +118,15 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps): 
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen || typeof document === 'undefined') return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       {/* 背景遮罩 */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
 
       {/* 弹窗内容 */}
-      <div className="relative w-full max-w-md mx-4 rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-2xl">
+      <div className="relative w-full max-w-md max-h-[calc(100vh-32px)] overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl">
         {/* 关闭按钮 */}
         <button
           onClick={onClose}
@@ -175,7 +184,8 @@ export function CreditsTopupModal({ isOpen, onClose }: CreditsTopupModalProps): 
           支付完成后将自动到账，如有问题请联系客服
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

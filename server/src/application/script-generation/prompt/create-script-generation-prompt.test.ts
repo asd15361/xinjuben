@@ -126,4 +126,22 @@ describe('create-script-generation-prompt', () => {
     assert.ok(viralIndex > 0)
     assert.ok(marketIndex < viralIndex, 'market profile should appear before viral execution lines')
   })
+
+  it('does not leak cultivation-specific final-run rules into female CEO prompts', () => {
+    const input = makeMinimalInput({
+      marketProfile: {
+        audienceLane: 'female',
+        subgenre: '女频霸总甜宠'
+      }
+    })
+    const prompt = createScriptGenerationPrompt(input, input.outline, input.characters, 1)
+
+    assert.match(prompt, /女频霸总甜宠|集团|总裁|契约/)
+    assert.equal(
+      /宗门|仙盟|魔尊血脉|长老|法阵|妖兽|山门|修炼|悟道|封印|血契|碎钥匙/u.test(
+        prompt
+      ),
+      false
+    )
+  })
 })

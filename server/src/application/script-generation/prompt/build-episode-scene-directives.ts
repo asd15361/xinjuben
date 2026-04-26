@@ -1,6 +1,16 @@
 import type { OutlineDraftDto } from '@shared/contracts/workflow'
+import type { MarketProfileDto } from '@shared/contracts/project'
 import { buildFormalFactSceneDirectives } from './build-formal-fact-scene-directives'
 import { isFormalFactSemanticLabel } from '@shared/domain/formal-fact/semantic-label'
+import {
+  resolveGenerationStrategy,
+  type GenerationStrategy
+} from '@shared/domain/generation-strategy/generation-strategy'
+
+interface BuildEpisodeSceneDirectivesOptions {
+  marketProfile?: MarketProfileDto | null
+  genre?: string | null
+}
 
 function hasConfirmedFact(outline: OutlineDraftDto, label: string): boolean {
   return outline.facts.some(
@@ -30,7 +40,25 @@ function resolveBatchContext(
   }
 }
 
-export function buildEpisodeSceneDirectives(outline: OutlineDraftDto, episodeNo: number): string[] {
+export function buildEpisodeSceneDirectives(
+  outline: OutlineDraftDto,
+  episodeNo: number,
+  options: BuildEpisodeSceneDirectivesOptions = {}
+): string[] {
+  const generationStrategy = resolveGenerationStrategy({
+    marketProfile: options.marketProfile,
+    genre: options.genre || outline.genre,
+    storyIntentGenre: `${outline.mainConflict || ''}\n${outline.summary || ''}`,
+    title: outline.title
+  }).strategy
+
+  if (generationStrategy.id !== 'male_xianxia') {
+    return [
+      ...buildGenericEpisodeSceneDirectives(generationStrategy, outline, episodeNo),
+      ...buildFormalFactSceneDirectives(outline, episodeNo)
+    ]
+  }
+
   const lines = [
     '每场先钉住一个当场争夺对象：人、物、证据、口风、时间或站队至少一种；没有争夺对象，就不要把这场写成解释稿。',
     '先把这场最能卖的反差、错位或关系不对劲打出来，再补其他信息。',
@@ -231,4 +259,59 @@ export function buildEpisodeSceneDirectives(outline: OutlineDraftDto, episodeNo:
   }
 
   return [...lines, ...buildFormalFactSceneDirectives(outline, episodeNo)]
+}
+
+function buildGenericEpisodeSceneDirectives(
+  strategy: GenerationStrategy,
+  outline: OutlineDraftDto,
+  episodeNo: number
+): string[] {
+  const totalEpisodes = resolveTotalEpisodes(outline)
+  const batchContext = resolveBatchContext(episodeNo, totalEpisodes)
+  const sceneSpaces = strategy.worldLexicon.factionTypes.join('、')
+  const roles = strategy.worldLexicon.roleTitles.join('、')
+  const conflictObjects = strategy.worldLexicon.conflictObjects.join('、')
+  const payoffActions = strategy.worldLexicon.payoffActions.join('、')
+  const lines = [
+    `【题材场景策略：${strategy.label}】`,
+    `场景空间优先贴合：${sceneSpaces}。`,
+    `人物身份优先贴合：${roles}。`,
+    `每场先钉住一个当场争夺对象，优先从${conflictObjects}里选；没有争夺对象，就不要把这场写成解释稿。`,
+    `每集至少推动一种可见变化：${payoffActions}。`,
+    '禁用其他题材的组织、称谓、能力体系；本集只使用当前题材策略内的世界词库。',
+    'sceneByScene 只是骨架，不是逐句翻译稿；setup、tension、hookEnd 都要落成眼前正在发生的戏。',
+    '正文里不准出现"（站位：…）""（钉子句）""（说明）"这类幕后注释。',
+    '对白先带目的和算计，再带信息；能抢话就抢话，能打断就打断，不要整段播报现状。',
+    '如果一句对白换给对手、主角或旁人说都成立，说明这句还没写到人身上，必须继续改。',
+    '不要直接端出"他很生气""她很难过"这种情绪结论，要把情绪压强落在停顿、顶嘴、反咬、让步、手上动作和代价里。',
+    '每场至少要让一件东西真的变了：证据换手、口风漏出、位置调换、退路变窄、关系公开、条件改写，至少一种成立。',
+    '相邻两场的推进手法必须变化；上一场若是正面逼压，下一场就优先换成试探、误导、借势、调包、关系倒挂或抢口风。',
+    '情绪只准藏在△动作、对白语气和人物当场反应里，不要另起一行做情绪总结，更不要替人物写分析报告。',
+    '不要写画外音、旁白、幕后播报；对白行里不准出现（画外音/旁白/OS），人物栏里没出现的人也不准隔空说话。'
+  ]
+
+  if (batchContext.isBatchClosingSection) {
+    lines.push(
+      '当前 5 集批次的收口段优先收人账、证据账、规则账、关系账：谁被揭穿、谁失去筹码、谁被迫表态、谁拿证据换条件，至少落两条。'
+    )
+    lines.push(
+      '当前批次末集的第一场必须从上一集留下的未完压力起手，不要开成制度说明、代表宣判或抽象总结。'
+    )
+    lines.push(
+      '当前 5 集批次每场只准打一轮：压进来 -> 变招 -> 结果落地，然后切场；不要在同一场里接多轮重复逼问。'
+    )
+  }
+
+  if (episodeNo === 1) {
+    lines.push('第 1 场开头 30% 内容内就要起冲突，不能先铺世界观和人物分析。')
+    lines.push(
+      `第 1 场必须让观众一眼看懂这个${strategy.label}故事最不对劲、最反常、最值得点开的地方。`
+    )
+    lines.push(
+      `第 1 场必须让${conflictObjects}至少一种进入动作或对白，而且它要成为本场冲突焦点之一。`
+    )
+    lines.push('第 1 场结尾必须留下立刻要发生的硬钩子，例如搜查、带走人、限时威胁、证据被抢或关系公开。')
+  }
+
+  return lines
 }

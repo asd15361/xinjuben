@@ -22,7 +22,6 @@ import type {
   OutlineDraftDto,
   ScriptSegmentDto,
   SevenQuestionsResultDto,
-  SevenQuestionCandidateDto,
   SevenQuestionsSessionDto
 } from './workflow'
 
@@ -133,10 +132,6 @@ export interface AtomicSaveGenerationStateInputDto {
   scriptPostflight?: ScriptLedgerPostflightDto | null
 }
 
-export interface CreateOutlineSeedInputDto {
-  projectId: string
-}
-
 export interface OutlineSeedDto {
   title: string
   genre: string
@@ -144,36 +139,6 @@ export interface OutlineSeedDto {
   mainConflict: string
   theme: string
   source: 'story_intent_seed'
-}
-
-/**
- * 历史阻断壳：旧聊天直生粗纲入口。
- *
- * 现在正式主线已改成：
- * 确认信息 -> 七问确认 -> 再生成粗纲和人物。
- *
- * 该入口仅保留给旧调用方拿到明确阻断错误，不再承担正式生成职责。
- */
-export interface LegacyGenerateOutlineAndCharactersBlockedInputDto {
-  projectId: string
-  chatTranscript: string
-}
-
-export interface LegacyGenerateOutlineAndCharactersBlockedResultDto {
-  project: ProjectSnapshotDto | null
-  storyIntent: StoryIntentPackageDto | null
-  outlineDraft: OutlineDraftDto | null
-  characterDrafts: CharacterDraftDto[]
-}
-
-export interface GenerateDetailedOutlineInputDto {
-  projectId: string
-}
-
-export interface GenerateDetailedOutlineResultDto {
-  project: ProjectSnapshotDto | null
-  detailedOutlineSegments: DetailedOutlineSegmentDto[]
-  source: 'model'
 }
 
 export interface DeclareFormalFactForProjectInputDto {
@@ -233,33 +198,11 @@ export interface EvaluateFormalFactElevationResultDto extends FormalFactElevatio
  */
 
 /**
- * 生成七问初稿
- */
-export interface GenerateSevenQuestionsDraftInputDto {
-  projectId: string
-}
-
-export interface GenerateSevenQuestionsDraftResultDto {
-  project: ProjectSnapshotDto | null
-  /** 旧字段：单个七问结果，兼容旧前端 */
-  sevenQuestions?: SevenQuestionsResultDto | null
-  /** 新字段：七问候选列表 */
-  candidates?: SevenQuestionCandidateDto[]
-  /** 当只生成1个候选时标记，前端可提示继续生成 */
-  needsMoreCandidates?: boolean
-}
-
-/**
  * 保存确认版七问
  */
 export interface SaveConfirmedSevenQuestionsInputDto {
   projectId: string
   sevenQuestions: SevenQuestionsResultDto
-}
-
-export interface SaveConfirmedSevenQuestionsResultDto {
-  project: ProjectSnapshotDto | null
-  outlineDraft: OutlineDraftDto | null
 }
 
 /**
@@ -272,18 +215,4 @@ export interface SaveSevenQuestionsSessionInputDto {
 
 export interface SaveSevenQuestionsSessionResultDto {
   project: ProjectSnapshotDto | null
-}
-
-/**
- * 基于确认版七问生成粗纲和人物
- */
-export interface GenerateOutlineAndCharactersFromConfirmedSevenQuestionsInputDto {
-  projectId: string
-}
-
-export interface GenerateOutlineAndCharactersFromConfirmedSevenQuestionsResultDto {
-  project: ProjectSnapshotDto | null
-  storyIntent: StoryIntentPackageDto | null
-  outlineDraft: OutlineDraftDto | null
-  characterDrafts: CharacterDraftDto[]
 }

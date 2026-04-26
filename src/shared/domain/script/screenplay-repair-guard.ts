@@ -30,6 +30,7 @@ import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
 export type EpisodeGuardFailureCode =
   | 'voice_over'
   | 'template_pollution'
+  | 'strategy_contamination'
   | 'scene_count'
   | 'missing_roster'
   | 'missing_action'
@@ -258,6 +259,7 @@ function scoreGuardFailures(failures: EpisodeGuardFailure[]): number {
     switch (failure.code) {
       case 'scene_count':
       case 'template_pollution':
+      case 'strategy_contamination':
       case 'legacy_marker':
         return sum + 4
       case 'missing_roster':
@@ -340,14 +342,18 @@ export function shouldReplaceBestAttempt(
 
 export function shouldAcceptRepairCandidate(
   originalScene: ScriptSegmentDto,
-  candidateScene: ScriptSegmentDto
+  candidateScene: ScriptSegmentDto,
+  options: {
+    originalFailures?: EpisodeGuardFailure[]
+    candidateFailures?: EpisodeGuardFailure[]
+  } = {}
 ): boolean {
   if (!preservesSceneCodeShape(originalScene, candidateScene)) {
     return false
   }
 
-  const originalFailures = collectEpisodeGuardFailures(originalScene)
-  const candidateFailures = collectEpisodeGuardFailures(candidateScene)
+  const originalFailures = options.originalFailures ?? collectEpisodeGuardFailures(originalScene)
+  const candidateFailures = options.candidateFailures ?? collectEpisodeGuardFailures(candidateScene)
   const originalCharDirection = extractCharCountDirection(originalFailures)
   const candidateCharDirection = extractCharCountDirection(candidateFailures)
 

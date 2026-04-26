@@ -324,6 +324,47 @@ test('buildEpisodeControlCard includes requiredProp and requiredPropSource', () 
   assert.equal(card.requiredPropSource, 'extracted')
 })
 
+test('buildEpisodeControlCard schedules strategy-specific props for female CEO projects', () => {
+  const card = buildEpisodeControlCard({
+    storyIntent: {
+      sellingPremise: '契约婚姻里的豪门反击',
+      emotionalPayoff: '女主被撑腰后夺回选择权',
+      protagonist: '苏晚',
+      antagonist: '豪门长辈',
+      coreConflict: '苏晚在集团与豪门压力中夺回选择权',
+      officialKeyCharacters: [],
+      lockedCharacterNames: [],
+      themeAnchors: [],
+      worldAnchors: [],
+      relationAnchors: [],
+      dramaticMovement: [],
+      marketProfile: {
+        audienceLane: 'female',
+        subgenre: '女频霸总甜宠'
+      }
+    },
+    outline: {
+      title: '契约婚姻',
+      genre: '女频霸总甜宠',
+      theme: '女性成长',
+      mainConflict: '苏晚在集团与豪门压力中夺回选择权',
+      protagonist: '苏晚',
+      summary: '苏晚和顾沉契约结婚后共同反击。',
+      summaryEpisodes: [],
+      facts: []
+    },
+    beat: {
+      episodeNo: 2,
+      summary: '苏晚在集团会议上被豪门长辈逼着退让。',
+      sceneByScene: []
+    },
+    totalEpisodes: 20
+  })
+
+  assert.match(card.requiredProp || '', /契约|婚约|股权|亲子鉴定|舆论热搜/)
+  assert.doesNotMatch(card.requiredProp || '', /令牌|玉佩|血书|灵石|封印/)
+})
+
 test('normalizeEpisodeControlCard handles requiredPropSource', () => {
   const card = normalizeEpisodeControlCard({
     episodeMission: '推进主线',

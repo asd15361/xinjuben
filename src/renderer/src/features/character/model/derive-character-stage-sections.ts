@@ -29,6 +29,10 @@ const ROLE_LAYER_WEIGHT: Record<CharacterEntityDto['roleLayer'], number> = {
   functional: 2
 }
 
+function normalizeName(value: string | undefined): string {
+  return (value || '').trim().toLowerCase()
+}
+
 export interface CharacterStageLightCard {
   entityId: string
   name: string
@@ -113,6 +117,27 @@ function byRoleThenName(left: CharacterEntityDto, right: CharacterEntityDto): nu
   return left.name.localeCompare(right.name, 'zh-Hans-CN')
 }
 
+function normalizePreviewValue(value: string): string {
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(/[。.!！?？；;、，,\s]+$/u, '')
+    .trim()
+}
+
+function joinPreviewValues(values: string[]): string {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const value of values) {
+    const normalized = normalizePreviewValue(value)
+    if (!normalized || seen.has(normalized)) continue
+    seen.add(normalized)
+    result.push(normalized)
+  }
+
+  return result.join(' / ')
+}
+
 function buildFactionPlaceholderSeats(
   faction: FactionEntityDto,
   members: CharacterStageFactionMember[]
@@ -170,15 +195,24 @@ function resolveFullProfileEntityIds(
   const ids = new Set<string>()
 
   for (const draft of characterDrafts) {
+    const normalizedDraftName = normalizeName(draft.name)
     const resolvedId = resolveMasterEntityId(draft, entityStore)
     if (resolvedId) {
       ids.add(resolvedId)
-      continue
     }
 
     const matched = findCharacterEntityByName(entityStore, draft.name)
     if (matched) {
       ids.add(matched.id)
+    }
+
+    for (const entity of entityStore.characters) {
+      if (
+        normalizeName(entity.name) === normalizedDraftName ||
+        entity.aliases.some((alias) => normalizeName(alias) === normalizedDraftName)
+      ) {
+        ids.add(entity.id)
+      }
     }
   }
 
@@ -211,8 +245,8 @@ function buildLightCards(
       voiceStyle: entity.voiceStyle,
       identityMode: entity.identityMode || 'named',
       upgradeCandidate: Boolean(entity.upgradeCandidate),
-      goalPreview: entity.goals.join(' / '),
-      pressurePreview: entity.pressures.join(' / ')
+      goalPreview: joinPreviewValues(entity.goals),
+      pressurePreview: joinPreviewValues(entity.pressures)
     }))
 
   if (typeof maxCount === 'number') {

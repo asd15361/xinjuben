@@ -6,7 +6,10 @@ import type { CharacterProfileV2Dto } from '@shared/contracts/character-profile-
 import type { FactionMatrixDto } from '@shared/contracts/faction-matrix'
 import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { CharacterDraftDto } from '@shared/contracts/workflow'
-import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from './generate-outline-and-characters-from-confirmed-seven-questions.ts'
+import {
+  generateOutlineAndCharactersFromConfirmedSevenQuestions,
+  generateOutlineCharacterBundleFromConfirmedSevenQuestions
+} from './generate-outline-and-characters-from-confirmed-seven-questions.ts'
 
 function buildRuntimeConfig(): RuntimeProviderConfig {
   const provider = {
@@ -323,6 +326,62 @@ test('keeps generated characters but does not fabricate a temporary outline when
   )
 })
 
+test('canonical outline-character bundle preserves character ledger when rough outline fails', async () => {
+  const factionMatrix = buildShortSeriesFactionMatrix()
+  const profiles = [
+    buildProfile({
+      id: 'char_lin_jin',
+      name: '林烬',
+      factionId: 'faction_cangxuan',
+      branchId: 'branch_guard',
+      identity: '被宗门打压的外门弟子'
+    }),
+    buildProfile({
+      id: 'char_xianmeng_lady',
+      name: '仙盟大小姐',
+      factionId: 'faction_daomeng',
+      branchId: 'branch_leader',
+      identity: '伪装善意夺取血脉的仙盟贵女'
+    })
+  ]
+
+  const bundle = await generateOutlineCharacterBundleFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_bundle_partial_outline',
+      storyIntent: buildStoryIntent(),
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig()
+    },
+    {
+      appendDiagnosticLog: async () => {},
+      generateCharacterProfiles: async () => ({
+        characters: profiles.map(profileToDraft),
+        characterProfilesV2: profiles,
+        factionMatrix
+      }),
+      generateOutlineBundle: async () => {
+        throw new Error('rough_outline_batch_retry_exhausted:rough_outline_batch_parse_failed')
+      }
+    }
+  )
+
+  assert.equal(
+    bundle.outlineGenerationError,
+    'rough_outline_batch_retry_exhausted:rough_outline_batch_parse_failed'
+  )
+  assert.deepEqual(
+    bundle.characterLedger.visibleCharacterDrafts.map((character) => character.name),
+    ['林烬', '仙盟大小姐']
+  )
+  assert.equal(bundle.characterLedger.entityStore.characters.length >= 2, true)
+  assert.equal(bundle.warnings[0]?.code, 'rough_outline_generation_failed')
+  assert.ok(
+    bundle.diagnostics.some((diagnostic) =>
+      diagnostic.message.includes('rough_outline_failed_without_temporary_skeleton')
+    )
+  )
+})
+
 test('adds a mandatory protagonist card when generated faction profiles omit the outline lead', async () => {
   const diagnostics: string[] = []
 
@@ -372,6 +431,137 @@ test('adds a mandatory protagonist card when generated faction profiles omit the
   assert.ok(
     diagnostics.some((message) => message.includes('character_bundle_added_missing_protagonist'))
   )
+})
+
+test('mandatory protagonist fallback follows female CEO strategy without cultivation leakage', async () => {
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_missing_female_ceo_lead',
+      storyIntent: {
+        ...buildStoryIntent(),
+        titleHint: '契约热搜',
+        genre: '都市甜宠',
+        protagonist: '主角',
+        antagonist: '顾氏集团',
+        coreConflict: '许晚被豪门和集团舆论压迫，必须拿回契约和股权主动权',
+        marketProfile: {
+          audienceLane: 'female',
+          subgenre: '女频霸总甜宠'
+        },
+        generationBriefText:
+          '【项目】契约热搜｜20集\n许晚被豪门集团用契约和热搜逼到绝境，必须拿回股权主动权。'
+      },
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig()
+    },
+    {
+      appendDiagnosticLog: async () => {},
+      generateCharacterProfiles: async () => ({
+        characters: [
+          {
+            name: '顾承安',
+            biography: '顾承安是顾氏集团继承人，夹在家族利益和许晚之间。',
+            publicMask: '表面冷静克制，用工作安排掩饰保护。',
+            hiddenPressure: '家族董事会逼他牺牲许晚换取集团稳定。',
+            fear: '失去许晚和集团控制权。',
+            protectTarget: '许晚、契约真相和顾氏集团的底线。',
+            conflictTrigger: '董事会拿热搜逼他切割许晚时，他会公开撑腰。',
+            advantage: '能调动集团法务、公关和董事会表决资源。',
+            weakness: '过度依赖集团身份，容易被家族责任绑架。',
+            goal: '稳住集团并让许晚拿回主动权。',
+            arc: '起点：只会冷处理；触发：许晚被热搜围攻；中段摇摆：家族逼他切割；代价选择：公开站队；终局变化：学会把权力交给许晚共同使用。',
+            roleLayer: 'core'
+          }
+        ]
+      }),
+      generateOutlineBundle: async () => ({
+        outline: {
+          title: '契约热搜',
+          genre: '都市甜宠',
+          theme: '亲密关系里的选择权',
+          protagonist: '许晚',
+          mainConflict: '许晚被豪门和集团舆论压迫，必须拿回契约和股权主动权',
+          summary: '许晚从被契约和热搜夹击，到拿回股权证据并逼顾氏集团公开改口。',
+          episodes: Array.from({ length: 20 }, (_, index) => ({
+            episodeNo: index + 1,
+            summary: `第${index + 1}集推进许晚围绕契约和股权反击。`
+          })),
+          facts: []
+        }
+      })
+    }
+  )
+
+  assert.equal(result.characterDrafts[0]?.name, '许晚')
+  const leadText = JSON.stringify(result.characterDrafts[0])
+  assert.match(leadText, /女频霸总甜宠|契约|股权|集团|豪门/)
+  assert.equal(/宗门|仙盟|魔尊血脉|灵根|法阵|修为/u.test(leadText), false)
+})
+
+test('outline-character bundle repairs generated text that contaminates selected strategy', async () => {
+  const bundle = await generateOutlineCharacterBundleFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_female_ceo_contamination',
+      storyIntent: {
+        ...buildStoryIntent(),
+        titleHint: '契约热搜',
+        genre: '都市甜宠',
+        protagonist: '许晚',
+        antagonist: '顾氏集团',
+        coreConflict: '许晚被豪门和集团舆论压迫，必须拿回契约和股权主动权',
+        marketProfile: {
+          audienceLane: 'female',
+          subgenre: '女频霸总甜宠'
+        },
+        generationBriefText:
+          '【项目】契约热搜｜20集\n许晚被豪门集团用契约和热搜逼到绝境，必须拿回股权主动权。'
+      },
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig()
+    },
+    {
+      appendDiagnosticLog: async () => {},
+      generateCharacterProfiles: async () => ({
+        characters: [
+          {
+            ...buildCharacter('许晚'),
+            biography: '许晚被集团合同逼到绝境，但输出里错误混入宗门审判。',
+            publicMask: '表面配合集团，暗里保存录音。'
+          }
+        ]
+      }),
+      generateOutlineBundle: async () => ({
+        outline: {
+          title: '契约热搜',
+          genre: '都市甜宠',
+          theme: '亲密关系里的选择权',
+          protagonist: '许晚',
+          mainConflict: '许晚被豪门和集团舆论压迫，必须拿回契约和股权主动权',
+          summary: '许晚拿回股权证据，却被错误写成仙盟追杀。',
+          episodes: Array.from({ length: 20 }, (_, index) => ({
+            episodeNo: index + 1,
+            summary: `第${index + 1}集推进许晚围绕契约和股权反击。`
+          })),
+          facts: []
+        }
+      })
+    }
+  )
+
+  assert.ok(
+    bundle.warnings.some(
+      (warning) =>
+        warning.code === 'generation_strategy_contamination_repaired' &&
+        /宗门|仙盟/u.test(warning.message)
+    )
+  )
+  assert.equal(
+    bundle.warnings.some((warning) => warning.code === 'generation_strategy_contamination'),
+    false
+  )
+  assert.equal(/宗门|仙盟/u.test(JSON.stringify(bundle.outlineDraft)), false)
+  assert.equal(/宗门|仙盟/u.test(JSON.stringify(bundle.characterLedger.visibleCharacterDrafts)), false)
+  assert.equal(/宗门|仙盟/u.test(JSON.stringify(bundle.characterLedger.entityStore)), false)
 })
 
 test('locks concrete protagonist name and keeps short series functional roles as light cards', async () => {
@@ -521,6 +711,11 @@ test('locks concrete protagonist name and keeps short series functional roles as
   assert.equal(characterText.includes('名门正派大小姐'), false)
   assert.ok(result.characterDrafts.length <= 8)
   assert.ok(result.entityStore.characters.length > result.characterDrafts.length)
+  assert.ok(
+    result.entityStore.characters.some(
+      (character) => character.identityMode === 'slot' && character.tags.includes('轻量人物卡')
+    )
+  )
   assert.ok(
     diagnostics.some((message) =>
       message.includes('character_bundle_protagonist_alias_locked from=陆渊 to=林霄')
