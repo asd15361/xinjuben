@@ -52,7 +52,10 @@ import {
   resolveGenerationStrategy,
   summarizeStrategyContaminationReplacements
 } from '@shared/domain/generation-strategy/generation-strategy'
-import type { GenerationStrategyContaminationReplacement } from '@shared/domain/generation-strategy/generation-strategy'
+import type {
+  GenerationStrategy,
+  GenerationStrategyContaminationReplacement
+} from '@shared/domain/generation-strategy/generation-strategy'
 import { mapV2ToLegacyCharacterDraft } from '@shared/contracts/character-profile-v2'
 import { normalizeOutlineStoryIntent } from './outline-story-intent'
 import { validateStructuredOutline } from './rough-outline-validation'
@@ -67,6 +70,7 @@ import {
 } from './build-outline-character-entity-store'
 import { getGovernanceOutlineBlockSize } from '@shared/domain/workflow/batching-contract'
 import { buildOutlineBlocks } from '@shared/domain/workflow/planning-blocks'
+import { attachStoryFoundationToIntent } from '@shared/domain/world-building/world-foundation'
 
 interface ConfirmedSevenQuestionsGenerationDeps {
   appendDiagnosticLog?: (message: string) => Promise<void>
@@ -120,6 +124,8 @@ export interface OutlineAndCharactersGenerationResult {
   outlineGenerationError?: string
 }
 
+type OutlineCharacterGenerationMode = 'bundle' | 'characters_only' | 'outline_only'
+
 const SHORT_SERIES_FULL_PROFILE_LIMIT = 8
 const MID_SERIES_FULL_PROFILE_LIMIT = 12
 const LONG_SERIES_FULL_PROFILE_LIMIT = 22
@@ -142,6 +148,12 @@ const CHARACTER_DRAFT_TEXT_FIELDS: Array<keyof CharacterDraftDto> = [
   'values',
   'plotFunction'
 ]
+
+export function resolveReusableFactionMatrix(
+  storyIntent: StoryIntentPackageDto
+): FactionMatrixDto | undefined {
+  return storyIntent.storyFoundation?.factionMatrix ?? storyIntent.factionMatrix ?? undefined
+}
 
 function buildStrategyRepairWarning(input: {
   stage: GenerationWarningDto['stage']
@@ -369,10 +381,73 @@ function replaceNameInCharacterDraft(
   return next
 }
 
+function sanitizeGeneratedTextValue(value: string, protagonistName: string): string {
+  const protagonist = protagonistName.trim()
+  let text = value
+    .replace(/([\p{Script=Han}]{2,8}(?:掌门|宗主|盟主|长老|执事|护法|堂主))\1/gu, '$1')
+    .replace(/([\p{Script=Han}]{2,8})\1（/gu, '$1（')
+    .replace(/([\p{Script=Han}]{2,8})\1/gu, '$1')
+    .replace(/青云宗掌门掌门/gu, '青云宗掌门')
+
+  if (protagonist) {
+    const escaped = protagonist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    text = text
+      .replace(new RegExp(`父亲${escaped}`, 'gu'), '父亲沈观澜')
+      .replace(new RegExp(`父亲\\s+${escaped}`, 'gu'), '父亲沈观澜')
+      .replace(new RegExp(`左护法${escaped}`, 'gu'), '左护法影枭')
+      .replace(new RegExp(`${escaped}暗中提供魔渊`, 'gu'), '魔渊旧部暗中提供')
+      .replace(new RegExp(`${escaped}在${escaped}指点下`, 'gu'), `${protagonist}在沈观澜暗中指点下`)
+      .replace(new RegExp(`在${escaped}指点下`, 'gu'), '在沈观澜暗中指点下')
+      .replace(new RegExp(`逼${escaped}让出掌门位`, 'gu'), '逼沈观澜让出掌门位')
+      .replace(new RegExp(`${escaped}一直用掌门权`, 'gu'), '沈观澜一直用掌门权')
+      .replace(new RegExp(`收集${escaped}黑料`, 'gu'), '收集沈观澜黑料')
+      .replace(new RegExp(`但被${escaped}压下`, 'gu'), '但被沈观澜压下')
+      .replace(new RegExp(`${escaped}再次包庇`, 'gu'), '沈观澜再次包庇')
+      .replace(new RegExp(`${escaped}${escaped}`, 'gu'), protagonist)
+  }
+
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function sanitizeGeneratedTextInAnyValue<T>(value: T, protagonistName: string): T {
+  if (typeof value === 'string') {
+    return sanitizeGeneratedTextValue(value, protagonistName) as T
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeGeneratedTextInAnyValue(item, protagonistName)) as T
+  }
+
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+      key,
+      sanitizeGeneratedTextInAnyValue(item, protagonistName)
+    ])
+    return Object.fromEntries(entries) as T
+  }
+
+  return value
+}
+
+function sanitizeCharacterDraftText(
+  character: CharacterDraftDto,
+  protagonistName: string
+): CharacterDraftDto {
+  const next: CharacterDraftDto = { ...character }
+  for (const field of CHARACTER_DRAFT_TEXT_FIELDS) {
+    const value = next[field]
+    if (typeof value === 'string') {
+      ;(next as unknown as Record<string, unknown>)[field] = sanitizeGeneratedTextValue(
+        value,
+        protagonistName
+      )
+    }
+  }
+  return next
+}
+
 function scoreLikelyAlternateProtagonist(character: CharacterDraftDto): number {
-  const identityText = [character.name, character.identity, character.publicMask]
-    .join('\n')
-    .trim()
+  const identityText = [character.name, character.identity, character.publicMask].join('\n').trim()
   const ownText = [
     character.name,
     character.biography,
@@ -471,17 +546,9 @@ function characterFullProfilePriority(input: {
   if (input.antagonist && characterName === normalizeCharacterName(input.antagonist)) return -900
 
   const roleWeight =
-    input.character.roleLayer === 'core'
-      ? 0
-      : input.character.roleLayer === 'active'
-        ? 100
-        : 200
+    input.character.roleLayer === 'core' ? 0 : input.character.roleLayer === 'active' ? 100 : 200
   const depthWeight =
-    input.character.depthLevel === 'core'
-      ? 0
-      : input.character.depthLevel === 'mid'
-        ? 20
-        : 60
+    input.character.depthLevel === 'core' ? 0 : input.character.depthLevel === 'mid' ? 20 : 60
   const functionPenalty = /(特使|执事|弟子|门人|护卫|跑腿|传令)/u.test(input.character.name)
     ? 50
     : 0
@@ -531,6 +598,306 @@ function isCharacterNameCovered(characters: CharacterDraftDto[], anchorName: str
   })
 }
 
+function containsProtagonistOriginMarkers(value: string): boolean {
+  return /(?:男主|主角|废柴|废材|废物|外门|杂役|底层弟子|人尽可欺|备受欺凌|魔尊血脉|血脉封印|体内封|吊坠|母亲遗物|身世|父母旧仇|查清真相)/u.test(
+    value
+  )
+}
+
+function containsAuthorityRoleMarkers(value: string): boolean {
+  return /(?:掌门|宗主|宗门老大|盟主|长老|堂主|执法长老|暗部首领|首领|使者|执事|父亲|爹|父女|权力地位|维持宗门现状|牺牲[^，。；]*主角|牺牲[^，。；]*林)/u.test(
+    value
+  )
+}
+
+function isLikelyProtagonistRoleCollision(input: {
+  character: CharacterDraftDto
+  protagonistName: string
+}): boolean {
+  const protagonistName = input.protagonistName.trim()
+  if (!protagonistName) return false
+  if (normalizeCharacterName(input.character.name) !== normalizeCharacterName(protagonistName)) {
+    return false
+  }
+
+  const text = CHARACTER_DRAFT_TEXT_FIELDS.map((field) => input.character[field] || '')
+    .join('\n')
+    .trim()
+  if (!text) return false
+
+  const hasAuthorityRole = containsAuthorityRoleMarkers(text)
+  if (!hasAuthorityRole) return false
+
+  const ownRoleText = [
+    input.character.identity,
+    input.character.publicMask,
+    input.character.goal,
+    input.character.plotFunction,
+    input.character.biography
+  ]
+    .filter(Boolean)
+    .join('\n')
+  const hasOriginMarker = containsProtagonistOriginMarkers(ownRoleText)
+  const isActingAgainstSelf = new RegExp(
+    `(?:阻止|牺牲|打压|压制|监视|暗算|利用|夺取|扼杀).{0,12}${protagonistName}|${protagonistName}.{0,12}(?:觉醒后|查清真相|揭露|反抗)`,
+    'u'
+  ).test(text)
+
+  return !hasOriginMarker || isActingAgainstSelf
+}
+
+function buildGuardianLeaderDraft(input: {
+  source: CharacterDraftDto
+  protagonistName: string
+  storyIntent: StoryIntentPackageDto
+}): CharacterDraftDto {
+  const guardianName = '沈观澜'
+  const sourceIdentity = input.source.identity || ''
+  const sectName =
+    sourceIdentity.match(/([\p{Script=Han}A-Za-z]{1,6}宗)(?:掌门|宗主|长老|弟子)?/u)?.[1] ||
+    sourceIdentity.match(/([\p{Script=Han}A-Za-z]{1,6}(?:门|派))(?:掌门|宗主|长老|弟子)?/u)?.[1] ||
+    input.storyIntent.worldAnchors?.find((item) => /宗|门|派/u.test(item)) ||
+    '青云宗'
+
+  return {
+    ...input.source,
+    name: guardianName,
+    biography: `${guardianName}是${sectName}掌门，知道${input.protagonistName}身负魔尊血脉，也知道这条血脉一旦被仙盟夺走会引发世界大乱。他前期用冷酷和废柴假象遮住真相，既保护${input.protagonistName}，也承受被误解的代价。`,
+    publicMask: `人前以严苛掌门身份压着${input.protagonistName}，把保护伪装成磨砺和疏远。`,
+    hiddenPressure: `当年旧案、${input.protagonistName}父母之死和魔尊血脉封印都压在他身上，他不能过早说破。`,
+    fear: `最怕${input.protagonistName}在真相未明前被仙盟夺走血脉，也怕自己被他当成真正仇人。`,
+    protectTarget: `${input.protagonistName}的性命、${sectName}存续和魔尊血脉不落入陆昭仪一方。`,
+    conflictTrigger: `只要仙盟逼近血脉封印，或${input.protagonistName}被逼到必死之局，${guardianName}就会撕开冷酷伪装亲自出手。`,
+    advantage: '掌握宗门秘档、封印旧法和掌门资源，能在关键时刻压住局面。',
+    weakness: `太习惯独自扛事，越隐瞒越容易让${input.protagonistName}误会他才是仇人。`,
+    goal: `拖到${input.protagonistName}足够强，再把血脉真相、父母旧案和仙盟阴谋交给他。`,
+    arc: `起点：${guardianName}以冷酷掌门身份制造废柴假象；触发：${input.protagonistName}吊坠破碎后血脉初醒；摇摆：继续隐瞒会伤透${input.protagonistName}，提前说破又会引来仙盟围杀；代价选择：押上掌门名声和性命保护真相；终局变化：从被误解的压迫者变成以死赎罪的守护者。`,
+    appearance: `${guardianName}常穿素色掌门道袍，神情克制，压场时像一把收在鞘里的冷剑。`,
+    personality: '隐忍、克制、背负感重，习惯把真心藏在严苛命令后面。',
+    identity: `${sectName}掌门，主角血脉秘密的守护者。`,
+    values: '守世界大局，也守旧人托付；宁可被误解，也不能让血脉落进贪婪者手里。',
+    plotFunction: `${guardianName}负责制造前期误会、压住血脉秘密，并在中后段引爆真相揭露和赎罪牺牲。`,
+    roleLayer: 'core',
+    depthLevel: 'core'
+  }
+}
+
+function enforceProtagonistRoleIntegrity(input: {
+  characters: CharacterDraftDto[]
+  protagonistName: string
+  storyIntent: StoryIntentPackageDto
+  outlineDraft: OutlineDraftDto
+  generationBriefText: string
+}): { characters: CharacterDraftDto[]; repaired: boolean } {
+  const protagonistName = input.protagonistName.trim()
+  if (!protagonistName || isGenericRoleAnchor(protagonistName)) {
+    return { characters: input.characters, repaired: false }
+  }
+
+  const suspicious = input.characters.filter((character) =>
+    isLikelyProtagonistRoleCollision({ character, protagonistName })
+  )
+  if (suspicious.length === 0) {
+    return { characters: input.characters, repaired: false }
+  }
+
+  const remaining = input.characters.filter(
+    (character) =>
+      !isLikelyProtagonistRoleCollision({
+        character,
+        protagonistName
+      })
+  )
+  const mandatoryLead = buildMandatoryProtagonistDraft({
+    name: protagonistName,
+    storyIntent: input.storyIntent,
+    outlineDraft: input.outlineDraft,
+    generationBriefText: input.generationBriefText
+  })
+  const guardian = buildGuardianLeaderDraft({
+    source: suspicious[0]!,
+    protagonistName,
+    storyIntent: input.storyIntent
+  })
+  const names = new Set(remaining.map((character) => normalizeCharacterName(character.name)))
+  const repairedCharacters = [
+    mandatoryLead,
+    ...(names.has(normalizeCharacterName(guardian.name)) ? [] : [guardian]),
+    ...remaining.filter(
+      (character) =>
+        normalizeCharacterName(character.name) !== normalizeCharacterName(protagonistName)
+    )
+  ]
+
+  return { characters: repairedCharacters, repaired: true }
+}
+
+function resolveProtagonistHomeFaction(input: {
+  factionMatrix?: FactionMatrixDto
+  protagonistName: string
+}): { factionId: string; factionName: string; branchId?: string } | null {
+  const factionMatrix = input.factionMatrix
+  if (!factionMatrix || !input.protagonistName.trim()) return null
+
+  const candidates = factionMatrix.factions
+    .map((faction, index) => {
+      const text = [faction.name, faction.positioning, faction.coreDemand, faction.coreValues]
+        .join('\n')
+        .trim()
+      let score = 0
+      if (/主角所在|主角归属|所在宗门|归属宗门|保护.*主角|压制.*主角|青云宗/u.test(text)) {
+        score += 10
+      }
+      if (/(宗|门|派)/u.test(faction.name)) score += 3
+      if (/魔渊|魔道|旧部|残余|复辟/u.test(text)) score -= 8
+      if (/仙盟|盟|联盟|反派|夺取|觊觎/u.test(text)) score -= 6
+      return { faction, index, score }
+    })
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+
+  const homeFaction = candidates[0]?.faction
+  if (!homeFaction) return null
+  const branch =
+    homeFaction.branches.find((item) => /守护|掌门|主角|外门|执法|宗门/u.test(item.name)) ||
+    homeFaction.branches[0]
+
+  return {
+    factionId: homeFaction.id,
+    factionName: homeFaction.name,
+    branchId: branch?.id
+  }
+}
+
+function buildProtagonistProfileFromDraft(input: {
+  draft: CharacterDraftDto
+  factionId: string
+  factionName: string
+  branchId?: string
+}): CharacterProfileV2Dto {
+  const name = input.draft.name.trim()
+  const homeIdentity = `${input.factionName}底层弟子，体内封着魔尊血脉。`
+  return {
+    id: `profile_${name}`,
+    name,
+    depthLevel: 'core',
+    factionId: input.factionId,
+    branchId: input.branchId,
+    roleInFaction: 'variable',
+    appearance: input.draft.appearance || `${name}前期常穿旧道袍，身上带着母亲吊坠碎片。`,
+    personality: input.draft.personality || '能忍、警惕、重情，越被逼到绝境越会反击。',
+    identity:
+      input.draft.identity && /宗|门|派|青云/u.test(input.draft.identity)
+        ? input.draft.identity
+        : homeIdentity,
+    values:
+      input.draft.values || '先查清身世真相，再决定正邪归属；真正守过他的人比所谓名分更重要。',
+    plotFunction:
+      input.draft.plotFunction ||
+      `${name}负责从受辱、觉醒、误信到识破伪善，并把血脉争夺推成复仇与守护。`,
+    hiddenPressure: input.draft.hiddenPressure,
+    fear: input.draft.fear,
+    protectTarget: input.draft.protectTarget,
+    conflictTrigger: input.draft.conflictTrigger,
+    advantage: input.draft.advantage,
+    weakness: input.draft.weakness,
+    goal: input.draft.goal,
+    arc: input.draft.arc,
+    publicMask: input.draft.publicMask,
+    biography: input.draft.biography
+  }
+}
+
+function enforceProtagonistHomeFactionProfile(input: {
+  result: CharacterProfilesGenerationResult
+  protagonistName: string
+}): CharacterProfilesGenerationResult {
+  const protagonistName = input.protagonistName.trim()
+  const home = resolveProtagonistHomeFaction({
+    factionMatrix: input.result.factionMatrix,
+    protagonistName
+  })
+  if (!home || !protagonistName) return input.result
+
+  const profiles = input.result.characterProfilesV2 || []
+  const existingProfile = profiles.find(
+    (profile) => normalizeCharacterName(profile.name) === normalizeCharacterName(protagonistName)
+  )
+  const protagonistDraft = input.result.characters.find(
+    (character) =>
+      normalizeCharacterName(character.name) === normalizeCharacterName(protagonistName)
+  )
+  if (!existingProfile && !protagonistDraft) return input.result
+
+  const nextProfile = existingProfile
+    ? {
+        ...existingProfile,
+        factionId: home.factionId,
+        branchId: home.branchId || existingProfile.branchId,
+        identity:
+          existingProfile.identity && existingProfile.identity.includes(home.factionName)
+            ? existingProfile.identity
+            : `${home.factionName}底层弟子，体内封着魔尊血脉。`,
+        roleInFaction:
+          existingProfile.roleInFaction === 'leader' ? 'variable' : existingProfile.roleInFaction
+      }
+    : buildProtagonistProfileFromDraft({
+        draft: protagonistDraft!,
+        factionId: home.factionId,
+        factionName: home.factionName,
+        branchId: home.branchId
+      })
+
+  return {
+    ...input.result,
+    characterProfilesV2: [
+      nextProfile,
+      ...profiles.filter(
+        (profile) =>
+          normalizeCharacterName(profile.name) !== normalizeCharacterName(protagonistName)
+      )
+    ]
+  }
+}
+
+function buildMandatoryProtagonistV2Fields(input: {
+  name: string
+  strategy: GenerationStrategy
+  coreItem: string
+  mainConflict: string
+}): Pick<CharacterDraftDto, 'appearance' | 'personality' | 'identity' | 'values' | 'plotFunction'> {
+  if (input.strategy.id === 'male_xianxia') {
+    return {
+      appearance: `${input.name}前期常穿旧道袍，身上带着${input.coreItem}留下的旧痕，眼神在隐忍和爆发之间压着暗火。`,
+      personality: '能忍、警惕、重情，越被逼到绝境越会反过来设局。',
+      identity: `被宗门长期压制的底层弟子，体内封着会引来仙盟争夺的危险血脉。`,
+      values: '先查清身世真相，再决定正邪归属；真正守过他的人，比所谓正道名分更重要。',
+      plotFunction: `${input.name}是主线核心发动机，负责从受辱、觉醒、误信到识破伪善，并把血脉争夺推成复仇与守护。`
+    }
+  }
+
+  if (input.strategy.id === 'urban_legal') {
+    return {
+      appearance: `${input.name}外表克制利落，随身带着卷宗、录音或关键证据，所有情绪都压在职业边界里。`,
+      personality: '冷静、重证据、能抗压，但在当事人隐瞒真相时会被迫重新判断。',
+      identity: `被案件推到风口的主角，围绕${input.coreItem}补齐证据链。`,
+      values: '程序、证据和职业底线都不能丢，但真相不能被程序表象埋掉。',
+      plotFunction: `${input.name}负责把案件压力、证据攻防和庭审反转串成主线，并在${input.mainConflict || '核心案件'}里逼出真相。`
+    }
+  }
+
+  const roleTitle = input.strategy.worldLexicon.roleTitles[0] || '主角'
+  const conflictObject = input.strategy.worldLexicon.conflictObjects[0] || input.coreItem
+  const payoffAction = input.strategy.worldLexicon.payoffActions[0] || '完成反击'
+  return {
+    appearance: `${input.name}的外形和随身物件都围绕${conflictObject}建立辨识度，第一眼能看出他正被主线压力推着走。`,
+    personality: '谨慎、能忍、会在关键关系被碰到时主动反击。',
+    identity: `${input.strategy.label}里的${roleTitle}型主角，围绕${conflictObject}被迫入局。`,
+    values: '守住自己的选择权、关键关系和能翻盘的证据。',
+    plotFunction: `${input.name}负责承接${input.mainConflict || conflictObject}，从被动承压推进到${payoffAction}。`
+  }
+}
+
 function buildMandatoryProtagonistDraft(input: {
   name: string
   storyIntent: StoryIntentPackageDto
@@ -560,9 +927,16 @@ function buildMandatoryProtagonistDraft(input: {
     coreItem,
     mainConflict: input.outlineDraft.mainConflict || input.storyIntent.coreConflict || ''
   })
+  const v2Fallback = buildMandatoryProtagonistV2Fields({
+    name: input.name,
+    strategy,
+    coreItem,
+    mainConflict: input.outlineDraft.mainConflict || input.storyIntent.coreConflict || ''
+  })
   return {
     name: input.name,
     ...fallback,
+    ...v2Fallback,
     roleLayer: 'core'
   }
 }
@@ -570,7 +944,9 @@ function buildMandatoryProtagonistDraft(input: {
 function buildFallbackOutlinePayloadFromStoryIntent(input: {
   storyIntent: StoryIntentPackageDto
 }): NonNullable<
-  NonNullable<Awaited<ReturnType<NonNullable<ConfirmedSevenQuestionsGenerationDeps['generateOutlineBundle']>>>>['outline']
+  NonNullable<
+    Awaited<ReturnType<NonNullable<ConfirmedSevenQuestionsGenerationDeps['generateOutlineBundle']>>>
+  >['outline']
 > {
   const storyIntent = input.storyIntent
   const protagonist = storyIntent.protagonist?.trim() || '主角'
@@ -659,24 +1035,29 @@ async function generateCharacterProfilesFromConfirmedSevenQuestionsDefault(input
 }> {
   const { generateFactionMatrix } = await import('./faction-matrix-agent.js')
   const { generateCharacterProfileV2 } = await import('./character-profile-v2-agent.js')
+  const existingFactionMatrix = resolveReusableFactionMatrix(input.storyIntent)
   let factionMatrix: FactionMatrixDto
-  try {
-    factionMatrix = await generateFactionMatrix({
-      storyIntent: input.storyIntent,
-      totalEpisodes: input.totalEpisodes,
-      runtimeConfig: input.runtimeConfig,
-      signal: input.signal
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || 'unknown')
-    if (
-      /^faction_matrix_timeout:/i.test(message) ||
-      /^faction_matrix_parse_failed:/i.test(message) ||
-      /^faction_matrix_generation_failed:/i.test(message)
-    ) {
-      throw error
+  if (existingFactionMatrix) {
+    factionMatrix = existingFactionMatrix
+  } else {
+    try {
+      factionMatrix = await generateFactionMatrix({
+        storyIntent: input.storyIntent,
+        totalEpisodes: input.totalEpisodes,
+        runtimeConfig: input.runtimeConfig,
+        signal: input.signal
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || 'unknown')
+      if (
+        /^faction_matrix_timeout:/i.test(message) ||
+        /^faction_matrix_parse_failed:/i.test(message) ||
+        /^faction_matrix_generation_failed:/i.test(message)
+      ) {
+        throw error
+      }
+      throw new Error(`faction_matrix_generation_failed:${message}`)
     }
-    throw new Error(`faction_matrix_generation_failed:${message}`)
   }
 
   const v2Result = await generateCharacterProfileV2({
@@ -704,16 +1085,18 @@ async function generateOutlineBundleFromConfirmedSevenQuestionsDefault(input: {
   factionMatrix?: FactionMatrixDto
   marketProfile?: import('@shared/contracts/project').MarketProfileDto | null
   storyIntent?: StoryIntentPackageDto
-}): Promise<{ outline?: {
-  title?: string
-  genre?: string
-  theme?: string
-  protagonist?: string
-  mainConflict?: string
-  summary?: string
-  episodes?: Array<{ episodeNo?: number; summary?: string }>
-  facts?: OutlineFactCandidate[]
-} | null }> {
+}): Promise<{
+  outline?: {
+    title?: string
+    genre?: string
+    theme?: string
+    protagonist?: string
+    mainConflict?: string
+    summary?: string
+    episodes?: Array<{ episodeNo?: number; summary?: string }>
+    facts?: OutlineFactCandidate[]
+  } | null
+}> {
   const { generateOutlineBundle } = await import('./generate-outline-and-characters-support.js')
   const result = await generateOutlineBundle(input)
   if (!result) {
@@ -751,6 +1134,7 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
     storyIntent: StoryIntentPackageDto
     outlineDraft: OutlineDraftDto | null
     runtimeConfig: RuntimeProviderConfig
+    mode?: OutlineCharacterGenerationMode
     signal?: AbortSignal
   },
   deps: ConfirmedSevenQuestionsGenerationDeps = {}
@@ -790,6 +1174,7 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
     deps.generateCharacterProfiles ?? generateCharacterProfilesFromConfirmedSevenQuestionsDefault
   const buildOutlineBundle =
     deps.generateOutlineBundle ?? generateOutlineBundleFromConfirmedSevenQuestionsDefault
+  const mode = input.mode ?? 'bundle'
 
   // 先生成人物小传，再让粗纲消费人物关系和势力底账，避免七问/骨架两套账本漂移。
   let characterProfilesResult = await generateCharacterProfiles({
@@ -815,57 +1200,77 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
   let outlineGenerationError: string | undefined
   let validatedOutline: NonNullable<
     NonNullable<
-      Awaited<ReturnType<NonNullable<ConfirmedSevenQuestionsGenerationDeps['generateOutlineBundle']>>>
+      Awaited<
+        ReturnType<NonNullable<ConfirmedSevenQuestionsGenerationDeps['generateOutlineBundle']>>
+      >
     >['outline']
   >
 
-  try {
-    const outlineBundle = await buildOutlineBundle({
-      generationBriefText,
-      totalEpisodes: targetEpisodeCount,
-      runtimeConfig: input.runtimeConfig,
-      signal: input.signal,
-      sevenQuestions: confirmedSevenQuestions ?? undefined,
-      characterProfiles: { characters: characterProfilesResult.characters },
-      characterProfilesV2: characterProfilesResult.characterProfilesV2,
-      factionMatrix: characterProfilesResult.factionMatrix,
-      marketProfile: input.storyIntent.marketProfile,
-      storyIntent
-    })
-
-    const outlinePayload = outlineBundle?.outline
-    const outlineValidation = validateStructuredOutline({
-      outline: outlinePayload,
-      targetEpisodeCount
-    })
-
-    if (!outlinePayload || !outlineValidation.ok) {
-      await appendDiagnosticLog(
-        `rough_outline_final_validation_failed code=${outlineValidation.code || 'unknown'} actualEpisodeCount=${outlineValidation.actualEpisodeCount} missing=[${outlineValidation.missingEpisodeNos.join(',')}] duplicate=[${outlineValidation.duplicateEpisodeNos.join(',')}] empty=[${outlineValidation.emptyEpisodeNos.join(',')}]`
-      )
-      throw new Error(
-        `rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`
-      )
-    }
-
-    validatedOutline = outlinePayload
-  } catch (error) {
-    outlineGenerationError = error instanceof Error ? error.message : String(error || 'unknown')
-    await appendDiagnosticLog(
-      `rough_outline_failed_without_temporary_skeleton error=${outlineGenerationError}`
-    )
+  if (mode === 'characters_only') {
+    await appendDiagnosticLog('character_bundle_finish_without_rough_outline')
     validatedOutline = buildFallbackOutlinePayloadFromStoryIntent({
       storyIntent
     })
+  } else {
+    try {
+      const outlineBundle = await buildOutlineBundle({
+        generationBriefText,
+        totalEpisodes: targetEpisodeCount,
+        runtimeConfig: input.runtimeConfig,
+        signal: input.signal,
+        sevenQuestions: confirmedSevenQuestions ?? undefined,
+        characterProfiles: { characters: characterProfilesResult.characters },
+        characterProfilesV2: characterProfilesResult.characterProfilesV2,
+        factionMatrix: characterProfilesResult.factionMatrix,
+        marketProfile: input.storyIntent.marketProfile,
+        storyIntent
+      })
+
+      const outlinePayload = outlineBundle?.outline
+      const outlineValidation = validateStructuredOutline({
+        outline: outlinePayload,
+        targetEpisodeCount
+      })
+
+      if (!outlinePayload || !outlineValidation.ok) {
+        await appendDiagnosticLog(
+          `rough_outline_final_validation_failed code=${outlineValidation.code || 'unknown'} actualEpisodeCount=${outlineValidation.actualEpisodeCount} missing=[${outlineValidation.missingEpisodeNos.join(',')}] duplicate=[${outlineValidation.duplicateEpisodeNos.join(',')}] empty=[${outlineValidation.emptyEpisodeNos.join(',')}]`
+        )
+        throw new Error(
+          `rough_outline_incomplete:${outlineValidation.code || 'episode_numbers_invalid'}`
+        )
+      }
+
+      validatedOutline = outlinePayload
+    } catch (error) {
+      outlineGenerationError = error instanceof Error ? error.message : String(error || 'unknown')
+      await appendDiagnosticLog(
+        `rough_outline_failed_without_temporary_skeleton error=${outlineGenerationError}`
+      )
+      validatedOutline = buildFallbackOutlinePayloadFromStoryIntent({
+        storyIntent
+      })
+    }
   }
 
   const outlineDraft: OutlineDraftDto = {
     title: validatedOutline.title?.trim() || storyIntent.titleHint || '',
     genre: validatedOutline.genre?.trim() || storyIntent.genre || '',
-    theme: validatedOutline.theme?.trim() || storyIntent.themeAnchors?.[0] || '',
+    theme:
+      validatedOutline.theme?.trim() ||
+      storyIntent.themeAnchors?.[0] ||
+      storyIntent.emotionalPayoff ||
+      storyIntent.coreConflict ||
+      '',
     protagonist: validatedOutline.protagonist?.trim() || storyIntent.protagonist || '',
     mainConflict: validatedOutline.mainConflict?.trim() || storyIntent.coreConflict || '',
-    summary: validatedOutline.summary?.trim() || '',
+    summary:
+      mode === 'characters_only'
+        ? input.outlineDraft?.summary?.trim() ||
+          storyIntent.storySynopsis?.logline?.trim() ||
+          storyIntent.creativeSummary?.trim() ||
+          generationBriefText
+        : validatedOutline.summary?.trim() || '',
     planningUnitEpisodes: getGovernanceOutlineBlockSize(),
     summaryEpisodes: [],
     // User has already confirmed the chapter-level direction through seven questions.
@@ -882,12 +1287,14 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
 
   const summaryEpisodes = outlineGenerationError
     ? []
-    : normalizeOutlineEpisodes(
-        validatedOutline.episodes?.length
-          ? validatedOutline.episodes
-          : parseSummaryToOutlineEpisodes(outlineDraft.summary, targetEpisodeCount),
-        targetEpisodeCount
-      )
+    : mode === 'characters_only'
+      ? []
+      : normalizeOutlineEpisodes(
+          validatedOutline.episodes?.length
+            ? validatedOutline.episodes
+            : parseSummaryToOutlineEpisodes(outlineDraft.summary, targetEpisodeCount),
+          targetEpisodeCount
+        )
   outlineDraft.summaryEpisodes = summaryEpisodes
 
   if (!outlineGenerationError && !outlineDraft.summary) {
@@ -906,7 +1313,7 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
   }
 
   // 旧项目如果已经锁过七问，把它折叠进 outlineBlocks；新流程只生成技术规划块。
-  if (outlineGenerationError) {
+  if (mode === 'characters_only' || outlineGenerationError) {
     outlineDraft.outlineBlocks = []
   } else if (confirmedSevenQuestions?.sections.length) {
     outlineDraft.outlineBlocks = confirmedSevenQuestions.sections.map((section, index) => {
@@ -973,6 +1380,20 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
     outline: outlineDraft
   })
 
+  const protagonistIntegrity = enforceProtagonistRoleIntegrity({
+    characters: filteredCharacters,
+    protagonistName: anchors.protagonist || '',
+    storyIntent,
+    outlineDraft,
+    generationBriefText
+  })
+  filteredCharacters = protagonistIntegrity.characters
+  if (protagonistIntegrity.repaired) {
+    await appendDiagnosticLog(
+      `character_bundle_repaired_protagonist_role_collision name=${anchors.protagonist}`
+    )
+  }
+
   if (
     anchors.protagonist &&
     !isGenericRoleAnchor(anchors.protagonist) &&
@@ -990,6 +1411,34 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
     await appendDiagnosticLog(
       `character_bundle_added_missing_protagonist name=${anchors.protagonist}`
     )
+  }
+
+  filteredCharacters = filteredCharacters.map((character) =>
+    sanitizeCharacterDraftText(character, anchors.protagonist || storyIntent.protagonist || '')
+  )
+  characterProfilesResult = enforceProtagonistHomeFactionProfile({
+    result: characterProfilesResult,
+    protagonistName: anchors.protagonist || storyIntent.protagonist || ''
+  })
+  if (anchors.protagonist || storyIntent.protagonist) {
+    characterProfilesResult = {
+      ...characterProfilesResult,
+      characters: characterProfilesResult.characters.map((character) =>
+        sanitizeCharacterDraftText(character, anchors.protagonist || storyIntent.protagonist || '')
+      ),
+      characterProfilesV2: characterProfilesResult.characterProfilesV2
+        ? sanitizeGeneratedTextInAnyValue(
+            characterProfilesResult.characterProfilesV2,
+            anchors.protagonist || storyIntent.protagonist || ''
+          )
+        : characterProfilesResult.characterProfilesV2,
+      factionMatrix: characterProfilesResult.factionMatrix
+        ? sanitizeGeneratedTextInAnyValue(
+            characterProfilesResult.factionMatrix,
+            anchors.protagonist || storyIntent.protagonist || ''
+          )
+        : characterProfilesResult.factionMatrix
+    }
   }
 
   if (
@@ -1074,6 +1523,14 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
     entityStore
   })
 
+  const storyIntentWithFoundation = attachStoryFoundationToIntent({
+    storyIntent,
+    entityStore: strategyRepairedBundle.entityStore,
+    characterDrafts: strategyRepairedBundle.visibleCharacterDrafts,
+    factionMatrix: strategyRepairedBundle.factionMatrix,
+    totalEpisodes: targetEpisodeCount
+  })
+
   const warnings: GenerationWarningDto[] = [
     ...(outlineGenerationError
       ? [
@@ -1095,7 +1552,7 @@ export async function generateOutlineCharacterBundleFromConfirmedSevenQuestions(
   ]
 
   return {
-    storyIntent,
+    storyIntent: storyIntentWithFoundation,
     outlineDraft: strategyRepairedBundle.outlineDraft,
     sevenQuestions: confirmedSevenQuestions ?? null,
     characterLedger: {
@@ -1118,6 +1575,7 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
     storyIntent: StoryIntentPackageDto
     outlineDraft: OutlineDraftDto | null
     runtimeConfig: RuntimeProviderConfig
+    mode?: OutlineCharacterGenerationMode
     signal?: AbortSignal
   },
   deps: ConfirmedSevenQuestionsGenerationDeps = {}

@@ -14,6 +14,7 @@ import type {
 import { advanceScriptGenerationState } from '../state-machine'
 import { createScriptGenerationPrompt } from '../prompt/create-script-generation-prompt'
 import { resolveProjectMarketPlaybook } from '@shared/domain/market-playbook/playbook-prompt-block'
+import { resolveEpisodeControlCardFromPackage } from '@shared/domain/script-generation/script-control-package'
 import { buildFirstDraftSystemPrompt } from '../prompt/first-draft-system-prompt'
 import { parseGeneratedScene } from './parse-generated-scene'
 import { selectBatchEpisodesForRun } from './select-script-generation-batch'
@@ -293,6 +294,15 @@ function buildEpisodeIssueTicket(
   }
   if (failures.some((failure) => failure.code === 'inner_monologue')) {
     guidance.push('- 把心理描写改成角色可见动作、对白或现场结果。')
+  }
+  if (failures.some((failure) => failure.code === 'payoff_missing')) {
+    guidance.push('- 补全缺失的爽点字段，确保爽点类型、级别、归属角色和执行逻辑完整。')
+  }
+  if (failures.some((failure) => failure.code === 'payoff_mismatch')) {
+    guidance.push('- 严格遵循上游定义的爽点配置，不得修改爽点类型、角色或执行方式。')
+  }
+  if (failures.some((failure) => failure.code === 'payoff_not_present')) {
+    guidance.push('- 在剧本中明确体现爽点执行逻辑，确保爽点归属角色、施压角色和目标角色全部出场，且执行动作与要求一致。')
   }
 
   return [
@@ -629,6 +639,37 @@ export async function runScriptGenerationBatch(input: {
           } catch {
             // 修稿失败不阻断，保留原稿
           }
+        }
+      }
+
+      // 继承控制卡中的爽点字段
+      const currentBeat = (input.generationInput.segments || [])
+        .flatMap((segment) => segment.episodeBeats || [])
+        .find((beat) => beat.episodeNo === episode.episodeNo) ||
+      (input.generationInput.detailedOutlineBlocks || [])
+        .flatMap((block) => [
+          ...(block.episodeBeats || []),
+          ...(block.sections || []).flatMap((section) => section.episodeBeats || [])
+        ])
+        .find((beat) => beat.episodeNo === episode.episodeNo) ||
+      null
+
+      const controlCard =
+        resolveEpisodeControlCardFromPackage(input.generationInput.scriptControlPackage, episode.episodeNo) ||
+        currentBeat?.episodeControlCard ||
+        null
+
+      if (controlCard) {
+        finalScene = {
+          ...finalScene,
+          payoffType: controlCard.payoffType,
+          payoffLevel: controlCard.payoffLevel,
+          payoffBeatSlot: controlCard.payoffBeatSlot,
+          payoffOwnerName: controlCard.payoffOwnerName,
+          pressureActorName: controlCard.pressureActorName,
+          payoffTargetName: controlCard.payoffTargetName,
+          payoffScene: controlCard.payoffScene,
+          payoffExecution: controlCard.payoffExecution
         }
       }
 

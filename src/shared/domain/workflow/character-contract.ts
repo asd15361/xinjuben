@@ -37,7 +37,15 @@ function isFuzzyNameMatch(characterName: string, anchorName: string): boolean {
 }
 
 function isGenericRoleAnchor(value: string): boolean {
-  return /^(主角|男主|女主|反派|对手|敌人)$/u.test(value.trim())
+  const text = value.trim()
+  if (/^(主角|男主|女主|反派|对手|敌人)$/u.test(text)) return true
+  return /^(名门正派|正道|仙盟|反派)?(大小姐|少爷|公子|贵女|嫡女)$/u.test(text)
+}
+
+function stripDescriptiveAnchorSuffix(value: string): string {
+  const text = fuzzyNormalizeName(value).trim()
+  if (!text || isGenericRoleAnchor(text)) return text
+  return text.split(/[，,。；;、\s]/u)[0]?.trim() || text
 }
 
 function isAnchorCoveredByCharacterText(
@@ -144,8 +152,8 @@ export function resolveCharacterContractAnchors(input: {
   storyIntent?: StoryIntentPackageDto | null
   outline?: Pick<OutlineDraftDto, 'protagonist'> | null
 }): { protagonist?: string; antagonist?: string } {
-  const storyProtagonist = input.storyIntent?.protagonist?.trim() || ''
-  const outlineProtagonist = input.outline?.protagonist?.trim() || ''
+  const storyProtagonist = stripDescriptiveAnchorSuffix(input.storyIntent?.protagonist || '')
+  const outlineProtagonist = stripDescriptiveAnchorSuffix(input.outline?.protagonist || '')
   const protagonist =
     storyProtagonist && !isGenericRoleAnchor(storyProtagonist)
       ? storyProtagonist

@@ -63,6 +63,181 @@ type SummaryDraft = {
   pendingConfirmations: string[]
 }
 
+function isGenericRoleName(value: string): boolean {
+  return /^(主角|男主|女主|反派|对手|大小姐|反派大小姐|名门大小姐|名门正派大小姐|宗门老大|掌门|父亲|母亲|仇人)$/.test(
+    value.trim()
+  )
+}
+
+function requiredRosterCount(episodeCount: number): number {
+  if (episodeCount >= 60) return 8
+  if (episodeCount >= 20) return 6
+  return 4
+}
+
+function mergeCharacterCards(
+  base: Array<{ name: string; summary: string }>,
+  additions: Array<{ name: string; summary: string }>,
+  limit = 12
+): Array<{ name: string; summary: string }> {
+  return uniqueCharacterCards([...base, ...additions], limit)
+}
+
+function mergeCharacterLayers(
+  base: Array<{ name: string; layer: string; duty: string }>,
+  additions: Array<{ name: string; layer: string; duty: string }>,
+  limit = 12
+): Array<{ name: string; layer: string; duty: string }> {
+  return uniqueCharacterLayers([...base, ...additions], limit)
+}
+
+function buildAutoRosterForDraft(draft: SummaryDraft): {
+  keyCharacters: string[]
+  characterCards: Array<{ name: string; summary: string }>
+  characterLayers: Array<{ name: string; layer: string; duty: string }>
+} {
+  const combinedText = [
+    draft.genreAndStyle,
+    draft.worldAndBackground,
+    draft.sellingPremise,
+    draft.coreDislocation,
+    draft.coreConflict,
+    draft.chainSynopsis,
+    ...draft.relationSummary,
+    ...draft.worldAnchors,
+    ...draft.relationAnchors
+  ].join('\n')
+
+  const isCultivation = /修仙|玄幻|宗门|魔尊|灵根|血脉|仙门|门派/.test(combinedText)
+  const protagonist =
+    draft.protagonist && !isGenericRoleName(draft.protagonist)
+      ? draft.protagonist
+      : isCultivation
+        ? '林潜渊'
+        : '林远'
+  const antagonist =
+    draft.antagonist && !isGenericRoleName(draft.antagonist)
+      ? draft.antagonist
+      : isCultivation
+        ? '陆昭仪'
+        : '陆昭'
+
+  const cards = [
+    {
+      name: protagonist,
+      summary:
+        '男主，表面被众人嘲笑为废柴，实则身负魔尊血脉；开局母亲吊坠被踩碎后第一次觉醒，后续追查身世并完成逆袭复仇。'
+    },
+    {
+      name: '谢含章',
+      summary:
+        '女主，宗门老大的女儿，暗中守护男主并陪他寻找身世真相；前期单向付出，被男主误解和忽视。'
+    },
+    {
+      name: '沈观澜',
+      summary:
+        '宗门老大，知道男主魔尊血脉真相，为保护男主和世界故意制造废柴假象，长期背负误解和愧疚。'
+    },
+    {
+      name: antagonist,
+      summary:
+        '名门正派大小姐，伪装善意接近男主，实际觊觎魔尊血脉，是情感骗局和血脉争夺线的核心反派。'
+    },
+    {
+      name: '秦玄策',
+      summary:
+        '正道盟主宗门的掌权者，联合多派试探并围猎男主血脉，和男主父母旧案有关。'
+    },
+    {
+      name: '周砚',
+      summary:
+        '开局欺辱男主的同门弟子，踩碎母亲吊坠并触发男主第一次觉醒，是第一场打脸的承压点。'
+    },
+    {
+      name: '叶归尘',
+      summary: '男主父亲旧案线索人物，牵出魔尊血脉、父母之死和正道盟主宗门的旧仇。'
+    },
+    {
+      name: '执法弟子甲',
+      summary: '功能角色，负责传令、宣判、押送和制造宗门规则压迫。'
+    },
+    {
+      name: '山门守卫乙',
+      summary: '群像角色，在山门、试炼、禁地入口等场景提供阻拦、通报和目击反应。'
+    }
+  ]
+
+  const layers = [
+    { name: protagonist, layer: '核心人物', duty: '承载废柴逆袭、血脉觉醒、身世追查和最终复仇。' },
+    { name: '谢含章', layer: '核心人物', duty: '承载默默守护、禁忌情感和后期愧疚反转。' },
+    { name: '沈观澜', layer: '核心人物', duty: '承载隐忍保护、父辈秘密和世界危机真相。' },
+    { name: antagonist, layer: '核心反派', duty: '诱骗男主、争夺魔尊血脉、推动情感骗局。' },
+    { name: '秦玄策', layer: '势力反派', duty: '代表正道盟主宗门和多派围猎压力。' },
+    { name: '周砚', layer: '功能反派', duty: '负责开局羞辱、踩碎吊坠和第一场打脸。' },
+    { name: '叶归尘', layer: '旧案线索', duty: '连接男主父母之死和复仇目标。' },
+    { name: '执法弟子甲', layer: '功能角色', duty: '执行宗门规则压迫，可在多集里传令和押送。' },
+    { name: '山门守卫乙', layer: '群像/跑龙套', duty: '提供阻拦、通报、目击和一句台词反应。' }
+  ]
+
+  return {
+    keyCharacters: cards.map((item) => item.name),
+    characterCards: cards,
+    characterLayers: layers
+  }
+}
+
+function shouldAutoCompleteRoster(draft: SummaryDraft, chatTranscript: string): boolean {
+  const text = `${chatTranscript}\n${draft.protagonist}\n${draft.antagonist}\n${draft.chainSynopsis}`
+  return (
+    /帮.*取名|你.*取名|不会取名|不会写|随便取|自己取名字|你来取|你帮我.*补|交给你|你总结不了吗/.test(
+      text
+    ) ||
+    isGenericRoleName(draft.protagonist) ||
+    isGenericRoleName(draft.antagonist)
+  )
+}
+
+function ensureUsableCharacterRoster(draft: SummaryDraft, chatTranscript: string): SummaryDraft {
+  const requiredCount = requiredRosterCount(draft.episodeCount)
+  const existingNames = uniqueList(
+    [
+      ...draft.keyCharacters,
+      ...draft.characterCards.map((item) => item.name),
+      ...draft.characterLayers.map((item) => item.name)
+    ].filter((name) => name && !isGenericRoleName(name)),
+    12
+  )
+  if (existingNames.length >= requiredCount) return draft
+  if (!shouldAutoCompleteRoster(draft, chatTranscript)) return draft
+
+  const autoRoster = buildAutoRosterForDraft(draft)
+  const characterCards = mergeCharacterCards(draft.characterCards, autoRoster.characterCards)
+  const characterLayers = mergeCharacterLayers(draft.characterLayers, autoRoster.characterLayers)
+  const keyCharacters = normalizeNameList(
+    [
+      ...existingNames,
+      ...draft.keyCharacters.filter((name) => !isGenericRoleName(name)),
+      ...autoRoster.keyCharacters
+    ],
+    12
+  )
+
+  return {
+    ...draft,
+    protagonist:
+      draft.protagonist && !isGenericRoleName(draft.protagonist)
+        ? draft.protagonist
+        : autoRoster.characterCards[0]?.name || draft.protagonist,
+    antagonist:
+      draft.antagonist && !isGenericRoleName(draft.antagonist)
+        ? draft.antagonist
+        : autoRoster.characterCards[3]?.name || draft.antagonist,
+    keyCharacters,
+    characterCards,
+    characterLayers
+  }
+}
+
 function toRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -88,16 +263,16 @@ function normalizeSummaryDraft(
   const latestEpisodeCount = extractLatestEpisodeCountFromText(normalizedTranscript)
   const latestAuthoritativeEpisodeCount =
     extractLatestAuthoritativeEpisodeCountFromText(normalizedTranscript)
-  const payloadCharacterCards = uniqueCharacterCards(extractRoleSummary(record.characterCards), 8)
+  const payloadCharacterCards = uniqueCharacterCards(extractRoleSummary(record.characterCards), 12)
   const structuredCharacterCards = uniqueCharacterCards(
     extractRoleSummary(structuredBrief?.characterCards),
-    8
+    12
   )
   const characterCards =
     payloadCharacterCards.length > 0 ? payloadCharacterCards : structuredCharacterCards
   const characterCardNames = uniqueList(
     characterCards.map((item) => item.name),
-    8
+    12
   )
   const keyCharacters = normalizeNameList(
     [
@@ -109,7 +284,7 @@ function normalizeSummaryDraft(
       baseStoryIntent.protagonist || '',
       baseStoryIntent.antagonist || ''
     ],
-    8
+    12
   )
   const roleCardAuthorityCharacters =
     characterCardNames.length > 0 ? characterCardNames : keyCharacters
@@ -143,7 +318,8 @@ function normalizeSummaryDraft(
     8
   )
 
-  return {
+  return ensureUsableCharacterRoster(
+    {
     projectTitle:
       structuredHeader?.projectTitle ||
       toText(record.projectTitle) ||
@@ -170,7 +346,7 @@ function normalizeSummaryDraft(
     keyCharacters: roleCardAuthorityCharacters,
     chainSynopsis: toText(record.chainSynopsis) || baseStoryIntent.freeChatFinalSummary || '',
     characterCards,
-    characterLayers: uniqueCharacterLayers(extractCharacterLayers(record.characterLayers), 8),
+    characterLayers: uniqueCharacterLayers(extractCharacterLayers(record.characterLayers), 12),
     themeAnchors: uniqueList(
       [...toTextArray(record.themeAnchors), ...(baseStoryIntent.themeAnchors || [])],
       8
@@ -181,14 +357,16 @@ function normalizeSummaryDraft(
         ...(baseStoryIntent.worldAnchors || []),
         toText(record.worldAndBackground)
       ].filter(Boolean),
-      4
+      8
     ),
     relationAnchors,
     dramaticMovement,
     relationSummary: uniqueList([...toTextArray(record.relationSummary), ...relationAnchors], 8),
     softUnderstanding: uniqueList(toTextArray(record.softUnderstanding), 8),
-    pendingConfirmations
-  }
+      pendingConfirmations
+    },
+    chatTranscript
+  )
 }
 
 export function parseStructuredGenerationBrief(
@@ -223,7 +401,7 @@ export function parseStructuredGenerationBrief(
       toText(sectionMap.get('串联简介')),
       pickWorldPressure(sections)
     ].filter(Boolean),
-    4
+    8
   )
   const relationAnchors = uniqueList(
     [...sections.relationSummary, dramaticChain.relationshipLeverLine].filter(Boolean),
@@ -265,9 +443,7 @@ export function parseStructuredGenerationBrief(
   }
 }
 
-function extractStorySynopsis(
-  payload: Record<string, unknown> | null
-): StorySynopsisDto | null {
+function extractStorySynopsis(payload: Record<string, unknown> | null): StorySynopsisDto | null {
   if (!payload) return null
   const raw = payload.storySynopsis
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null

@@ -1,6 +1,6 @@
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
 import type { StorySynopsisReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
-import { inspectStorySynopsisReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
+import { inspectProjectIntakeReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
 import { useState } from 'react'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore.ts'
 import { apiConfirmStoryIntentFromChat } from '../../../services/api-client.ts'
@@ -24,7 +24,7 @@ export function useChatStageActions(): {
   const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
   const trackedGeneration = useTrackedGeneration()
   const [status, setStatus] = useState(
-    '先把题材、主角、困境和冲突说清楚。聊到差不多时，我会先帮你整理成创作信息总结，再进入人物小传和剧本骨架。'
+    '先把题材、主角、困境、世界观、阵营/场域和角色池说清楚。确认总结后，先进入人物小传。'
   )
 
   async function handleConfirmIntent(
@@ -44,7 +44,7 @@ export function useChatStageActions(): {
         {
           task: 'confirm_story_intent',
           title: '正在整理创作信息',
-          detail: '正在把聊天内容整理成可生成人物小传和剧本骨架的故事梗概，请稍候...',
+          detail: '正在把聊天内容整理成可生成人物小传的世界观、阵营和角色底账，请稍候...',
           fallbackSeconds: resolveConfirmStoryIntentEstimatedSeconds(),
           scope: 'project'
         },
@@ -60,7 +60,7 @@ export function useChatStageActions(): {
       }
 
       // 质量门检测
-      const readiness = inspectStorySynopsisReadiness(result.storyIntent.storySynopsis)
+      const readiness = inspectProjectIntakeReadiness(result.storyIntent)
 
       if (useWorkflowStore.getState().projectId === requestProjectId) {
         setStoryIntent(result.storyIntent)
@@ -68,21 +68,21 @@ export function useChatStageActions(): {
           setGenerationNotice({
             kind: 'success',
             title: '创作信息总结已生成',
-            detail: '故事梗概已具备生成人物小传和剧本骨架所需信息。'
+            detail: '世界观、阵营/场域、角色底账和故事梗概已具备进入人物小传所需信息。'
           })
         } else {
           setGenerationNotice({
             kind: 'warning',
-            title: '创作信息总结已生成，但故事梗概还缺几项',
-            detail: `缺：${readiness.missing.join('、')}。你可以继续补充，也可以直接生成人物小传和骨架（AI 会尝试补齐缺失项）。`
+            title: '创作信息总结已生成，但创作底账还缺几项',
+            detail: `缺：${readiness.missing.join('、')}。请继续补充这些信息，再进入人物小传。`
           })
         }
       }
 
       setStatus(
         readiness.ready
-          ? '创作信息总结已生成，故事梗概完整。下一步可以进入人物小传。'
-          : `创作信息总结已生成，但故事梗概还缺：${readiness.missing.join('、')}。你可以继续补充，也可以直接进入人物小传。`
+          ? '创作信息总结已生成，世界观、阵营/场域和角色底账完整。下一步可以进入人物小传。'
+          : `创作信息总结已生成，但还缺：${readiness.missing.join('、')}。请继续补充后再进入人物小传。`
       )
 
       return {

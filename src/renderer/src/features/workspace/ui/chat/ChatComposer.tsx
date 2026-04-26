@@ -47,7 +47,9 @@ export function ChatComposer(props: {
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
           <p className="text-[11px] text-white/50 tracking-wider">
-            {props.canGenerate ? '信息总结已就绪，下一步进入人物小传' : '先把题材、主角、冲突说出来'}
+            {props.canGenerate
+              ? '创作底账已就绪，下一步进入人物小传'
+              : '先把世界观、阵营、角色池和冲突说出来'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -95,7 +97,7 @@ export function ChatComposer(props: {
         </button>
       </div>
       <p className="text-[10px] text-white/20 mt-3 text-center tracking-[0.1em]">
-        提示：先把题材、主角、困境、冲突说实，后面生成会更稳
+        提示：先把世界观、阵营/场域、角色池、主角困境和核心冲突说实
       </p>
     </div>
   )

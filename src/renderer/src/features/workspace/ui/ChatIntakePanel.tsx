@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ProjectGenerationStatusDto } from '../../../../../shared/contracts/generation'
 import type { StorySynopsisReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
+import { inspectProjectIntakeReadiness } from '../../../../../shared/domain/intake/story-synopsis.ts'
+import { renderChineseCharacterNamingGuidelines } from '../../../../../shared/domain/intake/character-naming-guidelines.ts'
 import { isConfirmedStoryIntentForTranscript } from '../../../../../shared/domain/workflow/confirmed-story-intent'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
 import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBanner'
@@ -64,6 +66,9 @@ export function ChatIntakePanel(props: {
     return answered >= 1 && !busy && !generationBusy && !props.disabled
   }, [busy, generationBusy, messages, props.disabled])
   const hasConfirmedCurrentInfo = isConfirmedStoryIntentForTranscript(storyIntent, truthTranscript)
+  const intakeReadiness = useMemo(() => inspectProjectIntakeReadiness(storyIntent), [storyIntent])
+  const canGenerateFromConfirmedInfo =
+    canGenerate && hasConfirmedCurrentInfo && intakeReadiness.ready
 
   async function handleSend(text: string): Promise<void> {
     if (!text.trim() || busy || generationBusy || props.disabled) return
@@ -85,10 +90,13 @@ export function ChatIntakePanel(props: {
         之前的对话历史是：\n${chatTranscript}\n
         你的任务：
         1. 哪怕用户只发了一句话，也要基于你的戏剧知识给出专业评论。
-        2. 主动、自然地引导用户补充”题材、主角困境、核心冲突、爽点、反转”中的某一项细节。
-        3. 说话要专业、直接、清楚，不要撒娇，不要扮演暧昧人格，不要用夸张口头禅。
-        4. 回复必须短小精悍，不要超过 120 字。
-        5. 优先帮用户把故事说实，不要空泛鼓励。`
+        2. 主动、自然地引导用户补充”世界观/背景、阵营/场域、角色池、主角困境、核心冲突、爽点、反转”中的某一项细节。
+        3. 如果用户还没说世界是什么、有哪些阵营/组织/地点、有哪些核心角色和功能角色，优先追问这些底账。
+        4. 如果用户说“你帮我取名/我不会取名/随便取”，你必须直接给一版可用角色名册，不要继续追问用户来取名。
+        ${renderChineseCharacterNamingGuidelines()}
+        5. 说话要专业、直接、清楚，不要撒娇，不要扮演暧昧人格，不要用夸张口头禅。
+        6. 回复必须短小精悍，不要超过 160 字。
+        7. 优先帮用户把故事说实，不要空泛鼓励。`
       })
 
       const nextMessages: ChatMessage[] = [
@@ -121,7 +129,7 @@ export function ChatIntakePanel(props: {
   }
 
   async function handleGenerate(): Promise<void> {
-    if (!canGenerate) return
+    if (!canGenerateFromConfirmedInfo) return
     setBusy(true)
     try {
       await props.onGenerate(truthTranscript)
@@ -150,19 +158,19 @@ export function ChatIntakePanel(props: {
 
       let readinessText = ''
       if (readiness.ready) {
-        readinessText = '\n\n✅ 故事梗概已具备生成人物小传和骨架所需信息。'
+        readinessText = '\n\n✅ 创作底账已具备进入人物小传所需信息。'
       } else {
         readinessText =
-          '\n\n⚠️ 故事梗概还缺以下关键项：' +
+          '\n\n⚠️ 创作底账还缺以下关键项：' +
           readiness.missing.map((m) => `\n- ${m}`).join('') +
-          '\n\n你可以继续补充，也可以先用当前版本生成人物小传和骨架（AI 会尝试补齐缺失项）。'
+          '\n\n请继续补充这些信息，再进入人物小传。'
       }
 
       const nextMessages: ChatMessage[] = [
         ...messages,
         {
           role: 'assistant',
-          text: `我已经把当前聊天整理成一版创作信息总结，你可以继续补充，也可以进入人物小传和剧本骨架。${readinessText}\n\n创作信息总结：\n\n${generationBriefText}`,
+          text: `我已经把当前聊天整理成一版创作信息总结。${readiness.ready ? '当前可以进入人物小传；剧本骨架会在人物小传确认后再生成。' : '请继续补齐世界观、阵营/场域和角色底账。'}${readinessText}\n\n创作信息总结：\n\n${generationBriefText}`,
           createdAt: Date.now()
         }
       ]
@@ -197,7 +205,7 @@ export function ChatIntakePanel(props: {
         disabled={props.disabled}
         busy={busy || generationBusy}
         canConfirm={canGenerate}
-        canGenerate={canGenerate && hasConfirmedCurrentInfo}
+        canGenerate={canGenerateFromConfirmedInfo}
         confirmed={hasConfirmedCurrentInfo}
         onSend={(text) => void handleSend(text)}
         onConfirm={() => void handleConfirmIntent()}

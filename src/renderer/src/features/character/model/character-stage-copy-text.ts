@@ -14,6 +14,12 @@ function line(label: string, value: unknown): string[] {
   return text ? [`${label}：${text}`] : []
 }
 
+function listLine(label: string, value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const text = value.map((item) => clean(item)).filter(Boolean).join('、')
+  return text ? [`${label}：${text}`] : []
+}
+
 function block(title: string, lines: string[]): string {
   return [`## ${title}`, ...lines.filter(Boolean)].join('\n')
 }
@@ -25,9 +31,12 @@ export function buildCharacterProfileCopyText(character: CharacterDraftDto): str
     ...line('身份', character.identity),
     ...line('价值观', character.values),
     ...line('剧情作用', character.plotFunction),
+    ...listLine('爽点标签', character.payoffTags),
+    ...line('复用功能位', character.reusableRoleKey),
+    ...listLine('复用场景', character.reuseSceneKeys),
     ...line('最想守', character.protectTarget),
     ...line('最怕失去', character.fear),
-    ...line('一碰就炸', character.conflictTrigger),
+    ...line('被逼动作点', character.conflictTrigger),
     ...line('目标', character.goal),
     ...line('表面', character.publicMask),
     ...line('暗里卡着', character.hiddenPressure),

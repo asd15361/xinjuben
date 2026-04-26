@@ -7,6 +7,7 @@ import { useStageStore } from '../../../store/useStageStore'
 import { useChatStageActions } from './useChatStageActions'
 import { createInitialChatMessages } from '../../workspace/ui/chat/ChatTypes'
 import { isConfirmedStoryIntentForTranscript } from '../../../../../shared/domain/workflow/confirmed-story-intent'
+import { inspectProjectIntakeReadiness } from '../../../../../shared/domain/intake/story-synopsis'
 
 export function ChatStage(): JSX.Element {
   const generationStatus = useWorkflowStore((s) => s.generationStatus)
@@ -24,6 +25,7 @@ export function ChatStage(): JSX.Element {
     .map((message) => `用户：${message.text.trim()}`)
     .join('\n')
   const hasConfirmedCurrentInfo = isConfirmedStoryIntentForTranscript(storyIntent, truthTranscript)
+  const hasReadyIntake = inspectProjectIntakeReadiness(storyIntent).ready
 
   async function handleGoToCharacter(): Promise<void> {
     if (!projectId) return
@@ -86,6 +88,9 @@ export function ChatStage(): JSX.Element {
           onGenerate={async () => {
             if (!hasConfirmedCurrentInfo) {
               throw new Error('confirmed_story_intent_missing')
+            }
+            if (!hasReadyIntake) {
+              throw new Error('project_intake_readiness_missing')
             }
             if (!projectId) return
             await switchStageSession(projectId, 'character')

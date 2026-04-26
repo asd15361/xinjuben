@@ -13,7 +13,12 @@ import {
   hasValidApiKey,
   loadRuntimeProviderConfig
 } from '../../infrastructure/runtime-env/provider-config'
-import { generateOutlineAndCharactersForProject } from '../../application/workspace/outline-characters-service'
+import {
+  generateCharactersForProject,
+  generateFactionsForProject,
+  generateOutlineAndCharactersForProject,
+  generateOutlineForProject
+} from '../../application/workspace/outline-characters-service'
 
 export const outlineCharactersRouter = Router()
 
@@ -85,79 +90,123 @@ async function executeDeduction(
   }
 }
 
+type OutlineCharacterGenerationHandler = typeof generateOutlineAndCharactersForProject
+
+function registerGenerationRoute(input: {
+  path: string
+  task: string
+  handler: OutlineCharacterGenerationHandler
+}): void {
+  outlineCharactersRouter.post(
+    input.path,
+    authMiddleware,
+    deductCreditsMiddleware,
+    async (req: Request, res: Response) => {
+      if (!hasValidApiKey(loadRuntimeProviderConfig())) {
+        res.status(500).json({
+          error: 'ai_not_configured',
+          message: '服务器未配置 AI API Key'
+        })
+        return
+      }
+
+      const { projectId } = req.body
+
+      if (!projectId || typeof projectId !== 'string') {
+        res.status(400).json({
+          error: 'missing_project_id',
+          message: '请提供项目 ID'
+        })
+        return
+      }
+
+      const startedAt = Date.now()
+
+      try {
+        const result = await input.handler({
+          userId: req.user!.id,
+          projectId
+        })
+
+        await executeDeduction(req, !result.outlineGenerationError, {
+          task: input.task,
+          projectId,
+          lane: 'deepseek',
+          model: 'deepseek-chat',
+          durationMs: Date.now() - startedAt
+        })
+
+        const newBalance = await creditService.getBalance(req.user!.id)
+
+        res.json({
+          success: !result.outlineGenerationError,
+          project: result.project,
+          outlineDraft: result.project.outlineDraft,
+          characterDrafts: result.project.characterDrafts,
+          outlineGenerationError: result.outlineGenerationError,
+          creditsRemaining: newBalance.balance
+        })
+      } catch (error) {
+        const durationMs = Date.now() - startedAt
+        const errorMessage = error instanceof Error ? error.message : 'unknown_error'
+
+        await executeDeduction(req, false, {
+          task: input.task,
+          projectId,
+          lane: 'deepseek',
+          model: 'deepseek-chat',
+          durationMs,
+          errorMessage
+        })
+
+        console.error('[OutlineCharacters] Generation failed:', error)
+
+        res.status(500).json({
+          error: 'generation_failed',
+          message: errorMessage
+        })
+      }
+    }
+  )
+}
+
+/**
+ * POST /api/generate/factions
+ * Body: { projectId }
+ */
+registerGenerationRoute({
+  path: '/factions',
+  task: 'factions',
+  handler: generateFactionsForProject
+})
+
+/**
+ * POST /api/generate/characters
+ * Body: { projectId }
+ */
+registerGenerationRoute({
+  path: '/characters',
+  task: 'characters',
+  handler: generateCharactersForProject
+})
+
+/**
+ * POST /api/generate/outline
+ * Body: { projectId }
+ */
+registerGenerationRoute({
+  path: '/outline',
+  task: 'rough_outline',
+  handler: generateOutlineForProject
+})
+
 /**
  * POST /api/generate/outline-and-characters
  *
  * Body: { projectId }
  */
-outlineCharactersRouter.post(
-  '/outline-and-characters',
-  authMiddleware,
-  deductCreditsMiddleware,
-  async (req: Request, res: Response) => {
-    if (!hasValidApiKey(loadRuntimeProviderConfig())) {
-      res.status(500).json({
-        error: 'ai_not_configured',
-        message: '服务器未配置 AI API Key'
-      })
-      return
-    }
-
-    const { projectId } = req.body
-
-    if (!projectId || typeof projectId !== 'string') {
-      res.status(400).json({
-        error: 'missing_project_id',
-        message: '请提供项目 ID'
-      })
-      return
-    }
-
-    const startedAt = Date.now()
-
-    try {
-      const result = await generateOutlineAndCharactersForProject({
-        userId: req.user!.id,
-        projectId
-      })
-
-      await executeDeduction(req, !result.outlineGenerationError, {
-        task: 'outline_and_characters',
-        projectId,
-        lane: 'deepseek',
-        model: 'deepseek-chat',
-        durationMs: Date.now() - startedAt
-      })
-
-      const newBalance = await creditService.getBalance(req.user!.id)
-
-      res.json({
-        success: !result.outlineGenerationError,
-        project: result.project,
-        outlineDraft: result.project.outlineDraft,
-        characterDrafts: result.project.characterDrafts,
-        outlineGenerationError: result.outlineGenerationError,
-        creditsRemaining: newBalance.balance
-      })
-    } catch (error) {
-      const durationMs = Date.now() - startedAt
-      const errorMessage = error instanceof Error ? error.message : 'unknown_error'
-
-      await executeDeduction(req, false, {
-        task: 'outline_and_characters',
-        projectId,
-        lane: 'deepseek',
-        model: 'deepseek-chat',
-        durationMs,
-        errorMessage
-      })
-
-      console.error('[OutlineCharacters] Generation failed:', error)
-
-      res.status(500).json({
-        error: 'generation_failed',
-        message: errorMessage
-      })
-    }
-  }
-)
+registerGenerationRoute({
+  path: '/outline-and-characters',
+  task: 'outline_and_characters',
+  handler: generateOutlineAndCharactersForProject
+})

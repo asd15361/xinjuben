@@ -154,6 +154,16 @@ test('isCharacterDraftStructurallyComplete requires legacy and V2 fields togethe
   )
 })
 
+test('resolveCharacterContractAnchors strips descriptive suffix from outline protagonist', () => {
+  assert.deepEqual(
+    resolveCharacterContractAnchors({
+      storyIntent: { protagonist: '主角', antagonist: '名门正派大小姐' } as never,
+      outline: { protagonist: '林轩，外门弟子，母亲遗物吊坠被毁后触发血脉封印' }
+    }),
+    { protagonist: '林轩', antagonist: '名门正派大小姐' }
+  )
+})
+
 test('isCharacterDraftStructurallyComplete rejects V2-only core profiles missing legacy fields', () => {
   assert.equal(
     isCharacterDraftStructurallyComplete({
@@ -327,6 +337,26 @@ test('isCharacterBundleStructurallyComplete accepts generic size-jie antagonist 
     isCharacterBundleStructurallyComplete({
       characters: [protagonist, antagonist],
       protagonist: '林夜',
+      antagonist: '名门正派大小姐'
+    }),
+    true
+  )
+})
+
+test('isCharacterBundleStructurallyComplete treats role-only size-jie antagonist as non-blocking anchor', () => {
+  const protagonist = makeCompleteCharacter({
+    name: '林玄',
+    biography: '青云宗外门弟子，被母亲遗物牵出血脉封印。',
+    advantage: '血脉初醒后能短时破局',
+    weakness: '误信伪善善意',
+    goal: '查清身世',
+    arc: '从被打压到主动设局'
+  })
+
+  assert.equal(
+    isCharacterBundleStructurallyComplete({
+      characters: [protagonist],
+      protagonist: '林玄',
       antagonist: '名门正派大小姐'
     }),
     true

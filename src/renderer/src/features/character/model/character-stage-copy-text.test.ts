@@ -17,6 +17,9 @@ test('buildCharacterProfileCopyText includes the useful full profile fields', ()
     identity: '外门废柴弟子',
     values: '欠他的必须讨回来',
     plotFunction: '承接血脉觉醒和复仇主线',
+    payoffTags: ['身份碾压', '证据打脸'],
+    reusableRoleKey: '废柴少主复用位',
+    reuseSceneKeys: ['演武场', '执法堂'],
     protectTarget: '母亲吊坠',
     fear: '身世真相被夺',
     conflictTrigger: '吊坠被踩碎',
@@ -35,7 +38,12 @@ test('buildCharacterProfileCopyText includes the useful full profile fields', ()
   assert.match(text, /身份：外门废柴弟子/)
   assert.match(text, /价值观：欠他的必须讨回来/)
   assert.match(text, /剧情作用：承接血脉觉醒和复仇主线/)
+  assert.match(text, /爽点标签：身份碾压、证据打脸/)
+  assert.match(text, /复用功能位：废柴少主复用位/)
+  assert.match(text, /复用场景：演武场、执法堂/)
   assert.match(text, /最想守：母亲吊坠/)
+  assert.match(text, /被逼动作点：吊坠被踩碎/)
+  assert.doesNotMatch(text, /一碰就炸/)
   assert.match(text, /暗里卡着：魔尊血脉被封印/)
   assert.match(text, /人物弧线：从被欺辱到主动掌控力量/)
 })

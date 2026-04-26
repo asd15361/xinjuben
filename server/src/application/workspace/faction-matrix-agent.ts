@@ -46,12 +46,39 @@ function resolveFactionMatrixThresholds(totalEpisodes: number): {
   minCharactersPerBranch: number
   minCrossRelations: number
 } {
-  if (totalEpisodes <= 24) {
+  if (totalEpisodes >= 80) {
     return {
-      minFactions: 2,
+      minFactions: 10,
       minBranchesPerFaction: 2,
       minCharactersPerBranch: 2,
-      minCrossRelations: 1
+      minCrossRelations: 8
+    }
+  }
+
+  if (totalEpisodes >= 60) {
+    return {
+      minFactions: 8,
+      minBranchesPerFaction: 2,
+      minCharactersPerBranch: 2,
+      minCrossRelations: 6
+    }
+  }
+
+  if (totalEpisodes >= 40) {
+    return {
+      minFactions: 5,
+      minBranchesPerFaction: 2,
+      minCharactersPerBranch: 2,
+      minCrossRelations: 4
+    }
+  }
+
+  if (totalEpisodes <= 24) {
+    return {
+      minFactions: 3,
+      minBranchesPerFaction: 2,
+      minCharactersPerBranch: 2,
+      minCrossRelations: 2
     }
   }
 
@@ -61,6 +88,30 @@ function resolveFactionMatrixThresholds(totalEpisodes: number): {
     minCharactersPerBranch: 3,
     minCrossRelations: 2
   }
+}
+
+function resolveCharacterPoolBudget(totalEpisodes: number): {
+  core: number
+  active: number
+  functional: number
+} {
+  if (totalEpisodes >= 80) {
+    return { core: 6, active: 8, functional: 16 }
+  }
+
+  if (totalEpisodes >= 60) {
+    return { core: 5, active: 5, functional: 10 }
+  }
+
+  if (totalEpisodes >= 40) {
+    return { core: 4, active: 5, functional: 8 }
+  }
+
+  if (totalEpisodes <= 24) {
+    return { core: 3, active: 3, functional: 5 }
+  }
+
+  return { core: 3, active: 4, functional: 6 }
 }
 
 function summarizeFactionMatrixParseIssues(rawText: string, totalEpisodes: number): string[] {
@@ -125,6 +176,7 @@ function buildFactionMatrixRetryPrompt(input: {
     '你上一版势力矩阵没有通过结构校验。',
     '这次只输出合法 JSON，不要解释，不要 markdown，不要 ```json。',
     `最少要求：${thresholds.minFactions} 个一级势力、每个势力 ${thresholds.minBranchesPerFaction} 个分支、每个分支 ${thresholds.minCharactersPerBranch} 个角色、至少 ${thresholds.minCrossRelations} 条 crossRelations。`,
+    '集数规模公式：60集最低约30个角色位，80集最低约40个角色位；角色位可以是完整人物、中层人物、功能人物或群像位。',
     `上一版问题：${input.parseIssues.join('、') || 'unknown'}`,
     '如果总集数较短，也必须优先保住结构完整，再压缩文案长度。',
     '',
@@ -158,6 +210,8 @@ function buildFactionMatrixRetryPrompt(input: {
     '              "identity": "string",',
     '              "coreMotivation": "string",',
     '              "plotFunction": "string",',
+    '              "reusableRoleKey": "string",',
+    '              "reuseSceneKeys": ["string"],',
     '              "isSleeper": false,',
     '              "sleeperForFactionId": null',
     '            }',
@@ -194,7 +248,10 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
   const genre = input.storyIntent.genre || '短剧'
   const worldView = input.storyIntent.shortDramaConstitution?.worldViewBrief || '待补'
   const thresholds = resolveFactionMatrixThresholds(input.totalEpisodes)
+  const characterBudget = resolveCharacterPoolBudget(input.totalEpisodes)
   const isShortSeries = input.totalEpisodes <= 24
+  const minRoleSlots = Math.ceil(input.totalEpisodes / 2)
+  const standardRoleSlots = Math.ceil(input.totalEpisodes * 0.65)
   const sourceText = [
     input.storyIntent.generationBriefText,
     input.storyIntent.sellingPremise,
@@ -221,32 +278,38 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
     '',
     '【核心铁律】',
     `1. 这是一个 ${input.totalEpisodes} 集${genre}项目，必须撑起足够复杂的多势力博弈。`,
-    `2. 至少拆解出 ${thresholds.minFactions} 个一级势力（如：主角归属方、反派压力方${isShortSeries ? '' : '、第三方中立'}），每个一级势力下至少 ${thresholds.minBranchesPerFaction} 个二级分支。`,
+    `2. 至少拆解出 ${thresholds.minFactions} 个一级势力（如：主角归属方、反派压力方、第三方旧案/中立/隐秘遗脉方），每个一级势力下至少 ${thresholds.minBranchesPerFaction} 个二级分支。`,
     `3. 每个二级分支必须包含至少 ${thresholds.minCharactersPerBranch} 个人物占位符：短剧只保留能直接制造冲突、递情报、压主角或反转立场的人。`,
     `4. 必须生成至少 ${thresholds.minCrossRelations} 条 crossRelations（势力交织表），明确指出关键利用、暗盟、暗敌、卧底或人质羁绊。冲突从人升维到阵营。`,
-    '5. 势力格局不能写成好人打坏人，必须每个势力都有合理诉求和软肋。',
+    `5. 全表角色位最低 ${minRoleSlots} 个，标准建议 ${standardRoleSlots} 个；包括核心人物、中层执行者、功能人物、群像/跑龙套位。`,
+    '6. 势力格局不能写成好人打坏人，必须每个势力都有合理诉求和软肋。',
+    '7. 短剧成本优先：势力可以多，但场景必须复用。20集优先设计 3-5 个高复用可拍场景，让同一场景反复承载不同阵营冲突，不要把每个势力都写成一个新大场景。',
+    `8. 默认角色池预算：${characterBudget.core} 个核心人物、${characterBudget.active} 个轻量人物、${characterBudget.functional} 个功能人物。可以因剧情微调，但超出预算必须让功能位复用，不要无限新增有名演员。`,
+    '9. 人物复用机制必须落字段：每个 functional/extra 人物优先填写 reusableRoleKey 和 reuseSceneKeys；同一个功能位可以跨多个场景复用，比如同一执法弟子既在大比挑事，也在围剿时排头执行。',
     '',
     strategyPromptBlock,
     '',
-    isShortSeries ? '【短剧轻量编制铁律】' : '【1+2+X 编制铁律】',
+    isShortSeries ? '【短剧轻量编制铁律】' : '【1+2+X 与群像编制铁律】',
     '每个二级分支的人物编制：',
     ...(isShortSeries
       ? [
           '  - 1 个领袖/拍板者：定策略、给主角压力或提供保护',
           '  - 1 个执行者/变数：具体制造冲突、递线索、背刺或救场',
-          '  - 不要为了凑世界观额外扩写功能性龙套；20集优先少而准'
+          '  - 不要为了凑世界观额外扩写功能性龙套；20集优先少而准',
+          '  - 复用优先：同一个执法弟子/侍女/门房/眼线可以在多个高复用场景重复出现，观众更容易记住，拍摄成本更低'
         ]
       : [
           '  - 1 个领袖：定策略、拍板、分配资源',
           '  - 1-2 个干将：执行冲突、打手、冲锋陷阵',
           '  - 1 个变数/内鬼：立场摇摆、暗棋、可能倒戈',
-          '  - X 个功能性龙套：只生成"身份+核心动机"一行字'
+          '  - X 个功能性龙套：只生成"身份+核心动机"一行字',
+          '  - 群像/跑龙套可以用“弟子甲/守卫乙/村民/大臣/同事/小孩”等席位，不需要完整小传，但必须能被剧本调度'
         ]),
     '',
     '【势力交叉渗透铁律】',
     ...(isShortSeries
       ? [
-          '  - 至少 1 条关键交叉关系：利用、暗敌、卧底、人质羁绊任选其一',
+          '  - 至少 2 条关键交叉关系：利用、暗敌、卧底、人质羁绊、旧案牵连任选其二',
           '  - 20集不强求双面间谍和多重卧底，避免人物过载'
         ]
       : [
@@ -303,6 +366,8 @@ export function buildFactionMatrixAgentPrompt(input: FactionMatrixAgentInput): s
     '              "identity": string,',
     '              "coreMotivation": string,',
     '              "plotFunction": string,',
+    '              "reusableRoleKey": string | null,',
+    '              "reuseSceneKeys": [string],',
     '              "isSleeper": boolean,',
     '              "sleeperForFactionId": string | null',
     '            }',

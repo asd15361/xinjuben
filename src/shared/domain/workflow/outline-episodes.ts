@@ -1,5 +1,8 @@
 import type { OutlineDraftDto, OutlineEpisodeDto } from '../../contracts/workflow.ts'
 import { DEFAULT_EPISODE_COUNT, deriveOutlineEpisodeCount } from './episode-count.ts'
+import { normalizePayoffTag } from '../short-drama/viral-short-drama-policy.ts'
+
+type PayoffBeatSlot = NonNullable<OutlineEpisodeDto['payoffBeatSlot']>
 
 function normalizeWhitespace(text: string): string {
   return text
@@ -18,6 +21,11 @@ function normalizeEpisodeSummary(value: unknown): string {
   return normalizeWhitespace(typeof value === 'string' ? value : '')
 }
 
+function normalizePayoffBeatSlot(value: unknown): PayoffBeatSlot | undefined {
+  const text = normalizeWhitespace(typeof value === 'string' ? value : '')
+  return text === 'pressure' || text === 'reversal' || text === 'hook' ? text : undefined
+}
+
 export function normalizeOutlineEpisodes(
   value: unknown,
   count = DEFAULT_EPISODE_COUNT
@@ -32,7 +40,17 @@ export function normalizeOutlineEpisodes(
       const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {}
       return {
         episodeNo: clampEpisodeNo(record.episodeNo, index + 1),
-        summary: normalizeEpisodeSummary(record.summary)
+        summary: normalizeEpisodeSummary(record.summary),
+        payoffType: normalizePayoffTag(normalizeWhitespace(typeof record.payoffType === 'string' ? record.payoffType : '')),
+        payoffLevel: ['normal', 'major', 'final'].includes(String(record.payoffLevel))
+          ? (record.payoffLevel as 'normal' | 'major' | 'final')
+          : undefined,
+        payoffBeatSlot: normalizePayoffBeatSlot(record.payoffBeatSlot),
+        payoffOwnerName: normalizeWhitespace(typeof record.payoffOwnerName === 'string' ? record.payoffOwnerName : ''),
+        pressureActorName: normalizeWhitespace(typeof record.pressureActorName === 'string' ? record.pressureActorName : ''),
+        payoffTargetName: normalizeWhitespace(typeof record.payoffTargetName === 'string' ? record.payoffTargetName : ''),
+        payoffScene: normalizeWhitespace(typeof record.payoffScene === 'string' ? record.payoffScene : ''),
+        payoffExecution: normalizeWhitespace(typeof record.payoffExecution === 'string' ? record.payoffExecution : '')
       }
     })
     .filter((item) => item.summary)
@@ -52,7 +70,15 @@ export function normalizeOutlineEpisodes(
     const matched = deduped.find((item) => item.episodeNo === episodeNo)
     return {
       episodeNo,
-      summary: matched?.summary || ''
+      summary: matched?.summary || '',
+      payoffType: matched?.payoffType,
+      payoffLevel: matched?.payoffLevel,
+      payoffBeatSlot: matched?.payoffBeatSlot,
+      payoffOwnerName: matched?.payoffOwnerName || '',
+      pressureActorName: matched?.pressureActorName || '',
+      payoffTargetName: matched?.payoffTargetName || '',
+      payoffScene: matched?.payoffScene || '',
+      payoffExecution: matched?.payoffExecution || ''
     }
   })
 }

@@ -76,6 +76,10 @@ export function buildConfirmedStoryIntent(input: {
     generationBriefText: input.generationBriefText,
     confirmedChatTranscript: input.chatTranscript,
     creativeSummary: input.storyIntent.creativeSummary || '',
-    storySynopsis: input.storyIntent.storySynopsis ?? null
+    storySynopsis: input.storyIntent.storySynopsis ?? null,
+    worldBible: input.storyIntent.worldBible ?? null,
+    factionMatrix: input.storyIntent.factionMatrix ?? null,
+    characterRoster: input.storyIntent.characterRoster ?? null,
+    storyFoundation: input.storyIntent.storyFoundation ?? null
   }
 }

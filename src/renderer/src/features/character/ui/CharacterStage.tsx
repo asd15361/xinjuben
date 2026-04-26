@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Users, Plus, Shield, Sparkles, Trash2 } from 'lucide-react'
+import { Users, Plus, Shield, Sparkles, Trash2, Wand2 } from 'lucide-react'
 import { switchStageSession } from '../../../app/services/stage-session-service'
 import { useStageStore } from '../../../store/useStageStore'
 import { useWorkflowStore } from '../../../app/store/useWorkflowStore'
@@ -9,6 +9,9 @@ import { ProjectGenerationBanner } from '../../../components/ProjectGenerationBa
 import { StageExportButton } from '../../../components/StageExportButton'
 import { useOutlineCharacterGeneration } from '../../../app/hooks/useOutlineCharacterGeneration.ts'
 import { useProjectStageExport } from '../../../app/hooks/useProjectStageExport'
+import { useTrackedGeneration } from '../../../app/hooks/useTrackedGeneration.ts'
+import { useAuthStore } from '../../../app/store/useAuthStore.ts'
+import { generateFactionsFromConfirmedStoryIntent } from '../../seven-questions/api.ts'
 import {
   buildCharacterProfileCopyText,
   buildCharacterStageCopyText,
@@ -21,6 +24,9 @@ import {
 } from '../model/derive-character-stage-sections.ts'
 import type { CharacterDraftDto } from '../../../../../shared/contracts/workflow.ts'
 import type { CharacterStageLightCard } from '../model/derive-character-stage-sections.ts'
+import { deriveWorldBibleFromStoryIntent } from '../../../../../shared/domain/world-building/world-foundation.ts'
+import { CharacterRosterLedgerPanel } from './CharacterRosterLedgerPanel.tsx'
+import { StoryFoundationPanel } from './StoryFoundationPanel.tsx'
 
 function getCharacterCardKey(character: CharacterDraftDto): string {
   if (character.masterEntityId) {
@@ -56,6 +62,39 @@ function buildLightCardDetails(card: CharacterStageLightCard): Array<{
   ).filter((item) => item.value.trim())
 }
 
+function buildFullProfileEssentials(character: CharacterDraftDto): Array<{
+  key:
+    | 'appearance'
+    | 'personality'
+    | 'identity'
+    | 'values'
+    | 'plot-function'
+    | 'payoff-tags'
+    | 'reuse'
+  label: string
+  value: string
+}> {
+  const payoffTags = character.payoffTags?.filter(Boolean).join('、') || ''
+  const reuseInfo = [
+    character.reusableRoleKey,
+    character.reuseSceneKeys?.filter(Boolean).join('、')
+  ]
+    .filter(Boolean)
+    .join('｜')
+
+  return (
+    [
+      { key: 'appearance', label: '外在形象', value: character.appearance || '' },
+      { key: 'personality', label: '性格特点', value: character.personality || '' },
+      { key: 'identity', label: '身份', value: character.identity || '' },
+      { key: 'values', label: '价值观', value: character.values || '' },
+      { key: 'plot-function', label: '剧情作用', value: character.plotFunction || '' },
+      { key: 'payoff-tags', label: '爽点标签', value: payoffTags },
+      { key: 'reuse', label: '复用机制', value: reuseInfo }
+    ] as const
+  ).filter((item) => item.value.trim())
+}
+
 export function CharacterStage(): JSX.Element {
   const characters = useStageStore((s) => s.characters)
   const updateCharacter = useStageStore((s) => s.updateCharacter)
@@ -65,12 +104,56 @@ export function CharacterStage(): JSX.Element {
   const exportStage = useProjectStageExport()
   const { actionLabel, generationStatus, generationBusy, handleGenerateOutlineAndCharacters } =
     useOutlineCharacterGeneration('character')
+  const setStoryIntent = useWorkflowStore((state) => state.setStoryIntent)
+  const setProjectEntityStore = useWorkflowStore((state) => state.setProjectEntityStore)
+  const refreshCredits = useAuthStore((state) => state.refreshCredits)
+  const trackedGeneration = useTrackedGeneration()
+  const [factionState, setFactionState] = useState<'idle' | 'generating' | 'saved' | 'failed'>('idle')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const entityStore = useWorkflowStore((state) => state.projectEntityStore)
+  const storyIntent = useWorkflowStore((state) => state.storyIntent)
+  const storyFoundation = storyIntent?.storyFoundation
+  const worldBible =
+    storyFoundation?.worldBible ??
+    storyIntent?.worldBible ??
+    (storyIntent ? deriveWorldBibleFromStoryIntent(storyIntent) : null)
+  const characterRoster = storyFoundation?.characterRoster ?? storyIntent?.characterRoster ?? null
+  const hasFactionMatrix = Boolean(storyFoundation?.factionMatrix ?? storyIntent?.factionMatrix)
   const sections = useMemo(
     () => buildCharacterStageSections({ characterDrafts: characters, entityStore }),
     [characters, entityStore]
   )
+
+  async function handleGenerateFactions(): Promise<void> {
+    if (!projectId || !storyIntent || factionState === 'generating') {
+      setFactionState('failed')
+      return
+    }
+    const requestProjectId = projectId
+    setFactionState('generating')
+    try {
+      const result = await trackedGeneration.track(
+        {
+          task: 'factions',
+          title: '正在生成阵营底账',
+          detail: '正在根据世界观、故事背景和集数拆阵营、场域和角色位...',
+          fallbackSeconds: 90,
+          scope: 'project'
+        },
+        () => generateFactionsFromConfirmedStoryIntent(requestProjectId)
+      )
+      if (useWorkflowStore.getState().projectId === requestProjectId) {
+        setStoryIntent(result.project.storyIntent ?? result.storyIntent)
+        setProjectEntityStore(result.project.entityStore ?? entityStore)
+        setFactionState('saved')
+        await refreshCredits()
+      }
+    } catch {
+      if (useWorkflowStore.getState().projectId === requestProjectId) {
+        setFactionState('failed')
+      }
+    }
+  }
 
   async function handleGoToOutline(): Promise<void> {
     if (!projectId) return
@@ -146,13 +229,37 @@ export function CharacterStage(): JSX.Element {
             />
             <button
               onClick={() => {
-                void handleGenerateOutlineAndCharacters()
+                void handleGenerateFactions()
               }}
-              disabled={generationBusy}
-              className="flex items-center gap-2 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-2.5 text-xs font-black text-orange-300 transition-colors hover:bg-orange-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={factionState === 'generating' || !projectId || !storyIntent}
+              className="flex items-center gap-2 rounded-xl border border-sky-400/25 bg-sky-400/10 px-4 py-2.5 text-xs font-black text-sky-100 transition-colors hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {actionLabel}
+              <Wand2 size={13} />
+              {factionState === 'generating'
+                ? '生成中'
+                : factionState === 'saved'
+                  ? '阵营已更新'
+                  : '生成阵营'}
             </button>
+            {hasFactionMatrix ? (
+              <button
+                onClick={() => {
+                  void handleGenerateOutlineAndCharacters()
+                }}
+                disabled={generationBusy}
+                title={actionLabel}
+                className="flex items-center gap-2 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-2.5 text-xs font-black text-orange-300 transition-colors hover:bg-orange-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {actionLabel}
+              </button>
+            ) : (
+              <div
+                title="请先生成阵营"
+                className="rounded-xl border border-sky-400/20 bg-sky-400/[0.06] px-4 py-2.5 text-xs font-black text-sky-100/70"
+              >
+                下一步：生成人物小传
+              </div>
+            )}
             <button
               onClick={() => {
                 addCharacter(createEmptyCharacter())
@@ -176,6 +283,17 @@ export function CharacterStage(): JSX.Element {
         </div>
 
         <ProjectGenerationBanner status={generationStatus} />
+
+        <StoryFoundationPanel
+          projectId={projectId}
+          storyIntent={storyIntent}
+          worldBible={worldBible}
+          characterRoster={characterRoster}
+          fallbackRoleSlots={sections.factionSeatCount}
+          entityStore={entityStore}
+        />
+
+        <CharacterRosterLedgerPanel characterRoster={characterRoster} />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -493,131 +611,144 @@ export function CharacterStage(): JSX.Element {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
           {sections.fullProfiles.map((c, i) => (
             <div
-                key={getCharacterCardKey(c)}
-                className={`group relative rounded-2xl border transition-all duration-300 ${
-                  editingIndex === i
-                    ? 'xl:col-span-2 w-full ring-2 ring-orange-500/30 border-orange-500/40 bg-orange-500/[0.04]'
-                    : 'w-full border-white/10 bg-white/[0.02] hover:border-orange-500/30 hover:bg-orange-500/[0.01]'
-                }`}
-              >
-                {editingIndex === i ? (
-                  <div className="p-6">
-                    <CharacterStageEditor
-                      characters={characters}
-                      draft={c}
-                      editingIndex={i}
-                      downstreamLocked={false}
-                      onDraftChange={(val) => updateCharacter(i, val)}
-                      onCharacterChange={(idx, val) => {
-                        updateCharacter(idx, val)
-                      }}
-                    />
-                    <div className="mt-6 flex gap-3">
-                      <button
-                        onClick={() => setEditingIndex(null)}
-                        className="flex-1 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[11px] font-black text-orange-400 hover:bg-orange-500/20 transition-all font-bold"
-                      >
-                        保存并关闭编辑器
-                      </button>
-                      <button
-                        onClick={() => handleRemoveCharacter(i)}
-                        className="px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5 text-[11px] font-black text-red-300 hover:bg-red-500/15 transition-all"
-                        title="删除这个人物"
-                      >
-                        删除
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className="p-5 cursor-pointer flex flex-col h-full w-full text-left"
-                    onClick={() => setEditingIndex(i)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        setEditingIndex(i)
-                      }
+              key={getCharacterCardKey(c)}
+              className={`group relative rounded-2xl border transition-all duration-300 ${
+                editingIndex === i
+                  ? 'xl:col-span-2 w-full ring-2 ring-orange-500/30 border-orange-500/40 bg-orange-500/[0.04]'
+                  : 'w-full border-white/10 bg-white/[0.02] hover:border-orange-500/30 hover:bg-orange-500/[0.01]'
+              }`}
+            >
+              {editingIndex === i ? (
+                <div className="p-6">
+                  <CharacterStageEditor
+                    characters={characters}
+                    draft={c}
+                    editingIndex={i}
+                    downstreamLocked={false}
+                    onDraftChange={(val) => updateCharacter(i, val)}
+                    onCharacterChange={(idx, val) => {
+                      updateCharacter(idx, val)
                     }}
-                  >
-                    <div className="flex items-center justify-between gap-4 mb-4">
-                      <h3 className="text-base font-black text-white/90 tracking-tight leading-none">
-                        {c.name || `未命名 ${i + 1}`}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <CopyTextButton
-                          label="复制"
-                          getText={() => buildCharacterProfileCopyText(c)}
-                        />
-                        <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[8px] text-white/30 font-black uppercase tracking-widest group-hover:text-orange-400 group-hover:border-orange-500/30 transition-all">
-                          点击修饰
-                        </span>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(event) => {
+                  />
+                  <div className="mt-6 flex gap-3">
+                    <button
+                      onClick={() => setEditingIndex(null)}
+                      className="flex-1 py-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[11px] font-black text-orange-400 hover:bg-orange-500/20 transition-all font-bold"
+                    >
+                      保存并关闭编辑器
+                    </button>
+                    <button
+                      onClick={() => handleRemoveCharacter(i)}
+                      className="px-4 py-3 rounded-xl border border-red-500/20 bg-red-500/5 text-[11px] font-black text-red-300 hover:bg-red-500/15 transition-all"
+                      title="删除这个人物"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="p-5 cursor-pointer flex flex-col h-full w-full text-left"
+                  onClick={() => setEditingIndex(i)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setEditingIndex(i)
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-4 mb-4">
+                    <h3 className="text-base font-black text-white/90 tracking-tight leading-none">
+                      {c.name || `未命名 ${i + 1}`}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <CopyTextButton
+                        label="复制"
+                        getText={() => buildCharacterProfileCopyText(c)}
+                      />
+                      <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[8px] text-white/30 font-black uppercase tracking-widest group-hover:text-orange-400 group-hover:border-orange-500/30 transition-all">
+                        点击修饰
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleRemoveCharacter(i)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
                             event.stopPropagation()
                             handleRemoveCharacter(i)
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              event.stopPropagation()
-                              handleRemoveCharacter(i)
-                            }
-                          }}
-                          className="p-2 rounded-lg border border-white/10 text-white/20 hover:text-red-300 hover:border-red-500/30 hover:bg-red-500/10 transition-all"
-                          title="删除这个人物"
-                        >
-                          <Trash2 size={12} />
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 flex-1">
-                      <div className="flex flex-wrap gap-2">
-                        {c.protectTarget && (
-                          <span className="px-2 py-1 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[9px] font-black uppercase tracking-tighter">
-                            最想守: {c.protectTarget}
-                          </span>
-                        )}
-                        {c.fear && (
-                          <span className="px-2 py-1 rounded-md bg-white/5 text-white/40 border border-white/10 text-[9px] font-black uppercase tracking-tighter">
-                            最怕失去: {c.fear}
-                          </span>
-                        )}
-                        {c.conflictTrigger && (
-                          <span className="px-2 py-1 rounded-md bg-red-500/10 text-red-200 border border-red-500/20 text-[9px] font-black uppercase tracking-tighter">
-                            一碰就炸: {c.conflictTrigger}
-                          </span>
-                        )}
-                        {c.goal && (
-                          <span className="px-2 py-1 rounded-md bg-white/5 text-white/40 border border-white/10 text-[9px] font-black uppercase tracking-tighter">
-                            目标: {c.goal}
-                          </span>
-                        )}
-                      </div>
-                      {(c.publicMask || c.hiddenPressure) && (
-                        <div className="space-y-2">
-                          {c.publicMask && (
-                            <p className="text-[11px] text-white/55 leading-relaxed">
-                              表面：{c.publicMask}
-                            </p>
-                          )}
-                          {c.hiddenPressure && (
-                            <p className="text-[11px] text-white/55 leading-relaxed">
-                              暗里卡着：{c.hiddenPressure}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-[12px] text-white/50 leading-relaxed font-medium line-clamp-4">
-                        {c.biography || '这个人物很神秘，还没有写下 TA 的生平小传...'}
-                      </p>
+                          }
+                        }}
+                        className="p-2 rounded-lg border border-white/10 text-white/20 hover:text-red-300 hover:border-red-500/30 hover:bg-red-500/10 transition-all"
+                        title="删除这个人物"
+                      >
+                        <Trash2 size={12} />
+                      </span>
                     </div>
                   </div>
-                )}
+
+                  <div className="space-y-4 flex-1">
+                    {buildFullProfileEssentials(c).length > 0 && (
+                      <div className="grid gap-2 rounded-xl border border-white/10 bg-black/15 p-3">
+                        {buildFullProfileEssentials(c).map((item) => (
+                          <p
+                            key={item.key}
+                            className="text-[11px] leading-relaxed text-white/60"
+                          >
+                            <span className="font-black text-white/80">{item.label}：</span>
+                            {item.value}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {c.protectTarget && (
+                        <span className="px-2 py-1 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[9px] font-black uppercase tracking-tighter">
+                          最想守: {c.protectTarget}
+                        </span>
+                      )}
+                      {c.fear && (
+                        <span className="px-2 py-1 rounded-md bg-white/5 text-white/40 border border-white/10 text-[9px] font-black uppercase tracking-tighter">
+                          最怕失去: {c.fear}
+                        </span>
+                      )}
+                      {c.conflictTrigger && (
+                        <span className="px-2 py-1 rounded-md bg-red-500/10 text-red-200 border border-red-500/20 text-[9px] font-black uppercase tracking-tighter">
+                          被逼动作点: {c.conflictTrigger}
+                        </span>
+                      )}
+                      {c.goal && (
+                        <span className="px-2 py-1 rounded-md bg-white/5 text-white/40 border border-white/10 text-[9px] font-black uppercase tracking-tighter">
+                          目标: {c.goal}
+                        </span>
+                      )}
+                    </div>
+                    {(c.publicMask || c.hiddenPressure) && (
+                      <div className="space-y-2">
+                        {c.publicMask && (
+                          <p className="text-[11px] text-white/55 leading-relaxed">
+                            表面：{c.publicMask}
+                          </p>
+                        )}
+                        {c.hiddenPressure && (
+                          <p className="text-[11px] text-white/55 leading-relaxed">
+                            暗里卡着：{c.hiddenPressure}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-[12px] text-white/50 leading-relaxed font-medium line-clamp-4">
+                      {c.biography || '这个人物很神秘，还没有写下 TA 的生平小传...'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 

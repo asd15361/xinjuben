@@ -59,6 +59,13 @@ test('buildWorkspaceChatFailureMessage explains missing confirmed story intent p
   )
 })
 
+test('buildWorkspaceChatFailureMessage explains missing project intake readiness plainly', () => {
+  assert.equal(
+    buildWorkspaceChatFailureMessage('生成失败', 'project_intake_readiness_missing'),
+    '生成失败：创作底账还没收齐，请先补齐世界观、阵营/场域和角色池，再进入人物小传'
+  )
+})
+
 test('buildWorkspaceChatFailureMessage explains seven questions confirmation requirement plainly', () => {
   assert.equal(
     buildWorkspaceChatFailureMessage('生成失败', 'seven_questions_confirmation_required'),

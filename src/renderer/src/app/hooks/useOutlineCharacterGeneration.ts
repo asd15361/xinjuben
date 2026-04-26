@@ -1,7 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { ProjectGenerationStatusDto } from '../../../../shared/contracts/generation.ts'
 import { ensureOutlineEpisodeShape } from '../../../../shared/domain/workflow/outline-episodes.ts'
-import { generateOutlineAndCharactersFromConfirmedSevenQuestions } from '../../features/seven-questions/api.ts'
+import {
+  generateCharactersFromConfirmedStoryIntent,
+  generateOutlineFromConfirmedCharacters
+} from '../../features/seven-questions/api.ts'
 import { apiGetProject } from '../../services/api-client.ts'
 import { useAuthStore } from '../store/useAuthStore.ts'
 import { useStageStore } from '../../store/useStageStore.ts'
@@ -52,10 +55,15 @@ export function useOutlineCharacterGeneration(
   })
   const actionLabel = getOutlineCharacterGenerationActionLabel({
     outlineEpisodeCount,
-    characterCount: characters.length
+    characterCount: characters.length,
+    currentStage
   })
   const generationStatus =
-    workflowGenerationStatus?.task === 'outline_and_characters' ? workflowGenerationStatus : null
+    workflowGenerationStatus?.task === 'characters' ||
+    workflowGenerationStatus?.task === 'rough_outline' ||
+    workflowGenerationStatus?.task === 'factions'
+      ? workflowGenerationStatus
+      : null
   const [generationKickoffPending, setGenerationKickoffPending] = useState(false)
 
   const handleGenerateOutlineAndCharacters = useCallback(async (): Promise<void> => {
@@ -69,15 +77,21 @@ export function useOutlineCharacterGeneration(
     try {
       const result = await trackedGeneration.track(
         {
-          task: 'outline_and_characters',
-          title: '正在生成人物小传和骨架',
-          detail: '正在先写人物小传，再生成统一剧本骨架，请稍候...',
+          task: currentStage === 'character' ? 'characters' : 'rough_outline',
+          title: currentStage === 'character' ? '正在生成人物小传' : '正在生成剧本骨架',
+          detail:
+            currentStage === 'character'
+              ? '正在根据已确认信息写人物小传，请稍候...'
+              : '正在根据已确认人物小传生成统一剧本骨架，请稍候...',
           fallbackSeconds: resolveOutlineBundleEstimatedSeconds(),
           scope: 'project'
         },
-        () => generateOutlineAndCharactersFromConfirmedSevenQuestions(requestProjectId)
+        () =>
+          currentStage === 'character'
+            ? generateCharactersFromConfirmedStoryIntent(requestProjectId)
+            : generateOutlineFromConfirmedCharacters(requestProjectId)
       )
-      if (!result.outlineDraft) {
+      if (currentStage === 'outline' && !result.outlineDraft) {
         throw new Error('rough_outline_result_missing')
       }
       const latestProjectResult = await apiGetProject(requestProjectId)

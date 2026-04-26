@@ -8,6 +8,9 @@ import type {
 } from '../../../../shared/contracts/workflow.ts'
 import {
   apiGetProject,
+  apiGenerateCharacters,
+  apiGenerateFactions,
+  apiGenerateOutline,
   apiGenerateOutlineAndCharacters,
   apiGenerateSevenQuestions,
   apiSaveConfirmedSevenQuestions,
@@ -42,7 +45,7 @@ function toStoryIntent(storyIntent: StoryIntentPackageDto): StoryIntent {
           keyFemaleCharacterFunction: storyIntent.storySynopsis.keyFemaleCharacterFunction,
           episodePlanHint: storyIntent.storySynopsis.episodePlanHint,
           finaleDirection: storyIntent.storySynopsis.finaleDirection
-      }
+        }
       : undefined,
     marketProfile: storyIntent.marketProfile ?? undefined
   }
@@ -147,6 +150,48 @@ export async function generateOutlineAndCharactersFromConfirmedSevenQuestions(
   outlineGenerationError?: string
 }> {
   const result = await apiGenerateOutlineAndCharacters({ projectId })
+  return {
+    project: result.project,
+    storyIntent: result.project.storyIntent,
+    outlineDraft: result.project.outlineDraft,
+    outlineGenerationError: result.outlineGenerationError
+  }
+}
+
+export async function generateCharactersFromConfirmedStoryIntent(projectId: string): Promise<{
+  project: ProjectSnapshotDto
+  storyIntent: StoryIntentPackageDto | null
+  outlineDraft: OutlineDraftDto | null
+  outlineGenerationError?: string
+}> {
+  const result = await apiGenerateCharacters({ projectId })
+  return {
+    project: result.project,
+    storyIntent: result.project.storyIntent,
+    outlineDraft: result.project.outlineDraft
+  }
+}
+
+export async function generateFactionsFromConfirmedStoryIntent(projectId: string): Promise<{
+  project: ProjectSnapshotDto
+  storyIntent: StoryIntentPackageDto | null
+  outlineDraft: OutlineDraftDto | null
+}> {
+  const result = await apiGenerateFactions({ projectId })
+  return {
+    project: result.project,
+    storyIntent: result.project.storyIntent,
+    outlineDraft: result.project.outlineDraft
+  }
+}
+
+export async function generateOutlineFromConfirmedCharacters(projectId: string): Promise<{
+  project: ProjectSnapshotDto
+  storyIntent: StoryIntentPackageDto | null
+  outlineDraft: OutlineDraftDto | null
+  outlineGenerationError?: string
+}> {
+  const result = await apiGenerateOutline({ projectId })
   return {
     project: result.project,
     storyIntent: result.project.storyIntent,

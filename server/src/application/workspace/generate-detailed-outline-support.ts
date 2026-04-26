@@ -15,6 +15,7 @@ import {
 } from '@shared/domain/workflow/episode-count'
 import { deriveActiveCharacterPackage } from '@shared/domain/workflow/active-character-package'
 import { ensureOutlineEpisodeShape } from '@shared/domain/workflow/outline-episodes'
+import { normalizePayoffTag } from '@shared/domain/short-drama/viral-short-drama-policy'
 import {
   repairStrategyContaminationValue,
   resolveGenerationStrategy,
@@ -28,6 +29,9 @@ import { tryParseObject } from './summarize-chat-for-generation-json'
 
 type DetailedOutlineAct = 'opening' | 'midpoint' | 'climax' | 'ending'
 type DetailedOutlineSource = 'model'
+type PayoffBeatSlot = NonNullable<
+  NonNullable<DetailedOutlineEpisodeBeatDto['episodeControlCard']>['payoffBeatSlot']
+>
 
 const DETAILED_OUTLINE_ACT_ORDER: DetailedOutlineAct[] = ['opening', 'midpoint', 'climax', 'ending']
 
@@ -140,6 +144,11 @@ function normalizeSceneText(value: unknown): string {
   return normalizeWhitespace(typeof value === 'string' ? value : '')
 }
 
+function normalizePayoffBeatSlot(value: unknown): PayoffBeatSlot | undefined {
+  const text = normalizeWhitespace(typeof value === 'string' ? value : '')
+  return text === 'pressure' || text === 'reversal' || text === 'hook' ? text : undefined
+}
+
 function normalizeSceneByScene(value: unknown): DetailedOutlineEpisodeBeatDto['sceneByScene'] {
   if (!Array.isArray(value)) return []
 
@@ -231,10 +240,16 @@ function normalizeEpisodeBeats(value: unknown): DetailedOutlineEpisodeBeatDto[] 
               // 爆款规则字段
               viralHookType: normalizeWhitespace(String(record.viralHookType || '')),
               signatureLineSeed: normalizeWhitespace(String(record.signatureLineSeed || '')),
-              payoffType: normalizeWhitespace(String(record.payoffType || '')),
+              payoffType: normalizePayoffTag(normalizeWhitespace(String(record.payoffType || ''))),
               payoffLevel: validPayoffLevels.has(rawPayoffLevel)
                 ? (rawPayoffLevel as 'normal' | 'major' | 'final')
                 : undefined,
+              payoffBeatSlot: normalizePayoffBeatSlot(record.payoffBeatSlot),
+              payoffOwnerName: normalizeWhitespace(String(record.payoffOwnerName || '')),
+              pressureActorName: normalizeWhitespace(String(record.pressureActorName || '')),
+              payoffTargetName: normalizeWhitespace(String(record.payoffTargetName || '')),
+              payoffScene: normalizeWhitespace(String(record.payoffScene || '')),
+              payoffExecution: normalizeWhitespace(String(record.payoffExecution || '')),
               villainOppressionMode: normalizeWhitespace(String(record.villainOppressionMode || '')),
               openingShockEvent: normalizeWhitespace(String(record.openingShockEvent || '')),
               retentionCliffhanger: normalizeWhitespace(String(record.retentionCliffhanger || ''))

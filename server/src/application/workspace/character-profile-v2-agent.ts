@@ -48,9 +48,32 @@ const CHARACTER_PROFILE_V2_MAX_ATTEMPTS = 3
 const CHARACTER_PROFILE_V2_BACKOFF_MS = [2000, 5000, 10000] as const
 const CHARACTER_PROFILE_V2_MAX_OUTPUT_TOKENS = 3500
 const CHARACTER_PROFILE_V2_SINGLE_CHARACTER_MAX_OUTPUT_TOKENS = 1400
+const SHORT_DRAMA_PAYOFF_TAGS = [
+  '身份碾压',
+  '证据打脸',
+  '隐藏大佬撑腰',
+  '底牌流',
+  '反派自食其果',
+  '规则反噬',
+  '当众社死',
+  '下跪道歉',
+  '实力秒杀',
+  '反派脸色突变',
+  '资源冻结',
+  '反派被自己人背刺',
+  '主角一句话震全场',
+  '每集小底牌',
+  '5集大底牌',
+  '钩子反转'
+] as const
 
 function hasText(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => String(item ?? '').trim()).filter(Boolean)
 }
 
 function normalizeJsonEnvelope(rawText: string): string {
@@ -198,6 +221,8 @@ function buildCharacterProfileV2RetryPrompt(input: {
     '这次只输出合法 JSON，不要解释，不要 markdown，不要 ```json。',
     '每个人物都必须保住 5 个基础维度：appearance / personality / identity / values / plotFunction。',
     'core 人物还必须补齐：hiddenPressure / fear / protectTarget / conflictTrigger / advantage / weakness / goal / arc / publicMask。',
+    `core 人物还必须填写 payoffTags，2-3 个，从这 16 种里选：${SHORT_DRAMA_PAYOFF_TAGS.join('、')}。`,
+    'functional/extra 人物必须尽量填写 reusableRoleKey 和 reuseSceneKeys，用于同一演员/功能位跨场景复用。',
     'biography 必须是一段自然人物小传，不要把 identity、values、plotFunction 硬拼成一串。',
     'biography 必须融合五维：外在形象、身份处境、价值观、隐藏压力、剧中动作方式，写成可交给编剧的自然段。',
     'plotFunction 必须点名他和谁形成对手戏，以及用什么手段推进主线；禁止只写“推动剧情”。',
@@ -221,6 +246,9 @@ function buildCharacterProfileV2RetryPrompt(input: {
     '      "identity": "string",',
     '      "values": "string",',
     '      "plotFunction": "string",',
+    '      "payoffTags": ["string"],',
+    '      "reusableRoleKey": "string",',
+    '      "reuseSceneKeys": ["string"],',
     '      "hiddenPressure": "string",',
     '      "fear": "string",',
     '      "protectTarget": "string",',
@@ -311,6 +339,16 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
     'arc 必须写成：起点 → 触发事件 → 中段摇摆 → 代价选择 → 终局变化。',
     '禁止只写“最终背叛/最终战死/最终醒悟”；必须写清让他变化的条件、心理代价和选择成本。',
     '',
+    '【123.txt 短剧行为硬约束】',
+    '主角可以弱，但不能窝囊、不能哭、不能崩溃；男频主角要稳、冷、狠，受辱时先忍住、记账、找证据、藏底牌，不能写成炸毛乱冲。',
+    'conflictTrigger 不是“炸毛点”，而是“被逼动作点”：写主角/人物被压到哪条底线后，会启动什么后手、证据、规则反咬或战力底牌。',
+    '反派可以坏，但不能靠吼；反派压迫优先来自权力、规则、布局、名分、资源封锁、证据陷害和公开程序。',
+    '功能打手只能是规则和权力的执行端：可以动手，但必须说明他背后的命令、门规、执法权或利益链，不能只有喊打喊杀。',
+    '每个核心人物都要能服务短剧“憋屈 → 反转 → 爽 → 钩子”的循环，不写纯设定收藏品。',
+    `每个核心人物必须填写 payoffTags，2-3 个，必须从这 16 种爽点里选：${SHORT_DRAMA_PAYOFF_TAGS.join('、')}。`,
+    'payoffTags 要和人物功能绑定：主角常绑定身份碾压/证据打脸/底牌流；守护型掌门常绑定隐藏大佬撑腰/底牌流；反派常绑定反派自食其果/规则反噬/当众社死。',
+    '功能人物优先填写 reusableRoleKey 和 reuseSceneKeys，让同一个演员/功能位能跨宗门大比、执法堂、山门围剿等场景重复出现。',
+    '',
     '【差异化层级】',
     '  - 核心人物（depthLevel="core"，3-5人）：超详尽五维 + 成长弧光 + hiddenPressure/fear/protectTarget/conflictTrigger/advantage/weakness/goal/arc/publicMask 全填',
     '  - 势力中层（depthLevel="mid"）：重点填 identity + values + plotFunction，五维必填，扩展字段选填',
@@ -320,6 +358,7 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
     '这次只生成当前这个势力下的人物，不要跨势力乱补名单。',
     '每个人物必须关联到当前势力里的具体分支和占位符。',
     '当前势力里已经定义的人物占位符，你必须保留并扩展为五维小传。',
+    '如果占位符带 reusableRoleKey / reuseSceneKeys，必须原样继承；如果没有，functional/extra 人物也要补一个可复用功能位。',
     '只有主角/对手本来就在当前势力名单里时，才允许在本次输出里写他们。',
     '',
     '【当前势力】',
@@ -356,6 +395,9 @@ export function buildCharacterProfileV2AgentPrompt(input: CharacterProfileV2Agen
     '      "identity": string,',
     '      "values": string,',
     '      "plotFunction": string,',
+    '      "payoffTags": [string],',
+    '      "reusableRoleKey": string | null,',
+    '      "reuseSceneKeys": [string],',
     '',
     '      // ── 核心人物扩展（depthLevel=core 时必填） ──',
     '      "hiddenPressure": string,',
@@ -407,6 +449,8 @@ function buildSingleCharacterProfileV2AgentPrompt(input: {
     `势力角色：${input.placeholder.roleInFaction}`,
     `占位身份：${input.placeholder.identity}`,
     `占位动机：${input.placeholder.coreMotivation}`,
+    `可复用功能位：${input.placeholder.reusableRoleKey || '待补'}`,
+    `建议复用场景：${(input.placeholder.reuseSceneKeys || []).join('、') || '待补'}`,
     `故事前提：${premise}`,
     `核心冲突：${coreConflict}`,
     `主角：${protagonist}`,
@@ -417,6 +461,8 @@ function buildSingleCharacterProfileV2AgentPrompt(input: {
       : '旧版参考：无',
     '五维必填：appearance/personality/identity/values/plotFunction。',
     '如果 depthLevel=core，还必须补 hiddenPressure/fear/protectTarget/conflictTrigger/advantage/weakness/goal/arc/publicMask。',
+    `如果 depthLevel=core，还必须填写 payoffTags，2-3 个，从这 16 种里选：${SHORT_DRAMA_PAYOFF_TAGS.join('、')}。`,
+    '如果 depthLevel=extra 或 roleInFaction=functional，必须填写 reusableRoleKey 和 reuseSceneKeys，用同一个功能位跨场景复用。',
     '字段可以短，但绝不能缺字段。',
     'biography 必须是一段自然人物小传，不要把 identity、values、plotFunction 硬拼；要写清压力、动作和戏剧功能。',
     'biography 必须融合五维：外在形象、身份处境、价值观、隐藏压力、剧中动作方式，不能像字段表。',
@@ -439,6 +485,9 @@ function buildSingleCharacterProfileV2AgentPrompt(input: {
     '      "identity": "string",',
     '      "values": "string",',
     '      "plotFunction": "string",',
+    '      "payoffTags": ["string"],',
+    '      "reusableRoleKey": "string",',
+    '      "reuseSceneKeys": ["string"],',
     '      "hiddenPressure": "string",',
     '      "fear": "string",',
     '      "protectTarget": "string",',
@@ -492,11 +541,22 @@ export function parseCharacterProfileV2Response(rawText: string): CharacterProfi
     const result = parsed as CharacterProfileV2Result
     return {
       characters: result.characters.map((character) => {
-        const legacy = mapV2ToLegacyCharacterDraft(character)
-        return {
+        const normalizedCharacter: CharacterProfileV2Dto = {
           ...character,
+          payoffTags: normalizeStringArray(character.payoffTags),
+          reusableRoleKey: hasText(character.reusableRoleKey)
+            ? character.reusableRoleKey.trim()
+            : undefined,
+          reuseSceneKeys: normalizeStringArray(character.reuseSceneKeys)
+        }
+        const legacy = mapV2ToLegacyCharacterDraft(normalizedCharacter)
+        return {
+          ...normalizedCharacter,
           biography: legacy.biography,
           publicMask: legacy.publicMask,
+          payoffTags: legacy.payoffTags,
+          reusableRoleKey: legacy.reusableRoleKey,
+          reuseSceneKeys: legacy.reuseSceneKeys,
           arc: character.depthLevel === 'core' ? legacy.arc : character.arc
         }
       })
@@ -512,7 +572,7 @@ function serializeFactionSummary(faction: FactionDto): string {
       const chars = branch.characters
         .map(
           (c) =>
-            `      - ${c.name}（${c.roleInFaction}）：${c.identity}｜动机：${c.coreMotivation}${c.isSleeper ? ` ⚠️卧底→${c.sleeperForFactionId || '?'}` : ''}`
+            `      - ${c.name}（${c.roleInFaction}）：${c.identity}｜动机：${c.coreMotivation}${c.reusableRoleKey ? `｜复用位：${c.reusableRoleKey}` : ''}${c.reuseSceneKeys?.length ? `｜复用场景：${c.reuseSceneKeys.join('、')}` : ''}${c.isSleeper ? ` ⚠️卧底→${c.sleeperForFactionId || '?'}` : ''}`
         )
         .join('\n')
       return `    ├─ 二级分支：${branch.name}\n${chars}`
@@ -520,6 +580,26 @@ function serializeFactionSummary(faction: FactionDto): string {
     .join('\n')
 
   return `  ■ ${faction.name}（${faction.positioning}｜核心诉求：${faction.coreDemand}｜价值观：${faction.coreValues}）\n${branchSummary}`
+}
+
+function inferFallbackPayoffTags(input: {
+  placeholder: CharacterPlaceholderDto
+  protagonist: string
+}): string[] {
+  const text = `${input.placeholder.name}\n${input.placeholder.identity}\n${input.placeholder.plotFunction}`
+  if (text.includes(input.protagonist) || /主角|少主|男主|废柴/u.test(text)) {
+    return ['底牌流', '身份碾压', '证据打脸']
+  }
+  if (input.placeholder.roleInFaction === 'leader') {
+    return ['隐藏大佬撑腰', '底牌流']
+  }
+  if (input.placeholder.roleInFaction === 'variable') {
+    return ['反派被自己人背刺', '钩子反转']
+  }
+  if (input.placeholder.roleInFaction === 'enforcer') {
+    return ['反派脸色突变', '反派自食其果']
+  }
+  return ['证据打脸']
 }
 
 function createFactionScopedMatrix(
@@ -624,6 +704,16 @@ function buildFallbackCharacterProfileFromPlaceholder(input: {
   const weakness = isSeniorDisciple
     ? '太习惯按师命和同门规矩处理问题，一旦局势绕过程序，动作会慢半拍'
     : `过度依赖${faction.name}和${branch.name}给出的身份，一旦局势绕过程序就会慢半拍`
+  const reusableRoleKey =
+    placeholder.reusableRoleKey ||
+    `${faction.name}-${branch.name}-${placeholder.roleInFaction}-复用位`
+  const reuseSceneKeys =
+    placeholder.reuseSceneKeys && placeholder.reuseSceneKeys.length > 0
+      ? placeholder.reuseSceneKeys
+      : placeholder.roleInFaction === 'functional'
+        ? ['山门', '执法现场']
+        : ['宗门大殿', '冲突现场']
+  const payoffTags = inferFallbackPayoffTags({ placeholder, protagonist })
   const biography = isSeniorDisciple
     ? `${placeholder.name}是${placeholder.identity}，隶属${faction.name}${branch.name}。表面按门规把压力落到${protagonist}身上，私下却受师父托付和同门情义牵制，必须在执行命令与替${protagonist}留退路之间做选择。`
     : `${placeholder.name}是${placeholder.identity}，隶属${faction.name}${branch.name}。表面执行阵营命令，私下受${pressureTarget}牵制，负责${roleAction}。`
@@ -645,6 +735,9 @@ function buildFallbackCharacterProfileFromPlaceholder(input: {
     identity: placeholder.identity,
     values: pressureTarget,
     plotFunction: `${placeholder.plotFunction}，并负责${roleAction}`,
+    payoffTags,
+    reusableRoleKey,
+    reuseSceneKeys,
     hiddenPressure,
     fear,
     protectTarget,
@@ -1033,6 +1126,9 @@ export function formatCharacterProfileV2ForRAG(characters: CharacterProfileV2Dto
       lines.push(`  身份：${char.identity}`)
       lines.push(`  价值观：${char.values}`)
       lines.push(`  剧情作用：${char.plotFunction}`)
+      if (char.payoffTags?.length) lines.push(`  爽点标签：${char.payoffTags.join('、')}`)
+      if (char.reusableRoleKey) lines.push(`  复用功能位：${char.reusableRoleKey}`)
+      if (char.reuseSceneKeys?.length) lines.push(`  复用场景：${char.reuseSceneKeys.join('、')}`)
       if (char.hiddenPressure) lines.push(`  隐藏压力：${char.hiddenPressure}`)
       if (char.fear) lines.push(`  最怕失去：${char.fear}`)
       if (char.protectTarget) lines.push(`  最想守住：${char.protectTarget}`)

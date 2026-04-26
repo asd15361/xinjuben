@@ -63,6 +63,10 @@ export function normalizeWorkspaceChatErrorMessage(error: unknown): string {
     return '请先重新点一次“确认信息”，这版聊天真相还没正式锁住'
   }
 
+  if (/^project_intake_readiness_missing$/i.test(summaryPrefixStripped)) {
+    return '创作底账还没收齐，请先补齐世界观、阵营/场域和角色池，再进入人物小传'
+  }
+
   if (/^seven_questions_confirmation_required$/i.test(summaryPrefixStripped)) {
     return '七问已经并入骨架流程，请直接生成人物小传和剧本骨架'
   }

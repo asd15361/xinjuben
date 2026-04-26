@@ -20,7 +20,8 @@ import {
   buildOpeningShockEventFallback,
   resolveRetentionCliffhangerTypeByEpisode,
   buildRetentionCliffhangerFallback,
-  resolveViralHookTypeByEpisode
+  resolveViralHookTypeByEpisode,
+  normalizePayoffTag
 } from './viral-short-drama-policy.ts'
 
 test('VIRAL_GOLDEN_RULES has 10 rules with unique ids', () => {
@@ -140,4 +141,95 @@ test('resolveViralHookTypeByEpisode: first is 入局, last is 收束, 5th is 打
 test('VIRAL_QUALITY_THRESHOLDS has openingShock and punchline thresholds', () => {
   assert.ok(VIRAL_QUALITY_THRESHOLDS.openingShock.pass >= 50)
   assert.ok(VIRAL_QUALITY_THRESHOLDS.punchlineDensity.good >= 70)
+})
+
+test('normalizePayoffTag 标准爽点类型直接返回', () => {
+  for (const type of VIRAL_PAYOFF_TYPES) {
+    assert.equal(normalizePayoffTag(type), type)
+  }
+})
+
+test('normalizePayoffTag 别名映射正确', () => {
+  // 规则反噬 → 反派被规则反噬
+  assert.equal(normalizePayoffTag('规则反噬'), '反派被规则反噬')
+  assert.equal(normalizePayoffTag('规则反噬！'), '反派被规则反噬')
+  assert.equal(normalizePayoffTag('被规则反噬'), '反派被规则反噬')
+  assert.equal(normalizePayoffTag('规则反杀'), '反派被规则反噬')
+
+  // 挑衅反杀 → 主角一招秒杀全场
+  assert.equal(normalizePayoffTag('挑衅反杀'), '主角一招秒杀全场')
+  assert.equal(normalizePayoffTag('反杀'), '主角一招秒杀全场')
+  assert.equal(normalizePayoffTag('当场反杀'), '主角一招秒杀全场')
+  assert.equal(normalizePayoffTag('秒杀反杀'), '主角一招秒杀全场')
+
+  // 底牌隐藏 → 终极底牌亮出
+  assert.equal(normalizePayoffTag('底牌隐藏'), '终极底牌亮出')
+  assert.equal(normalizePayoffTag('隐藏底牌'), '终极底牌亮出')
+  assert.equal(normalizePayoffTag('亮底牌'), '终极底牌亮出')
+  assert.equal(normalizePayoffTag('底牌亮出'), '终极底牌亮出')
+  assert.equal(normalizePayoffTag('终极底牌'), '终极底牌亮出')
+
+  // 其他别名
+  assert.equal(normalizePayoffTag('打脸'), '证据打脸')
+  assert.equal(normalizePayoffTag('当众打脸'), '证据打脸')
+  assert.equal(normalizePayoffTag('身份压制'), '身份碾压')
+  assert.equal(normalizePayoffTag('地位碾压'), '身份碾压')
+  assert.equal(normalizePayoffTag('反转打脸'), '羞辱反转')
+  assert.equal(normalizePayoffTag('羞辱反杀'), '羞辱反转')
+  assert.equal(normalizePayoffTag('自食恶果'), '反派自食其果')
+  assert.equal(normalizePayoffTag('自作自受'), '反派自食其果')
+  assert.equal(normalizePayoffTag('被背刺'), '反派被背刺')
+  assert.equal(normalizePayoffTag('大佬撑腰'), '隐藏大佬撑腰')
+  assert.equal(normalizePayoffTag('贵人相助'), '隐藏大佬撑腰')
+  assert.equal(normalizePayoffTag('证人反水'), '关键证人反水')
+  assert.equal(normalizePayoffTag('反水'), '关键证人反水')
+  assert.equal(normalizePayoffTag('不是一个人'), '你不是一个人')
+  assert.equal(normalizePayoffTag('众人支持'), '你不是一个人')
+  assert.equal(normalizePayoffTag('假证据败露'), '假证据被戳穿')
+  assert.equal(normalizePayoffTag('伪证被拆穿'), '假证据被戳穿')
+  assert.equal(normalizePayoffTag('权力被收回'), '反派权力被冻结')
+  assert.equal(normalizePayoffTag('冻结权力'), '反派权力被冻结')
+  assert.equal(normalizePayoffTag('社死'), '反派当众社死')
+  assert.equal(normalizePayoffTag('当众社死'), '反派当众社死')
+  assert.equal(normalizePayoffTag('下跪道歉'), '反派下跪道歉')
+  assert.equal(normalizePayoffTag('跪下道歉'), '反派下跪道歉')
+  assert.equal(normalizePayoffTag('一句话震全场'), '主角一句话全场震动')
+  assert.equal(normalizePayoffTag('全场震动'), '主角一句话全场震动')
+  assert.equal(normalizePayoffTag('秒杀全场'), '主角一招秒杀全场')
+  assert.equal(normalizePayoffTag('一招制敌'), '主角一招秒杀全场')
+  assert.equal(normalizePayoffTag('亮出底牌'), '终极底牌亮出')
+  assert.equal(normalizePayoffTag('底牌揭露'), '终极底牌亮出')
+})
+
+test('normalizePayoffTag 模糊匹配正确', () => {
+  // 包含标准爽点关键词的应该匹配到正确的类型
+  assert.equal(normalizePayoffTag('用证据狠狠打脸反派'), '证据打脸')
+  assert.equal(normalizePayoffTag('主角亮身份碾压全场'), '身份碾压')
+  assert.equal(normalizePayoffTag('羞辱一番后反转局势'), '羞辱反转')
+  assert.equal(normalizePayoffTag('反派自作自受自食其果'), '反派自食其果')
+  assert.equal(normalizePayoffTag('反派被队友背刺'), '反派被背刺')
+  assert.equal(normalizePayoffTag('隐藏大佬出面撑腰'), '隐藏大佬撑腰')
+  assert.equal(normalizePayoffTag('关键证人当场反水'), '关键证人反水')
+  assert.equal(normalizePayoffTag('你不是一个人在战斗'), '你不是一个人')
+  assert.equal(normalizePayoffTag('假证据被当场戳穿'), '假证据被戳穿')
+  assert.equal(normalizePayoffTag('反派权力被当场冻结'), '反派权力被冻结')
+  assert.equal(normalizePayoffTag('反派当众社死现场'), '反派当众社死')
+  assert.equal(normalizePayoffTag('反派下跪道歉认错'), '反派下跪道歉')
+  assert.equal(normalizePayoffTag('反派被规则反噬处罚'), '反派被规则反噬')
+  assert.equal(normalizePayoffTag('主角一句话全场震动'), '主角一句话全场震动')
+  assert.equal(normalizePayoffTag('主角一招秒杀全场反派'), '主角一招秒杀全场')
+  assert.equal(normalizePayoffTag('终极底牌终于亮出'), '终极底牌亮出')
+})
+
+test('normalizePayoffTag 空值处理正确', () => {
+  assert.equal(normalizePayoffTag(undefined), undefined)
+  assert.equal(normalizePayoffTag(null), undefined)
+  assert.equal(normalizePayoffTag(''), undefined)
+  assert.equal(normalizePayoffTag('   '), undefined)
+})
+
+test('normalizePayoffTag 无法匹配的返回undefined', () => {
+  assert.equal(normalizePayoffTag('不存在的爽点类型'), undefined)
+  assert.equal(normalizePayoffTag('随机字符串'), undefined)
+  assert.equal(normalizePayoffTag('12345'), undefined)
 })

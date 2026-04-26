@@ -26,6 +26,7 @@ import {
 } from '../workflow/contract-thresholds.ts'
 import { extractStructuredSceneFromScreenplay, parseScreenplayScenes } from './screenplay-format.ts'
 import { inspectScreenplayQualityEpisode } from './screenplay-quality.ts'
+import { VIRAL_PAYOFF_TYPES } from '../short-drama/viral-short-drama-policy.ts'
 
 export type EpisodeGuardFailureCode =
   | 'voice_over'
@@ -40,6 +41,9 @@ export type EpisodeGuardFailureCode =
   | 'legacy_marker'
   | 'inner_monologue'
   | 'char_count'
+  | 'payoff_missing'
+  | 'payoff_mismatch'
+  | 'payoff_not_present'
 
 export interface EpisodeGuardFailure {
   code: EpisodeGuardFailureCode
@@ -238,6 +242,68 @@ export function collectEpisodeGuardFailures(scene: ScriptSegmentDto): EpisodeGua
     }
   }
 
+  // 爽点完整性与内容检查
+  if (scene.payoffType) {
+    // 校验爽点类型是否为标准16种
+    if (!VIRAL_PAYOFF_TYPES.includes(scene.payoffType as any)) {
+      failures.push({
+        code: 'payoff_mismatch',
+        detail: `爽点类型不标准：「${scene.payoffType}」不在16种标准爽点类型中。`
+      })
+    }
+
+    // 如果定义了爽点类型，必须有核心爽点字段
+    const requiredPayoffFields = [
+      'payoffLevel',
+      'payoffBeatSlot',
+      'payoffOwnerName',
+      'payoffExecution'
+    ] as const
+    const missingFields = requiredPayoffFields.filter(field => !scene[field])
+    if (missingFields.length > 0) {
+      failures.push({
+        code: 'payoff_missing',
+        detail: `爽点字段缺失：${missingFields.join('、')}`
+      })
+    }
+
+    // 检查剧本内容是否包含爽点执行逻辑
+    const screenplay = normalize(scene.screenplay)
+    if (screenplay) {
+      // 检查爽点归属角色是否出现
+      if (scene.payoffOwnerName && !screenplay.includes(scene.payoffOwnerName)) {
+        failures.push({
+          code: 'payoff_not_present',
+          detail: `剧本中未出现爽点归属角色「${scene.payoffOwnerName}」`
+        })
+      }
+      // 检查爽点执行描述是否在剧本中有体现（关键词匹配）
+      if (scene.payoffExecution) {
+        const executionKeywords = scene.payoffExecution.replace(/\s/g, '').slice(0, 8)
+        if (executionKeywords && !screenplay.replace(/\s/g, '').includes(executionKeywords)) {
+          failures.push({
+            code: 'payoff_not_present',
+            detail: `剧本中未体现爽点执行逻辑：${scene.payoffExecution}`
+          })
+        }
+      }
+      // 检查施压角色是否出现（如果定义了）
+      if (scene.pressureActorName && !screenplay.includes(scene.pressureActorName)) {
+        failures.push({
+          code: 'payoff_not_present',
+          detail: `剧本中未出现施压角色「${scene.pressureActorName}」`
+        })
+      }
+      // 检查爽点目标角色是否出现（如果定义了）
+      if (scene.payoffTargetName && !screenplay.includes(scene.payoffTargetName)) {
+        failures.push({
+          code: 'payoff_not_present',
+          detail: `剧本中未出现爽点目标角色「${scene.payoffTargetName}」`
+        })
+      }
+    }
+  }
+
   const sceneCount = scene.screenplayScenes?.length || 2
   const charCount = quality.charCount ?? 0
   const min = EPISODE_CHAR_COUNT.min(sceneCount)
@@ -261,6 +327,9 @@ function scoreGuardFailures(failures: EpisodeGuardFailure[]): number {
       case 'template_pollution':
       case 'strategy_contamination':
       case 'legacy_marker':
+      case 'payoff_missing':
+      case 'payoff_mismatch':
+      case 'payoff_not_present':
         return sum + 4
       case 'missing_roster':
       case 'missing_action':
@@ -349,6 +418,27 @@ export function shouldAcceptRepairCandidate(
   } = {}
 ): boolean {
   if (!preservesSceneCodeShape(originalScene, candidateScene)) {
+    return false
+  }
+
+  // 爽点一致性检查：上游定义的爽点字段不能被修改
+  const payoffFields = [
+    'payoffType',
+    'payoffLevel',
+    'payoffBeatSlot',
+    'payoffOwnerName',
+    'pressureActorName',
+    'payoffTargetName',
+    'payoffScene',
+    'payoffExecution'
+  ] as const
+  const mismatchedFields = payoffFields.filter(field => {
+    const originalValue = originalScene[field]
+    const candidateValue = candidateScene[field]
+    // 上游有值的必须完全一致，上游没值的可以没有
+    return originalValue !== undefined && originalValue !== candidateValue
+  })
+  if (mismatchedFields.length > 0) {
     return false
   }
 

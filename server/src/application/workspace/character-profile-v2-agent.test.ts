@@ -77,7 +77,9 @@ function buildFactionMatrix(): FactionMatrixDto {
                 depthLevel: 'mid',
                 identity: '大长老亲信',
                 coreMotivation: '追随强者上位',
-                plotFunction: '执行体罚、刁难和灭口'
+                plotFunction: '执行体罚、刁难和灭口',
+                reusableRoleKey: '执法堂打手复用位',
+                reuseSceneKeys: ['宗门大比', '执法堂']
               }
             ]
           }
@@ -150,6 +152,27 @@ test('character profile prompt requires narrative biography, dramatic hook, and 
   assert.match(prompt, /禁止只写“最终背叛\/最终战死\/最终醒悟”/)
 })
 
+test('character profile prompt applies 123 short drama behavior rules', () => {
+  const prompt = buildCharacterProfileV2AgentPrompt({
+    storyIntent: buildStoryIntent(),
+    factionMatrix: buildFactionMatrix()
+  })
+
+  assert.match(prompt, /主角可以弱，但不能窝囊、不能哭、不能崩溃/)
+  assert.match(prompt, /conflictTrigger 不是“炸毛点”/)
+  assert.match(prompt, /男频主角要稳、冷、狠/)
+  assert.match(prompt, /反派可以坏，但不能靠吼/)
+  assert.match(prompt, /反派压迫优先来自权力、规则、布局/)
+  assert.match(prompt, /功能打手只能是规则和权力的执行端/)
+  assert.match(prompt, /payoffTags/)
+  assert.match(prompt, /身份碾压/)
+  assert.match(prompt, /证据打脸/)
+  assert.match(prompt, /隐藏大佬撑腰/)
+  assert.match(prompt, /reusableRoleKey/)
+  assert.match(prompt, /reuseSceneKeys/)
+  assert.match(prompt, /同一个演员\/功能位能跨/)
+})
+
 test('parseCharacterProfileV2Response normalizes generated biography and result-only arc', () => {
   const parsed = parseCharacterProfileV2Response(
     JSON.stringify({
@@ -166,6 +189,9 @@ test('parseCharacterProfileV2Response normalizes generated biography and result-
           identity: '苏家棋子。',
           values: '家族利益优先。',
           plotFunction: '接近叶辰并制造情感信息差。',
+          payoffTags: ['钩子反转', '反派被自己人背刺'],
+          reusableRoleKey: '温柔卧底复用位',
+          reuseSceneKeys: ['丹房', '藏经阁'],
           protectTarget: '苏家给她的身份和最后的选择权。',
           fear: '叶辰看穿她后再也不信她。',
           conflictTrigger: '苏天雄逼她牺牲叶辰时。',
@@ -191,6 +217,9 @@ test('parseCharacterProfileV2Response normalizes generated biography and result-
   assert.equal(character.publicMask?.startsWith('表面'), false)
   assert.match(character.arc || '', /触发：苏天雄逼她牺牲叶辰/)
   assert.match(character.arc || '', /代价选择：苏家给她的身份和最后的选择权/)
+  assert.deepEqual(character.payoffTags, ['钩子反转', '反派被自己人背刺'])
+  assert.equal(character.reusableRoleKey, '温柔卧底复用位')
+  assert.deepEqual(character.reuseSceneKeys, ['丹房', '藏经阁'])
 })
 
 test('parseCharacterProfileV2Response rewrites field-stitched biography before it reaches display layers', () => {
@@ -276,6 +305,9 @@ test('generateCharacterProfileV2 falls back to faction placeholders after repeat
   assert.equal(result.characters.length, 1)
   assert.equal(result.characters[0]?.name, '李崇')
   assert.equal(result.characters[0]?.factionId, 'faction_qingyun')
+  assert.deepEqual(result.characters[0]?.payoffTags, ['反派脸色突变', '反派自食其果'])
+  assert.equal(result.characters[0]?.reusableRoleKey, '执法堂打手复用位')
+  assert.deepEqual(result.characters[0]?.reuseSceneKeys, ['宗门大比', '执法堂'])
   assert.ok(result.characters[0]?.biography?.includes('李崇'))
   assert.ok(logs.some((message) => message.includes('faction_parse_fallback')))
 })

@@ -8,8 +8,10 @@ import type { StoryIntentPackageDto } from '@shared/contracts/intake'
 import type { CharacterDraftDto } from '@shared/contracts/workflow'
 import {
   generateOutlineAndCharactersFromConfirmedSevenQuestions,
-  generateOutlineCharacterBundleFromConfirmedSevenQuestions
+  generateOutlineCharacterBundleFromConfirmedSevenQuestions,
+  resolveReusableFactionMatrix
 } from './generate-outline-and-characters-from-confirmed-seven-questions.ts'
+import { isCharacterDraftStructurallyComplete } from '@shared/domain/workflow/character-contract'
 
 function buildRuntimeConfig(): RuntimeProviderConfig {
   const provider = {
@@ -170,8 +172,22 @@ function buildShortSeriesFactionMatrix(): FactionMatrixDto {
             positioning: '保护主角的核心分支',
             coreDemand: '让主角安全觉醒',
             characters: [
-              makePlaceholder('char_lu_yuan', '陆渊', 'branch_guard', 'core', 'leader', '被封印的废柴男主'),
-              makePlaceholder('char_yun_qingyao', '云清瑶', 'branch_guard', 'core', 'variable', '掌门之女')
+              makePlaceholder(
+                'char_lu_yuan',
+                '陆渊',
+                'branch_guard',
+                'core',
+                'leader',
+                '被封印的废柴男主'
+              ),
+              makePlaceholder(
+                'char_yun_qingyao',
+                '云清瑶',
+                'branch_guard',
+                'core',
+                'variable',
+                '掌门之女'
+              )
             ]
           },
           {
@@ -181,8 +197,22 @@ function buildShortSeriesFactionMatrix(): FactionMatrixDto {
             positioning: '宗门规矩压力',
             coreDemand: '维护门规',
             characters: [
-              makePlaceholder('char_yun_zhentian', '云震天', 'branch_law', 'core', 'leader', '苍玄宗掌门'),
-              makePlaceholder('char_chen_elder', '陈长老', 'branch_law', 'mid', 'enforcer', '执法堂长老'),
+              makePlaceholder(
+                'char_yun_zhentian',
+                '云震天',
+                'branch_law',
+                'core',
+                'leader',
+                '苍玄宗掌门'
+              ),
+              makePlaceholder(
+                'char_chen_elder',
+                '陈长老',
+                'branch_law',
+                'mid',
+                'enforcer',
+                '执法堂长老'
+              ),
               makePlaceholder('char_zhao_feng', '赵峰', 'branch_law', 'mid', 'variable', '仙盟暗棋')
             ]
           }
@@ -204,8 +234,22 @@ function buildShortSeriesFactionMatrix(): FactionMatrixDto {
             positioning: '夺血脉的主反分支',
             coreDemand: '夺血脉',
             characters: [
-              makePlaceholder('char_liu_wuqing', '柳无情', 'branch_leader', 'core', 'leader', '正天道盟盟主'),
-              makePlaceholder('char_liu_ruyan', '柳如烟', 'branch_leader', 'core', 'variable', '盟主之女')
+              makePlaceholder(
+                'char_liu_wuqing',
+                '柳无情',
+                'branch_leader',
+                'core',
+                'leader',
+                '正天道盟盟主'
+              ),
+              makePlaceholder(
+                'char_liu_ruyan',
+                '柳如烟',
+                'branch_leader',
+                'core',
+                'variable',
+                '盟主之女'
+              )
             ]
           },
           {
@@ -215,9 +259,30 @@ function buildShortSeriesFactionMatrix(): FactionMatrixDto {
             positioning: '仙盟议事分支',
             coreDemand: '维护秩序',
             characters: [
-              makePlaceholder('char_xu_elder', '徐长老', 'branch_elder', 'mid', 'leader', '仙盟长老'),
-              makePlaceholder('char_zhou_envoy', '周特使', 'branch_elder', 'extra', 'functional', '盟主亲信'),
-              makePlaceholder('char_sun_deacon', '孙执事', 'branch_elder', 'extra', 'functional', '仙盟执事')
+              makePlaceholder(
+                'char_xu_elder',
+                '徐长老',
+                'branch_elder',
+                'mid',
+                'leader',
+                '仙盟长老'
+              ),
+              makePlaceholder(
+                'char_zhou_envoy',
+                '周特使',
+                'branch_elder',
+                'extra',
+                'functional',
+                '盟主亲信'
+              ),
+              makePlaceholder(
+                'char_sun_deacon',
+                '孙执事',
+                'branch_elder',
+                'extra',
+                'functional',
+                '仙盟执事'
+              )
             ]
           }
         ]
@@ -266,7 +331,8 @@ test('outline and characters can be generated directly from story intent without
             theme: '普通人也能在压迫中发光',
             protagonist: '林烬',
             mainConflict: '仙盟大小姐夺取魔尊血脉',
-            summary: '林烬在宗门羞辱中觉醒血脉，收起吊坠碎片追查父母旧仇。女主暗中守护，他却被大小姐伪善利用。最终他识破仙盟阴谋，掌控血脉并守住世界。',
+            summary:
+              '林烬在宗门羞辱中觉醒血脉，收起吊坠碎片追查父母旧仇。女主暗中守护，他却被大小姐伪善利用。最终他识破仙盟阴谋，掌控血脉并守住世界。',
             episodes: Array.from({ length: 20 }, (_, index) => ({
               episodeNo: index + 1,
               summary: `第${index + 1}集推进林烬查清吊坠碎片和仙盟阴谋。`
@@ -284,7 +350,9 @@ test('outline and characters can be generated directly from story intent without
   assert.equal(result.outlineDraft.outlineBlocks?.length, 4)
   assert.ok(result.outlineDraft.outlineBlocks?.every((block) => !block.sevenQuestions))
   assert.equal(result.characterDrafts.length, 2)
-  assert.ok(diagnostics.some((message) => message.includes('rough_outline_start direct_story_intent')))
+  assert.ok(
+    diagnostics.some((message) => message.includes('rough_outline_start direct_story_intent'))
+  )
 })
 
 test('keeps generated characters but does not fabricate a temporary outline when rough outline fails', async () => {
@@ -324,6 +392,94 @@ test('keeps generated characters but does not fabricate a temporary outline when
       message.includes('rough_outline_failed_without_temporary_skeleton')
     )
   )
+})
+
+test('characters-only generation does not call rough outline generation', async () => {
+  let outlineCalled = false
+  const factionMatrix = buildShortSeriesFactionMatrix()
+
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_characters_only',
+      storyIntent: buildStoryIntent(),
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig(),
+      mode: 'characters_only'
+    },
+    {
+      generateCharacterProfiles: async () => ({
+        characters: [buildCharacter('林烬'), buildCharacter('仙盟大小姐')],
+        factionMatrix
+      }),
+      generateOutlineBundle: async () => {
+        outlineCalled = true
+        throw new Error('outline_should_not_run')
+      }
+    }
+  )
+
+  assert.equal(outlineCalled, false)
+  assert.equal(result.outlineGenerationError, undefined)
+  assert.equal(result.characterDrafts.length, 2)
+  assert.equal(result.outlineDraft.summaryEpisodes.length, 0)
+  assert.equal(result.outlineDraft.outlineBlocks?.length, 0)
+  assert.equal(result.storyIntent.storyFoundation?.factionMatrix?.title, factionMatrix.title)
+  assert.ok(result.storyIntent.worldBible)
+  assert.ok(result.storyIntent.characterRoster)
+})
+
+test('resolveReusableFactionMatrix prefers story foundation faction matrix over legacy top-level matrix', () => {
+  const legacyMatrix = {
+    ...buildShortSeriesFactionMatrix(),
+    title: '旧顶层阵营'
+  }
+  const foundationMatrix = {
+    ...buildShortSeriesFactionMatrix(),
+    title: '世界底账阵营'
+  }
+
+  const selected = resolveReusableFactionMatrix({
+    ...buildStoryIntent(),
+    factionMatrix: legacyMatrix,
+    storyFoundation: {
+      worldBible: {
+        definition: '世界定义',
+        worldType: '修仙',
+        eraAndSpace: '宗门与仙盟',
+        socialOrder: '宗门压迫外门',
+        historicalWound: '旧案未平',
+        powerOrRuleSystem: '血脉规则',
+        coreResources: ['血脉'],
+        taboosAndCosts: ['失控反噬'],
+        shootableLocations: ['宗门'],
+        source: 'user_confirmed'
+      },
+      factionMatrix: foundationMatrix,
+      characterRoster: {
+        totalEpisodes: 20,
+        minimumRoleSlots: 10,
+        standardRoleSlots: 13,
+        actualRoleSlots: 2,
+        entries: []
+      }
+    }
+  })
+
+  assert.equal(selected?.title, '世界底账阵营')
+})
+
+test('resolveReusableFactionMatrix falls back to legacy top-level faction matrix', () => {
+  const legacyMatrix = {
+    ...buildShortSeriesFactionMatrix(),
+    title: '旧顶层阵营'
+  }
+
+  const selected = resolveReusableFactionMatrix({
+    ...buildStoryIntent(),
+    factionMatrix: legacyMatrix
+  })
+
+  assert.equal(selected?.title, '旧顶层阵营')
 })
 
 test('canonical outline-character bundle preserves character ledger when rough outline fails', async () => {
@@ -424,6 +580,7 @@ test('adds a mandatory protagonist card when generated faction profiles omit the
   )
 
   assert.equal(result.characterDrafts[0]?.name, '林夜')
+  assert.equal(isCharacterDraftStructurallyComplete(result.characterDrafts[0]!), true)
   assert.match(result.characterDrafts[0]?.biography || '', /母亲吊坠/)
   const protagonistText = JSON.stringify(result.characterDrafts[0])
   assert.equal(protagonistText.includes('真女主'), false)
@@ -560,7 +717,10 @@ test('outline-character bundle repairs generated text that contaminates selected
     false
   )
   assert.equal(/宗门|仙盟/u.test(JSON.stringify(bundle.outlineDraft)), false)
-  assert.equal(/宗门|仙盟/u.test(JSON.stringify(bundle.characterLedger.visibleCharacterDrafts)), false)
+  assert.equal(
+    /宗门|仙盟/u.test(JSON.stringify(bundle.characterLedger.visibleCharacterDrafts)),
+    false
+  )
   assert.equal(/宗门|仙盟/u.test(JSON.stringify(bundle.characterLedger.entityStore)), false)
 })
 
@@ -701,7 +861,9 @@ test('locks concrete protagonist name and keeps short series functional roles as
 
   const characterText = JSON.stringify(result.characterDrafts)
   assert.deepEqual(
-    result.characterDrafts.filter((character) => character.name === '林霄').map((item) => item.name),
+    result.characterDrafts
+      .filter((character) => character.name === '林霄')
+      .map((item) => item.name),
     ['林霄']
   )
   assert.equal(characterText.includes('陆渊'), false)
@@ -721,4 +883,263 @@ test('locks concrete protagonist name and keeps short series functional roles as
       message.includes('character_bundle_protagonist_alias_locked from=陆渊 to=林霄')
     )
   )
+})
+
+test('repairs protagonist card when AI uses the protagonist name for the sect leader', async () => {
+  const diagnostics: string[] = []
+  const suspiciousLeader: CharacterDraftDto = {
+    ...buildCharacter('林潜渊'),
+    biography:
+      '林潜渊是青云宗掌门，面容清癯，道袍飘逸，看似仙风道骨。他维持宗门现状，阻止林潜渊觉醒真相。',
+    identity: '青云宗掌门',
+    publicMask: '人前对林潜渊关怀备至，以磨砺心性为由解释苛刻。',
+    hiddenPressure: '怕林潜渊觉醒后查清真相，揭露自己当年的过失。',
+    goal: '维持宗门现状，阻止林潜渊觉醒真相，必要时牺牲林潜渊换取宗门安全。'
+  }
+
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_protagonist_role_collision',
+      storyIntent: {
+        ...buildStoryIntent(),
+        protagonist: '林潜渊',
+        antagonist: '陆昭仪',
+        generationBriefText:
+          '【项目】魔尊血脉｜20集\n男主林潜渊的母亲吊坠被踩碎后觉醒魔尊血脉，青云宗掌门暗中保护他，陆昭仪伪装善意夺血脉。'
+      },
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig()
+    },
+    {
+      appendDiagnosticLog: async (message) => {
+        diagnostics.push(message)
+      },
+      generateCharacterProfiles: async () => ({
+        characters: [suspiciousLeader, buildCharacter('苏韵'), buildCharacter('陆昭仪')]
+      }),
+      generateOutlineBundle: async () => ({
+        outline: {
+          title: '魔尊血脉',
+          genre: '男频修仙',
+          theme: '废柴逆袭',
+          protagonist: '林潜渊',
+          mainConflict: '林潜渊识破陆昭仪夺血脉的阴谋',
+          summary: '林潜渊从废柴受辱到吊坠破碎觉醒，再识破陆昭仪夺血脉的阴谋。',
+          episodes: Array.from({ length: 20 }, (_, index) => ({
+            episodeNo: index + 1,
+            summary: `第${index + 1}集推进林潜渊围绕吊坠碎片查清真相。`
+          })),
+          facts: []
+        }
+      })
+    }
+  )
+
+  const lead = result.characterDrafts.find((character) => character.name === '林潜渊')
+  assert.ok(lead)
+  assert.match(JSON.stringify(lead), /吊坠|血脉|底层弟子|身世/)
+  assert.doesNotMatch(JSON.stringify(lead), /青云宗掌门|维持宗门现状|牺牲林潜渊/)
+  assert.ok(result.characterDrafts.some((character) => character.name === '沈观澜'))
+  assert.ok(
+    diagnostics.some((message) =>
+      message.includes('character_bundle_repaired_protagonist_role_collision')
+    )
+  )
+})
+
+test('cleans protagonist name pollution from non-protagonist profiles', async () => {
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_name_pollution_cleanup',
+      storyIntent: {
+        ...buildStoryIntent(),
+        protagonist: '林潜渊',
+        antagonist: '陆昭仪',
+        generationBriefText:
+          '【项目】魔尊血脉｜20集\n林潜渊是青云宗底层弟子，青云宗掌门暗中保护他，陆昭仪伪装接近夺血脉。'
+      },
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig()
+    },
+    {
+      generateCharacterProfiles: async () => ({
+        characters: [
+          buildCharacter('林潜渊'),
+          {
+            ...buildCharacter('林清雪'),
+            biography:
+              '林清雪是掌门之女。父亲林潜渊命她不得接近林潜渊，同时与魔渊左护法林潜渊有秘密联络。',
+            protectTarget: '林潜渊林潜渊（因承诺与感情）和母亲的名誉',
+            advantage: '掌门之女身份可自由进出藏经阁禁地，林潜渊暗中提供魔渊情报和丹药'
+          },
+          {
+            ...buildCharacter('赵铁'),
+            biography: '赵铁是青云宗执法堂长老。',
+            conflictTrigger: '林潜渊在林潜渊指点下修为突飞猛进，赵铁断定是魔功反噬。',
+            goal: '逼林潜渊让出掌门位，铲除林潜渊这个祸根。',
+            hiddenPressure:
+              '林潜渊一直用掌门权压制他的行动，他怀疑林潜渊与魔修有染，苦无证据。',
+            arc: '起点：表面忠心的二把手，暗中收集林潜渊黑料。触发：查到林潜渊血脉异常，但被林潜渊压下。摇摆：当林潜渊血脉力量明显暴露或林潜渊再次包庇时，他会直接发动执法堂抓捕。'
+          }
+        ]
+      }),
+      generateOutlineBundle: async () => ({
+        outline: {
+          title: '魔尊血脉',
+          genre: '男频修仙',
+          theme: '废柴逆袭',
+          protagonist: '林潜渊',
+          mainConflict: '林潜渊识破陆昭仪夺血脉的阴谋',
+          summary: '林潜渊从废柴受辱到吊坠破碎觉醒，再识破陆昭仪夺血脉的阴谋。',
+          episodes: Array.from({ length: 20 }, (_, index) => ({
+            episodeNo: index + 1,
+            summary: `第${index + 1}集推进林潜渊围绕吊坠碎片查清真相。`
+          })),
+          facts: []
+        }
+      })
+    }
+  )
+
+  const text = JSON.stringify(result.characterDrafts)
+  assert.doesNotMatch(text, /林潜渊林潜渊/)
+  assert.doesNotMatch(text, /林潜渊（林潜渊）/)
+  assert.doesNotMatch(text, /父亲林潜渊/)
+  assert.doesNotMatch(text, /左护法林潜渊/)
+  assert.doesNotMatch(text, /林潜渊在林潜渊指点下/)
+  assert.doesNotMatch(text, /逼林潜渊让出掌门位/)
+  assert.doesNotMatch(text, /林潜渊一直用掌门权/)
+  assert.doesNotMatch(text, /收集林潜渊黑料/)
+  assert.doesNotMatch(text, /但被林潜渊压下/)
+  assert.doesNotMatch(text, /林潜渊再次包庇/)
+  assert.match(text, /逼沈观澜让出掌门位/)
+  assert.match(text, /沈观澜一直用掌门权/)
+  assert.match(text, /收集沈观澜黑料/)
+  assert.match(text, /但被沈观澜压下/)
+  assert.match(text, /沈观澜再次包庇/)
+})
+
+test('keeps protagonist primary faction on home sect instead of demon remnant faction', async () => {
+  const factionMatrix: FactionMatrixDto = {
+    ...buildShortSeriesFactionMatrix(),
+    factions: [
+      {
+        ...buildShortSeriesFactionMatrix().factions[0]!,
+        id: 'faction_qingyun',
+        name: '青云宗',
+        positioning: '主角所在宗门，暗中保护并压制主角血脉'
+      },
+      buildShortSeriesFactionMatrix().factions[1]!,
+      {
+        id: 'faction_moyuan',
+        name: '魔渊旧部',
+        positioning: '昔日魔尊残余势力，寻找血脉复辟',
+        coreDemand: '找回魔尊血脉',
+        coreValues: '力量复仇',
+        mainMethods: ['试探', '救援'],
+        vulnerabilities: ['内部分裂'],
+        branches: [
+          {
+            id: 'branch_moyuan_core',
+            name: '旧部核心',
+            parentFactionId: 'faction_moyuan',
+            positioning: '魔渊旧部主线',
+            coreDemand: '认主或夺权',
+            characters: [
+              {
+                id: 'char_lin_qianyuan_moyuan',
+                name: '林潜渊',
+                roleInFaction: 'leader',
+                branchId: 'branch_moyuan_core',
+                depthLevel: 'core',
+                identity: '魔尊血脉继承者',
+                coreMotivation: '掌控血脉',
+                plotFunction: '牵动旧部复辟'
+              },
+              {
+                id: 'char_chilian',
+                name: '赤炼',
+                roleInFaction: 'enforcer',
+                branchId: 'branch_moyuan_core',
+                depthLevel: 'core',
+                identity: '魔渊战将',
+                coreMotivation: '验证新主',
+                plotFunction: '逼主角成长'
+              }
+            ]
+          },
+          {
+            id: 'branch_moyuan_spy',
+            name: '暗影堂',
+            parentFactionId: 'faction_moyuan',
+            positioning: '情报刺杀',
+            coreDemand: '制造信息差',
+            characters: [
+              {
+                id: 'char_yingxiao',
+                name: '影枭',
+                roleInFaction: 'leader',
+                branchId: 'branch_moyuan_spy',
+                depthLevel: 'mid',
+                identity: '暗影堂首领',
+                coreMotivation: '执行任务',
+                plotFunction: '提供情报'
+              },
+              {
+                id: 'char_liuniang',
+                name: '柳娘',
+                roleInFaction: 'functional',
+                branchId: 'branch_moyuan_spy',
+                depthLevel: 'extra',
+                identity: '散修密探',
+                coreMotivation: '拿钱办事',
+                plotFunction: '递送线索'
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    crossRelations: [
+      ...buildShortSeriesFactionMatrix().crossRelations,
+      {
+        id: 'cross_moyuan_qingyun',
+        relationType: 'secret_ally',
+        fromFactionId: 'faction_moyuan',
+        toFactionId: 'faction_qingyun',
+        involvedCharacterIds: ['char_lin_qianyuan_moyuan'],
+        description: '魔渊旧部试图接回林潜渊，但青云宗掌门暂时压住真相。',
+        revealEpisodeRange: { start: 10, end: 14 }
+      }
+    ]
+  }
+
+  const result = await generateOutlineAndCharactersFromConfirmedSevenQuestions(
+    {
+      projectId: 'project_home_faction',
+      storyIntent: {
+        ...buildStoryIntent(),
+        protagonist: '林潜渊',
+        antagonist: '陆昭仪',
+        generationBriefText:
+          '【项目】魔尊血脉｜20集\n林潜渊是青云宗底层弟子，后被魔渊旧部试探是否继承魔尊血脉。'
+      },
+      outlineDraft: null,
+      runtimeConfig: buildRuntimeConfig(),
+      mode: 'characters_only'
+    },
+    {
+      generateCharacterProfiles: async () => ({
+        characters: [buildCharacter('林潜渊'), buildCharacter('陆昭仪'), buildCharacter('赤炼')],
+        factionMatrix
+      })
+    }
+  )
+
+  const protagonist = result.entityStore.characters.find((character) => character.name === '林潜渊')
+  assert.ok(protagonist)
+  const linkedFaction = result.entityStore.factions.find(
+    (faction) => faction.id === protagonist?.linkedFactionIds[0]
+  )
+  assert.equal(linkedFaction?.name, '青云宗')
 })

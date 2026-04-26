@@ -307,6 +307,113 @@ export function resolvePayoffLevelByEpisode(
   return 'normal'
 }
 
+/**
+ * 标准化爽点标签，将别名映射为标准16种爽点名
+ * 用户可见可以用短名，但底层结构化字段必须存标准名
+ */
+export function normalizePayoffTag(input: string | undefined | null): ViralPayoffType | undefined {
+  if (!input) return undefined
+  const trimmed = input.trim()
+  if (!trimmed) return undefined // 处理全空格输入
+
+  // 清理输入：去空格、转小写，用于模糊匹配和别名清理匹配
+  const cleanInput = trimmed.replace(/\s+/g, '').toLowerCase()
+
+  // 别名映射表
+  const aliasMap: Record<string, ViralPayoffType> = {
+    // 规则反噬 → 反派被规则反噬
+    '规则反噬': '反派被规则反噬',
+    '规则反噬!': '反派被规则反噬',
+    '规则反噬！': '反派被规则反噬',
+    '被规则反噬': '反派被规则反噬',
+    '规则反杀': '反派被规则反噬',
+
+    // 挑衅反杀 → 主角一招秒杀全场
+    '挑衅反杀': '主角一招秒杀全场',
+    '挑衅反杀!': '主角一招秒杀全场',
+    '挑衅反杀！': '主角一招秒杀全场',
+    '反杀': '主角一招秒杀全场',
+    '当场反杀': '主角一招秒杀全场',
+    '秒杀反杀': '主角一招秒杀全场',
+
+    // 底牌隐藏 → 终极底牌亮出
+    '底牌隐藏': '终极底牌亮出',
+    '隐藏底牌': '终极底牌亮出',
+    '亮底牌': '终极底牌亮出',
+    '底牌亮出': '终极底牌亮出',
+    '终极底牌': '终极底牌亮出',
+
+    // 其他常见别名
+    '打脸': '证据打脸',
+    '证据打臉': '证据打脸',
+    '当众打脸': '证据打脸',
+    '身份压制': '身份碾压',
+    '身份碾压!': '身份碾压',
+    '��份碾压！': '身份碾压',
+    '地位碾压': '身份碾压',
+    '反转打脸': '羞辱反转',
+    '羞辱反杀': '羞辱反转',
+    '自食恶果': '反派自食其果',
+    '自作自受': '反派自食其果',
+    '被背刺': '反派被背刺',
+    '大佬撑腰': '隐藏大佬撑腰',
+    '贵人相助': '隐藏大佬撑腰',
+    '证人反水': '关键证人反水',
+    '反水': '关键证人反水',
+    '不是一个人': '你不是一个人',
+    '众人支持': '你不是一个人',
+    '假证据败露': '假证据被戳穿',
+    '伪证被拆穿': '假证据被戳穿',
+    '权力被收回': '反派权力被冻结',
+    '冻结权力': '反派权力被冻结',
+    '社死': '反派当众社死',
+    '当众社死': '反派当众社死',
+    '下跪道歉': '反派下跪道歉',
+    '跪下道歉': '反派下跪道歉',
+    '一句话震全场': '主角一句话全场震动',
+    '全场震动': '主角一句话全场震动',
+    '秒杀全场': '主角一招秒杀全场',
+    '一招制敌': '主角一招秒杀全场',
+    '亮出底牌': '终极底牌亮出',
+    '底牌揭露': '终极底牌亮出'
+  }
+
+  // 1. 先直接匹配trim后的原文到标准类型
+  if (VIRAL_PAYOFF_TYPES.includes(trimmed as ViralPayoffType)) {
+    return trimmed as ViralPayoffType
+  }
+
+  // 2. 匹配trim后的原文到别名
+  if (aliasMap[trimmed]) {
+    return aliasMap[trimmed]
+  }
+
+  // 3. 匹配清理后的输入到清理后的别名
+  for (const [alias, standard] of Object.entries(aliasMap)) {
+    const cleanAlias = alias.replace(/\s+/g, '').toLowerCase()
+    if (cleanAlias === cleanInput) {
+      return standard
+    }
+  }
+
+  // 4. 最后模糊匹配：检查输入是否包含标准名关键词，或者按顺序包含标准名所有字符（中间可插其他字符）
+  for (const standardType of VIRAL_PAYOFF_TYPES) {
+    const cleanStandard = standardType.replace(/\s+/g, '').toLowerCase()
+    // 先精确匹配连续字符串
+    if (cleanInput.includes(cleanStandard) || cleanStandard.includes(cleanInput)) {
+      return standardType
+    }
+    // 再模糊匹配：标准名的字符按顺序出现，中间可有其他字符
+    const fuzzyRegex = new RegExp(cleanStandard.split('').join('.*'))
+    if (fuzzyRegex.test(cleanInput)) {
+      return standardType
+    }
+  }
+
+  // 都匹配不到返回undefined
+  return undefined
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 六、金句生成公式（只给公式，不给具体台词）
 // ─────────────────────────────────────────────────────────────────────────────

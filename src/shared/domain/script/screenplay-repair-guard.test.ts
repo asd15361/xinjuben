@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { compactOverlongScreenplay, shouldAcceptRepairCandidate } from './screenplay-repair-guard.ts'
+import { compactOverlongScreenplay, shouldAcceptRepairCandidate, collectEpisodeGuardFailures } from './screenplay-repair-guard.ts'
 import type { ScriptSegmentDto } from '../../contracts/workflow.ts'
 
 function createOverlongScene(): ScriptSegmentDto {
@@ -66,4 +66,60 @@ test('shouldAcceptRepairCandidate can accept a rewrite that removes strategy con
     }),
     true
   )
+})
+
+test('collectEpisodeGuardFailures detects missing payoff fields', () => {
+  const scene: ScriptSegmentDto = {
+    sceneNo: 1,
+    action: '',
+    dialogue: '',
+    emotion: '',
+    payoffType: '打脸', // 有爽点类型，但是缺少其他必要字段
+    screenplay: '第1集\n\n1-1 客厅［内］［日］\n人物：张三，李四\n△张三看着李四。\n张三：你好。'
+  }
+  const failures = collectEpisodeGuardFailures(scene)
+  assert.ok(failures.some(f => f.code === 'payoff_missing'))
+  assert.ok(failures.find(f => f.code === 'payoff_missing')?.detail.includes('爽点字段缺失'))
+})
+
+test('shouldAcceptRepairCandidate rejects mismatched payoff fields', () => {
+  const original: ScriptSegmentDto = {
+    sceneNo: 1,
+    action: '',
+    dialogue: '',
+    emotion: '',
+    payoffType: '打脸',
+    payoffLevel: 'major',
+    payoffBeatSlot: 'reversal',
+    payoffOwnerName: '张三',
+    payoffExecution: '张三当众打了李四一耳光'
+  }
+  const mismatched: ScriptSegmentDto = {
+    ...original,
+    payoffType: '逆袭', // 爽点类型被修改了
+    screenplay: original.screenplay || ''
+  }
+  assert.equal(shouldAcceptRepairCandidate(original, mismatched), false)
+})
+
+test('collectEpisodeGuardFailures detects missing payoff content in script', () => {
+  const scene: ScriptSegmentDto = {
+    sceneNo: 1,
+    action: '',
+    dialogue: '',
+    emotion: '',
+    payoffType: '打脸',
+    payoffLevel: 'major',
+    payoffBeatSlot: 'reversal',
+    payoffOwnerName: '张三',
+    pressureActorName: '李四',
+    payoffTargetName: '李四',
+    payoffExecution: '张三当众打了李四一耳光',
+    screenplay: '第1集\n\n1-1 客厅［内］［日］\n人物：张三，王五\n△张三看着王五。\n张三：你好。' // 李四没有出现，也没有打耳光的动作
+  }
+  const failures = collectEpisodeGuardFailures(scene)
+  assert.ok(failures.some(f => f.code === 'payoff_not_present'))
+  assert.ok(failures.some(f => f.detail.includes('未出现施压角色「李四」')))
+  assert.ok(failures.some(f => f.detail.includes('未出现爽点目标角色「李四」')))
+  assert.ok(failures.some(f => f.detail.includes('未体现爽点执行逻辑')))
 })

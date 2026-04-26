@@ -74,6 +74,10 @@ export interface CharacterPlaceholderDto {
   coreMotivation: string
   /** 剧情作用一句话 */
   plotFunction: string
+  /** 可复用演员/功能位标识：同一位可跨多个场景反复承担同类任务，降低演员成本 */
+  reusableRoleKey?: string
+  /** 建议复用出现的场景键，如：宗门大殿/执法堂/山门/柴房 */
+  reuseSceneKeys?: string[]
   /** 是否为其他势力的卧底/暗线 */
   isSleeper?: boolean
   /** 如果是卧底，为哪个势力服务 */

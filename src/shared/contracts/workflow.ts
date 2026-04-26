@@ -60,6 +60,18 @@ export interface EpisodeControlCardDto {
   payoffType?: string
   /** 爽点级别：normal=常规, major=每5集大爽点, final=末集终局 */
   payoffLevel?: 'normal' | 'major' | 'final'
+  /** 爽点节拍位置：pressure=施压阶段, reversal=反转阶段, hook=钩子阶段 */
+  payoffBeatSlot?: 'pressure' | 'reversal' | 'hook'
+  /** 爽点归属角色名称（释放爽点的角色） */
+  payoffOwnerName?: string
+  /** 施压角色名称（施加压力的反派/对手） */
+  pressureActorName?: string
+  /** 爽点目标角色名称（爽点针对的角色） */
+  payoffTargetName?: string
+  /** 爽点发生场景 */
+  payoffScene?: string
+  /** 爽点执行方式描述 */
+  payoffExecution?: string
   /** 反派压迫模式：规则压迫/权位压迫/利益分化/借刀杀人 */
   villainOppressionMode?: string
   /** 开局冲击事件类型：高损失/高羞辱/高危险/高反转 */
@@ -76,6 +88,22 @@ export interface OutlineEpisodeDto {
   episodeNo: number
   summary: string
   sceneByScene?: ScreenplaySceneBlockDto[]
+  /** 爽点类型（16种之一） */
+  payoffType?: string
+  /** 爽点级别：normal=常规, major=每5集大爽点, final=末集终局 */
+  payoffLevel?: 'normal' | 'major' | 'final'
+  /** 爽点节拍位置：pressure=施压阶段, reversal=反转阶段, hook=钩子阶段 */
+  payoffBeatSlot?: 'pressure' | 'reversal' | 'hook'
+  /** 爽点归属角色名称（释放爽点的角色） */
+  payoffOwnerName?: string
+  /** 施压角色名称（施加压力的反派/对手） */
+  pressureActorName?: string
+  /** 爽点目标角色名称（爽点针对的角色） */
+  payoffTargetName?: string
+  /** 爽点发生场景 */
+  payoffScene?: string
+  /** 爽点执行方式描述 */
+  payoffExecution?: string
 }
 
 export interface SevenQuestionsDto {
@@ -203,6 +231,12 @@ export interface CharacterDraftDto {
   identity?: string
   values?: string
   plotFunction?: string
+  /** 绑定的短剧爽点类型，用于后续大纲/剧本调度 */
+  payoffTags?: string[]
+  /** 可复用演员/功能位标识，优先让同一人物跨场景重复出现 */
+  reusableRoleKey?: string
+  /** 建议复用出现的场景键 */
+  reuseSceneKeys?: string[]
   depthLevel?: 'core' | 'mid' | 'extra'
   masterEntityId?: string
   /** 角色层级：core=主角层, active=主动推进层, functional=功能层 */
@@ -370,6 +404,22 @@ export interface ScriptSegmentDto {
   action: string
   dialogue: string
   emotion: string
+  /** 爽点类型（16种之一） */
+  payoffType?: string
+  /** 爽点级别：normal=常规, major=每5集大爽点, final=末集终局 */
+  payoffLevel?: 'normal' | 'major' | 'final'
+  /** 爽点节拍位置：pressure=施压阶段, reversal=反转阶段, hook=钩子阶段 */
+  payoffBeatSlot?: 'pressure' | 'reversal' | 'hook'
+  /** 爽点归属角色名称（释放爽点的角色） */
+  payoffOwnerName?: string
+  /** 施压角色名称（施加压力的反派/对手） */
+  pressureActorName?: string
+  /** 爽点目标角色名称（爽点针对的角色） */
+  payoffTargetName?: string
+  /** 爽点发生场景 */
+  payoffScene?: string
+  /** 爽点执行方式描述 */
+  payoffExecution?: string
 }
 
 export function ensureScreenplaySceneBlockDefaults(

@@ -22,6 +22,7 @@ import { normalizeEpisodeControlCard } from '../../../shared/domain/short-drama/
 import { resolvePersistedGenerationTruth } from '../../../shared/domain/workflow/persisted-generation-truth.ts'
 import { deriveProjectCharacterBlocks } from '../../../shared/domain/workflow/planning-blocks.ts'
 import { deriveStage } from '../../../shared/domain/workflow/stage-derivation.ts'
+import { buildStoryFoundation } from '../../../shared/domain/world-building/world-foundation.ts'
 import { decomposeFreeformInput } from '../../application/workspace/decompose-chat-for-generation.ts'
 
 function asString(value: unknown): string {
@@ -51,9 +52,23 @@ function normalizeIntegerArray(value: unknown): number[] | undefined {
 }
 
 function normalizeStoryIntent(
-  storyIntent: StoryIntentPackageDto | null
+  storyIntent: StoryIntentPackageDto | null,
+  context?: {
+    entityStore?: ProjectSnapshotDto['entityStore']
+    characterDrafts?: CharacterDraftDto[]
+    totalEpisodes?: number
+  }
 ): StoryIntentPackageDto | null {
   if (!storyIntent) return null
+  const storyFoundation =
+    storyIntent.storyFoundation ??
+    buildStoryFoundation({
+      storyIntent,
+      entityStore: context?.entityStore,
+      characterDrafts: context?.characterDrafts,
+      factionMatrix: storyIntent.factionMatrix,
+      totalEpisodes: context?.totalEpisodes
+    })
 
   return {
     ...storyIntent,
@@ -63,6 +78,10 @@ function normalizeStoryIntent(
     worldAnchors: asStringArray(storyIntent.worldAnchors),
     relationAnchors: asStringArray(storyIntent.relationAnchors),
     dramaticMovement: asStringArray(storyIntent.dramaticMovement),
+    worldBible: storyIntent.worldBible ?? storyFoundation.worldBible,
+    factionMatrix: storyIntent.factionMatrix ?? storyFoundation.factionMatrix,
+    characterRoster: storyIntent.characterRoster ?? storyFoundation.characterRoster,
+    storyFoundation,
     shortDramaConstitution: normalizeShortDramaConstitution(
       storyIntent.shortDramaConstitution as ShortDramaConstitutionDto | null | undefined
     )
@@ -355,7 +374,11 @@ export function normalizeProjectSnapshot(project: ProjectSnapshotDto): ProjectSn
     ...project,
     chatMessages: Array.isArray(project.chatMessages) ? [...project.chatMessages] : [],
     generationStatus: project.generationStatus ?? null,
-    storyIntent: normalizeStoryIntent(project.storyIntent ?? null),
+    storyIntent: normalizeStoryIntent(project.storyIntent ?? null, {
+      entityStore: normalizedEntityStore,
+      characterDrafts: normalizedCharacterDrafts,
+      totalEpisodes: normalizedOutlineDraft?.summaryEpisodes.length
+    }),
     entityStore: normalizedEntityStore,
     outlineDraft: normalizedOutlineDraft,
     characterDrafts: normalizedCharacterDrafts,

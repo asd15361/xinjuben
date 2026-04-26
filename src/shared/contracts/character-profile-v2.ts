@@ -43,6 +43,12 @@ export interface CharacterProfileV2Dto {
   values: string
   /** 【维度5】剧情作用：人物在全剧中提供的核心功能（如：用工业技术在古代建功、替主角挡刀的忠诚者、制造信息差的卧底） */
   plotFunction: string
+  /** 绑定的短剧爽点类型：核心人物 2-3 个，中层/功能人物可选 */
+  payoffTags?: string[]
+  /** 可复用演员/功能位标识：同一人物可跨多个场景反复承担同类任务 */
+  reusableRoleKey?: string
+  /** 建议复用出现的场景键，如：宗门大殿/执法堂/山门/柴房 */
+  reuseSceneKeys?: string[]
 
   // ── 核心人物扩展字段（depthLevel=core 时必须填写） ─────────
 
@@ -107,6 +113,13 @@ function joinSentences(...values: Array<string | undefined>): string {
     .filter(Boolean)
     .map((value) => `${value}。`)
     .join('')
+}
+
+function normalizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => cleanSentence(String(item ?? '')))
+    .filter(Boolean)
 }
 
 function hasNaturalBiography(value: string | undefined): boolean {
@@ -286,6 +299,9 @@ export function mapV2ToLegacyCharacterDraft(profile: CharacterProfileV2Dto): {
   identity: string
   values: string
   plotFunction: string
+  payoffTags: string[]
+  reusableRoleKey?: string
+  reuseSceneKeys?: string[]
   depthLevel: CharacterDepthLevel
   roleLayer: 'core' | 'active' | 'functional'
 } {
@@ -311,6 +327,9 @@ export function mapV2ToLegacyCharacterDraft(profile: CharacterProfileV2Dto): {
     identity: profile.identity,
     values: profile.values,
     plotFunction: profile.plotFunction,
+    payoffTags: normalizeStringList(profile.payoffTags),
+    reusableRoleKey: cleanSentence(profile.reusableRoleKey) || undefined,
+    reuseSceneKeys: normalizeStringList(profile.reuseSceneKeys),
     depthLevel: profile.depthLevel,
     roleLayer:
       profile.depthLevel === 'core'

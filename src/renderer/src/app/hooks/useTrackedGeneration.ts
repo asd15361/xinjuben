@@ -13,6 +13,12 @@ function resolveStageFromTask(task: ProjectGenerationTaskDto): WorkflowStage {
       return 'chat'
     case 'seven_questions':
       return 'seven_questions'
+    case 'factions':
+      return 'character'
+    case 'characters':
+      return 'character'
+    case 'rough_outline':
+      return 'outline'
     case 'outline_and_characters':
       return 'outline'
     case 'detailed_outline':
@@ -36,10 +42,7 @@ export function useTrackedGeneration(): {
   const setGenerationStatus = useWorkflowStore((s) => s.setGenerationStatus)
 
   const track = useCallback(
-    async <T,>(
-      options: TrackedGenerationOptions,
-      generator: () => Promise<T>
-    ): Promise<T> => {
+    async <T>(options: TrackedGenerationOptions, generator: () => Promise<T>): Promise<T> => {
       const estimatedSeconds = getEstimatedSeconds(options.task, options.fallbackSeconds)
       const startedAt = Date.now()
 

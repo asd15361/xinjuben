@@ -12,27 +12,39 @@ test('getOutlineCharacterGenerationActionLabel stays on generate before any outl
   assert.equal(
     getOutlineCharacterGenerationActionLabel({
       outlineEpisodeCount: 0,
-      characterCount: 0
+      characterCount: 0,
+      currentStage: 'character'
     }),
-    '生成人物小传和骨架'
-  )
-})
-
-test('getOutlineCharacterGenerationActionLabel flips to regenerate once outline or character content exists', () => {
-  assert.equal(
-    getOutlineCharacterGenerationActionLabel({
-      outlineEpisodeCount: 3,
-      characterCount: 0
-    }),
-    '重新生成人物小传和骨架'
+    '生成人物小传'
   )
 
   assert.equal(
     getOutlineCharacterGenerationActionLabel({
       outlineEpisodeCount: 0,
-      characterCount: 2
+      characterCount: 0,
+      currentStage: 'outline'
     }),
-    '重新生成人物小传和骨架'
+    '生成剧本骨架'
+  )
+})
+
+test('getOutlineCharacterGenerationActionLabel flips per current stage content', () => {
+  assert.equal(
+    getOutlineCharacterGenerationActionLabel({
+      outlineEpisodeCount: 3,
+      characterCount: 0,
+      currentStage: 'outline'
+    }),
+    '重新生成剧本骨架'
+  )
+
+  assert.equal(
+    getOutlineCharacterGenerationActionLabel({
+      outlineEpisodeCount: 0,
+      characterCount: 2,
+      currentStage: 'character'
+    }),
+    '重新生成人物小传'
   )
 })
 
@@ -42,11 +54,11 @@ test('buildOutlineCharacterGenerationSuccessNotice keeps character-stage follow-
     hadExistingContent: true
   })
 
-  assert.equal(notice.title, '人物小传和骨架已经重新生成好了')
+  assert.equal(notice.title, '人物小传已经重新生成好了')
   assert.equal(notice.primaryAction?.label, '继续看人物')
   assert.equal(notice.primaryAction?.stage, 'character')
-  assert.equal(notice.secondaryAction?.label, '去详细大纲')
-  assert.equal(notice.secondaryAction?.stage, 'detailed_outline')
+  assert.equal(notice.secondaryAction?.label, '去剧本骨架')
+  assert.equal(notice.secondaryAction?.stage, 'outline')
 })
 
 test('buildOutlineCharacterPartialSuccessNotice explains recovered rough outline failure', () => {
@@ -71,7 +83,7 @@ test('buildOutlineCharacterGenerationFailureNotice treats missing seven question
     error: new Error('rough_outline_requires_confirmed_seven_questions')
   })
 
-  assert.equal(notice.title, '这次没能重新生成人物小传和骨架')
+  assert.equal(notice.title, '这次没能重新生成剧本骨架')
   assert.equal(notice.detail, '这次卡在旧七问前置条件，请直接重新生成人物小传和骨架')
   assert.equal(notice.primaryAction?.label, '继续看粗纲')
   assert.equal(notice.primaryAction?.stage, 'outline')
@@ -85,7 +97,7 @@ test('buildOutlineCharacterGenerationFailureNotice sends missing story intent ba
     error: new Error('confirmed_story_intent_missing')
   })
 
-  assert.equal(notice.title, '这次没能生成人物小传和骨架')
+  assert.equal(notice.title, '这次没能生成人物小传')
   assert.equal(notice.detail, '请先重新点一次“确认信息”，这版聊天真相还没正式锁住')
   assert.equal(notice.primaryAction?.label, '回聊天确认信息')
   assert.equal(notice.primaryAction?.stage, 'chat')

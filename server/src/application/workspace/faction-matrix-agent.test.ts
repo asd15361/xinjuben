@@ -21,16 +21,23 @@ function buildStoryIntent(): StoryIntentPackageDto {
   }
 }
 
-test('20 episode faction matrix prompt uses lightweight roster requirements', () => {
+test('20 episode faction matrix prompt uses compact but multi-camp roster requirements', () => {
   const prompt = buildFactionMatrixAgentPrompt({
     storyIntent: buildStoryIntent(),
     totalEpisodes: 20
   })
 
-  assert.match(prompt, /至少拆解出 2 个一级势力/)
+  assert.match(prompt, /至少拆解出 3 个一级势力/)
   assert.match(prompt, /每个二级分支必须包含至少 2 个人物占位符/)
-  assert.doesNotMatch(prompt, /至少拆解出 3 个一级势力/)
   assert.doesNotMatch(prompt, /每个二级分支必须包含至少 3 个人物占位符/)
+  assert.match(prompt, /第三方旧案\/中立\/隐秘遗脉方/)
+  assert.match(prompt, /至少 2 条关键交叉关系/)
+  assert.match(prompt, /3-5 个高复用可拍场景/)
+  assert.match(prompt, /同一场景反复承载不同阵营冲突/)
+  assert.match(prompt, /默认角色池预算：3 个核心人物、3 个轻量人物、5 个功能人物/)
+  assert.match(prompt, /同一个功能位可以跨多个场景复用/)
+  assert.match(prompt, /reusableRoleKey/)
+  assert.match(prompt, /reuseSceneKeys/)
 })
 
 test('hidden bloodline xianxia prompt forbids turning protagonist into a public demon leader', () => {
@@ -56,8 +63,7 @@ test('marketProfile strategy prevents xianxia fallback rules from leaking into f
         audienceLane: 'female',
         subgenre: '女频霸总甜宠'
       },
-      generationBriefText:
-        '用户旧描述里误写过魔尊血脉和宗门，但当前项目选择是女频霸总甜宠。'
+      generationBriefText: '用户旧描述里误写过魔尊血脉和宗门，但当前项目选择是女频霸总甜宠。'
     },
     totalEpisodes: 20
   })
@@ -74,6 +80,8 @@ test('60 episode faction matrix prompt keeps full roster requirements', () => {
     totalEpisodes: 60
   })
 
-  assert.match(prompt, /至少拆解出 3 个一级势力/)
-  assert.match(prompt, /每个二级分支必须包含至少 3 个人物占位符/)
+  assert.match(prompt, /至少拆解出 8 个一级势力/)
+  assert.match(prompt, /全表角色位最低 30 个，标准建议 39 个/)
+  assert.match(prompt, /默认角色池预算：5 个核心人物、5 个轻量人物、10 个功能人物/)
+  assert.match(prompt, /群像\/跑龙套/)
 })

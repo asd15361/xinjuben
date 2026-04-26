@@ -185,3 +185,42 @@ test('normalizeSummaryPayload returns null storySynopsis when logline empty', ()
   const result = normalizeSummaryPayload(payload, '')
   assert.equal(result.storyIntent.storySynopsis, null)
 })
+
+test('normalizeSummaryPayload auto-completes Chinese named roster when user delegates naming', () => {
+  const payload = {
+    projectTitle: '魔尊血脉',
+    episodeCount: 20,
+    genreAndStyle: '男频古代修仙',
+    sellingPremise: '废柴少年其实身负魔尊血脉',
+    coreDislocation: '人人笑话的废柴是宗门老大暗中保护的魔尊降世',
+    emotionalPayoff: '被踩到谷底后觉醒打脸',
+    worldAndBackground: '古代修仙宗门世界，正道盟主宗门联合多派觊觎魔尊血脉。',
+    protagonist: '男主',
+    antagonist: '反派大小姐',
+    coreConflict: '男主追查身世，识破名门大小姐骗局并复仇。',
+    endingDirection: '男主查清父母旧案并和女主修成正果。',
+    keyCharacters: ['男主', '女主', '反派大小姐'],
+    chainSynopsis:
+      '男主母亲留下的吊坠被踩碎后觉醒魔尊血脉，宗门老大女儿暗中守护，名门正派大小姐伪装接近夺取血脉。',
+    characterCards: [],
+    characterLayers: [],
+    dramaticMovement: ['证明自己', '多派围猎', '血脉失控', '女主守护', '真相揭露']
+  }
+
+  const result = normalizeSummaryPayload(
+    payload,
+    '用户：每个男主女主自己取名字。用户：我不会取名字，你来取。'
+  )
+
+  assert.match(result.generationBriefText, /【关键角色】林潜渊、谢含章、沈观澜、陆昭仪、秦玄策、周砚/)
+  assert.match(result.generationBriefText, /- 林潜渊：男主/)
+  assert.match(result.generationBriefText, /- 执法弟子甲｜功能角色｜/)
+  assert.deepEqual(result.storyIntent.officialKeyCharacters?.slice(0, 6), [
+    '林潜渊',
+    '谢含章',
+    '沈观澜',
+    '陆昭仪',
+    '秦玄策',
+    '周砚'
+  ])
+})

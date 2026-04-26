@@ -348,6 +348,37 @@ test('enrichCharacterDrafts does not give ordinary faction claws an adoption-loy
   assert.match(character.hiddenPressure || '', /云天鹤|盟主|仙盟|凌寒|主角/)
 })
 
+test('enrichCharacterDrafts keeps faction claw pressure aligned to its own side', () => {
+  const storyIntent: StoryIntentPackageDto = {
+    ...buildStoryIntent(),
+    protagonist: '林潜渊',
+    antagonist: '陆昭仪',
+    generationBriefText:
+      '【项目】魔尊血脉｜20集\n陆昭仪是天道盟大小姐。\n冷不凡是天道盟执法堂堂主，追杀林潜渊。\n血煞是魔渊遗脉激进护法，想迎回少主血洗正道。\n王二狗是青云宗外门弟子，赵无极狗腿，欺凌主角。'
+  }
+
+  const result = enrichCharacterDrafts({
+    storyIntent,
+    generationBriefText: storyIntent.generationBriefText || '',
+    characters: [
+      buildIncompleteCharacter('冷不凡', '冷不凡是天道盟执法堂堂主，身法诡异，出手狠辣。', ''),
+      buildIncompleteCharacter(
+        '血煞',
+        '血煞是魔渊遗脉的激进护法，金丹巅峰修为，主张立即迎回少主，血洗正道。',
+        '弱肉强食，复仇高于一切。'
+      ),
+      buildIncompleteCharacter('王二狗', '王二狗是青云宗外门弟子，赵无极狗腿，欺凌主角。', '')
+    ]
+  })
+
+  const textByName = new Map(result.map((character) => [character.name, JSON.stringify(character)]))
+  assert.match(textByName.get('冷不凡') || '', /天道盟|陆昭仪/)
+  assert.doesNotMatch(textByName.get('血煞') || '', /陆昭仪的安排|靠陆昭仪授意/)
+  assert.match(textByName.get('血煞') || '', /魔渊遗脉|复仇|少主|正道/)
+  assert.doesNotMatch(textByName.get('王二狗') || '', /陆昭仪授意/)
+  assert.match(textByName.get('王二狗') || '', /赵无极|青云宗|外门/)
+})
+
 test('enrichCharacterDrafts uses marketProfile strategy terms for female CEO family pawns', () => {
   const storyIntent: StoryIntentPackageDto = {
     ...buildStoryIntent(),

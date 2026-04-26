@@ -110,6 +110,7 @@ function hasExplicitFactionAuthority(text: string, faction: FactionDto): boolean
   const factionName = faction.name.trim()
   if (!factionName) return false
   const escapedFactionName = escapeRegExp(factionName)
+  const factionText = `${faction.name}\n${faction.positioning}\n${faction.coreDemand}`.trim()
 
   if (
     new RegExp(
@@ -121,7 +122,15 @@ function hasExplicitFactionAuthority(text: string, faction: FactionDto): boolean
   }
 
   if (/(仙盟|联盟|盟)/u.test(factionName)) {
-    return /(?:正道|天衍|玄天)?仙盟(?:盟主|长老|特使|护法|圣女|嫡系|大小姐|爪牙|亲信|暗线)?|盟主直属|盟主亲信/u.test(text)
+    return /(?:正道|天衍|玄天)?仙盟(?:盟主|长老|特使|护法|圣女|嫡系|大小姐|爪牙|亲信|暗线)?|盟主直属|盟主亲信/u.test(
+      text
+    )
+  }
+
+  if (/(魔渊|魔尊|旧部|遗脉|残部)/u.test(factionText)) {
+    return /(?:魔渊旧部|魔渊|魔尊座下|前魔尊|魔尊亲卫|魔尊暗杀队|遗脉|旧部|残部|复兴魔尊|重建魔渊|魔尊荣光|魔尊血脉继承人|护法统领|暗影护法)/u.test(
+      text
+    )
   }
 
   if (/(宗|门|派)/u.test(factionName)) {
@@ -150,7 +159,14 @@ function inferProfileFactionAuthority(
   const text = buildProfileFactionText(profile)
   if (!text) return undefined
 
-  const matches = factions.filter((faction) => hasExplicitFactionAuthority(text, faction))
+  const identityText = profile.identity?.trim() || ''
+  const identityMatches = factions.filter((faction) =>
+    hasExplicitFactionAuthority(identityText, faction)
+  )
+  const matches =
+    identityMatches.length > 0
+      ? identityMatches
+      : factions.filter((faction) => hasExplicitFactionAuthority(text, faction))
   if (matches.length !== 1) return undefined
 
   const faction = matches[0]
@@ -170,10 +186,7 @@ function normalizeProfileFactionAssignments(
   profiles: CharacterProfileV2Dto[],
   factions: FactionDto[] = []
 ): CharacterProfileV2Dto[] {
-  const familyAuthorityByPrefix = new Map<
-    string,
-    { factionId: string; branchId?: string }
-  >()
+  const familyAuthorityByPrefix = new Map<string, { factionId: string; branchId?: string }>()
 
   for (const profile of profiles) {
     if (!profile.factionId) continue
@@ -278,6 +291,7 @@ function createProvenance(sourceRef: string): {
 
 function toFactionType(positioning: string, name = ''): FactionEntityDto['factionType'] {
   const text = `${name}\n${positioning}`.trim()
+  if (/(旧部|遗脉|残部|暗部|复仇派|守护派|组织)/.test(text)) return 'organization'
   if (/(盟|联盟|仙盟|组织|会)/.test(text)) return 'organization'
   if (/(宫|门|派|宗|教)/.test(text)) return 'sect'
   if (/(府|朝|司|监|衙|军)/.test(text)) return 'court'
@@ -533,7 +547,14 @@ function createCharacterEntityFromProfile(input: {
   const roleLayer = draft?.roleLayer || toRoleLayer(profile.depthLevel)
 
   return {
-    id: createEntityId('char', projectId, faction.id, 'profile', profile.id || profile.name, profile.name),
+    id: createEntityId(
+      'char',
+      projectId,
+      faction.id,
+      'profile',
+      profile.id || profile.name,
+      profile.name
+    ),
     projectId,
     type: 'character',
     name: profile.name.trim(),
@@ -793,7 +814,10 @@ function topUpVisibleCharacterCards(input: {
   factions: FactionEntityDto[]
   minVisibleCharacterCount?: number
 }): CharacterEntityDto[] {
-  const minVisibleCharacterCount = Math.max(0, input.minVisibleCharacterCount ?? MIN_VISIBLE_CHARACTER_COUNT)
+  const minVisibleCharacterCount = Math.max(
+    0,
+    input.minVisibleCharacterCount ?? MIN_VISIBLE_CHARACTER_COUNT
+  )
   if (input.characters.length >= minVisibleCharacterCount) {
     return input.characters
   }
@@ -968,6 +992,93 @@ function resolveProfileFactionEntity(input: {
   return input.factions.find((faction) => text.includes(faction.name)) || null
 }
 
+function draftToProfile(input: { draft: CharacterDraftDto; index: number }): CharacterProfileV2Dto {
+  const draft = input.draft
+  const name = draft.name.trim()
+  return {
+    id: draft.masterEntityId || `draft_profile_${input.index + 1}_${name}`,
+    name,
+    depthLevel:
+      draft.depthLevel === 'mid' ? 'mid' : draft.depthLevel === 'extra' ? 'extra' : 'core',
+    roleInFaction: draft.roleLayer === 'functional' ? 'functional' : 'variable',
+    appearance: draft.appearance || `${name}的外形与气质服务于当前剧情功能。`,
+    personality: draft.personality || `${name}在压力场里会按自己的立场行动。`,
+    identity: draft.identity || draft.publicMask || `${name}是局中关键人物。`,
+    values: draft.values || draft.goal || `${name}看重自己的核心立场。`,
+    plotFunction: draft.plotFunction || draft.goal || `${name}推动当前阵营冲突。`,
+    hiddenPressure: draft.hiddenPressure,
+    fear: draft.fear,
+    protectTarget: draft.protectTarget,
+    conflictTrigger: draft.conflictTrigger,
+    advantage: draft.advantage,
+    weakness: draft.weakness,
+    goal: draft.goal,
+    arc: draft.arc,
+    publicMask: draft.publicMask,
+    biography: draft.biography
+  }
+}
+
+function factionEntityToAuthorityDto(faction: FactionEntityDto): FactionDto {
+  return {
+    id: faction.id,
+    name: faction.name,
+    positioning: faction.summary,
+    coreDemand: faction.summary,
+    coreValues: faction.tags.join('、'),
+    mainMethods: [],
+    vulnerabilities: [],
+    branches: []
+  }
+}
+
+function addMissingDraftCharacters(input: {
+  projectId: string
+  characters: CharacterEntityDto[]
+  factions: FactionEntityDto[]
+  drafts: CharacterDraftDto[]
+}): CharacterEntityDto[] {
+  const characters = [...input.characters]
+  const existingNames = new Set(characters.map((character) => normalizeName(character.name)))
+
+  input.drafts.forEach((draft, index) => {
+    const normalizedName = normalizeName(draft.name)
+    if (!normalizedName || existingNames.has(normalizedName)) return
+
+    const profile = draftToProfile({ draft, index })
+    const text = [
+      profile.identity,
+      profile.biography,
+      profile.plotFunction,
+      draft.identity,
+      draft.biography,
+      draft.plotFunction
+    ]
+      .join('\n')
+      .trim()
+    const faction =
+      input.factions.find((item) =>
+        hasExplicitFactionAuthority(text, factionEntityToAuthorityDto(item))
+      ) || null
+
+    if (!faction) return
+
+    const entity = createCharacterEntityFromProfile({
+      projectId: input.projectId,
+      faction,
+      profile,
+      draft
+    })
+    characters.push(entity)
+    existingNames.add(normalizedName)
+    if (!faction.memberCharacterIds.includes(entity.id)) {
+      faction.memberCharacterIds.push(entity.id)
+    }
+  })
+
+  return characters
+}
+
 function addMissingProfileCharacters(input: {
   projectId: string
   characters: CharacterEntityDto[]
@@ -1085,10 +1196,7 @@ function deduplicateNamedCharactersByName(input: {
       const replacementCharacter = [...canonicalByName.values()].find(
         (character) => character.id === replacementId
       )
-      if (
-        replacementCharacter &&
-        !replacementCharacter.linkedFactionIds.includes(faction.id)
-      ) {
+      if (replacementCharacter && !replacementCharacter.linkedFactionIds.includes(faction.id)) {
         continue
       }
       nextMemberIds.add(replacementId)
@@ -1139,7 +1247,10 @@ export function buildOutlineCharacterEntityStore(input: {
         branchId: profile.branchId,
         placeholderId: profile.id
       })
-      if (compositePlaceholderKey !== '||' && !profileByCompositePlaceholderId.has(compositePlaceholderKey)) {
+      if (
+        compositePlaceholderKey !== '||' &&
+        !profileByCompositePlaceholderId.has(compositePlaceholderKey)
+      ) {
         profileByCompositePlaceholderId.set(compositePlaceholderKey, profile)
       }
     }
@@ -1224,13 +1335,18 @@ export function buildOutlineCharacterEntityStore(input: {
   }
 
   const completeCharacters = deduplicateNamedCharactersByName({
-    characters: addMissingProfileCharacters({
+    characters: addMissingDraftCharacters({
       projectId: input.projectId,
-      characters,
       factions,
-      profiles: characterProfilesV2,
-      draftByName,
-      factionIdMap
+      drafts: input.focusedCharacterDrafts || [],
+      characters: addMissingProfileCharacters({
+        projectId: input.projectId,
+        characters,
+        factions,
+        profiles: characterProfilesV2,
+        draftByName,
+        factionIdMap
+      })
     }),
     factions,
     profileByName,

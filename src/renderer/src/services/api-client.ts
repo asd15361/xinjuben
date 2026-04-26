@@ -47,7 +47,8 @@ import type { MarketProfileDto } from '../../../shared/contracts/project.ts'
  * - 生成接口（七问生成）
  */
 
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE) || 'http://localhost:3001'
+const API_BASE =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE) || 'http://localhost:3001'
 
 // ========== Token 管理 ==========
 
@@ -97,12 +98,7 @@ export class ApiError extends Error {
   status: number
   shouldLogin?: boolean
 
-  constructor(
-    message: string,
-    code: string,
-    status: number,
-    shouldLogin?: boolean
-  ) {
+  constructor(message: string, code: string, status: number, shouldLogin?: boolean) {
     super(message)
     this.name = 'ApiError'
     this.code = code
@@ -214,9 +210,7 @@ export async function apiRegister(
 /**
  * 用户登录
  */
-export async function apiLogin(
-  input: LoginInput & { rememberMe?: boolean }
-): Promise<AuthResult> {
+export async function apiLogin(input: LoginInput & { rememberMe?: boolean }): Promise<AuthResult> {
   const result = await apiRequest<AuthResult>('/api/auth/login', {
     method: 'POST',
     body: input,
@@ -475,7 +469,7 @@ export async function apiGenerateText(input: {
 export interface OutlineAndCharactersResponse {
   success: boolean
   project: ProjectSnapshotDto
-  outlineDraft: OutlineDraftDto
+  outlineDraft: OutlineDraftDto | null
   characterDrafts: CharacterDraftDto[]
   outlineGenerationError?: string
   creditsRemaining: number
@@ -500,6 +494,33 @@ export async function apiGenerateOutlineAndCharacters(input: {
   projectId: string
 }): Promise<OutlineAndCharactersResponse> {
   return apiRequest<OutlineAndCharactersResponse>('/api/generate/outline-and-characters', {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiGenerateCharacters(input: {
+  projectId: string
+}): Promise<OutlineAndCharactersResponse> {
+  return apiRequest<OutlineAndCharactersResponse>('/api/generate/characters', {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiGenerateFactions(input: {
+  projectId: string
+}): Promise<OutlineAndCharactersResponse> {
+  return apiRequest<OutlineAndCharactersResponse>('/api/generate/factions', {
+    method: 'POST',
+    body: input
+  })
+}
+
+export async function apiGenerateOutline(input: {
+  projectId: string
+}): Promise<OutlineAndCharactersResponse> {
+  return apiRequest<OutlineAndCharactersResponse>('/api/generate/outline', {
     method: 'POST',
     body: input
   })
@@ -731,9 +752,7 @@ import type { ExecuteScriptRepairInputDto } from '../../../shared/contracts/scri
  *
  * POST /api/script-audit/execute-repair
  */
-export async function apiExecuteScriptRepair(
-  input: ExecuteScriptRepairInputDto
-): Promise<{
+export async function apiExecuteScriptRepair(input: ExecuteScriptRepairInputDto): Promise<{
   success: boolean
   message: string
   projectId: string

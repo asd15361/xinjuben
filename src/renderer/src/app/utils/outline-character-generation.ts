@@ -6,6 +6,7 @@ export type OutlineCharacterVisibleStage = 'outline' | 'character'
 export interface OutlineCharacterGenerationStateInput {
   outlineEpisodeCount: number
   characterCount: number
+  currentStage?: OutlineCharacterVisibleStage
 }
 
 function extractNormalizedErrorCode(error: unknown): string {
@@ -18,8 +19,15 @@ function extractNormalizedErrorCode(error: unknown): string {
     .replace(/^summary_generation_failed:/i, '')
 }
 
-function buildFailureTitle(hadExistingContent: boolean): string {
-  return hadExistingContent ? '这次没能重新生成人物小传和骨架' : '这次没能生成人物小传和骨架'
+function buildFailureTitle(
+  stage: OutlineCharacterVisibleStage,
+  hadExistingContent: boolean
+): string {
+  if (stage === 'character') {
+    return hadExistingContent ? '这次没能重新生成人物小传' : '这次没能生成人物小传'
+  }
+
+  return hadExistingContent ? '这次没能重新生成剧本骨架' : '这次没能生成剧本骨架'
 }
 
 function buildCurrentStageActionLabel(stage: OutlineCharacterVisibleStage): string {
@@ -35,6 +43,14 @@ export function hasOutlineCharacterStageContent(
 export function getOutlineCharacterGenerationActionLabel(
   input: OutlineCharacterGenerationStateInput
 ): string {
+  if (input.currentStage === 'character') {
+    return input.characterCount > 0 ? '重新生成人物小传' : '生成人物小传'
+  }
+
+  if (input.currentStage === 'outline') {
+    return input.outlineEpisodeCount > 0 ? '重新生成剧本骨架' : '生成剧本骨架'
+  }
+
   return hasOutlineCharacterStageContent(input) ? '重新生成人物小传和骨架' : '生成人物小传和骨架'
 }
 
@@ -42,19 +58,30 @@ export function buildOutlineCharacterGenerationSuccessNotice(input: {
   currentStage: OutlineCharacterVisibleStage
   hadExistingContent: boolean
 }): GenerationNotice {
+  const title =
+    input.currentStage === 'character'
+      ? input.hadExistingContent
+        ? '人物小传已经重新生成好了'
+        : '人物小传已经生成好了'
+      : input.hadExistingContent
+        ? '剧本骨架已经重新生成好了'
+        : '剧本骨架已经生成好了'
+  const detail =
+    input.currentStage === 'character'
+      ? '先检查并修改人物小传，确认后再去生成剧本骨架。'
+      : '剧本骨架已经按当前人物小传生成，确认后可以继续详细大纲。'
+
   return {
     kind: 'success',
-    title: input.hadExistingContent ? '人物小传和骨架已经重新生成好了' : '人物小传和骨架已经生成好了',
-    detail: input.hadExistingContent
-      ? '当前人物小传和剧本骨架已经按新版本覆盖；旧的详细大纲和剧本也已经自动清空。'
-      : '先确认人物关系和剧本骨架，再继续后面的详细大纲。',
+    title,
+    detail,
     primaryAction: {
       label: buildCurrentStageActionLabel(input.currentStage),
       stage: input.currentStage
     },
     secondaryAction:
-      input.currentStage === 'outline'
-        ? { label: '去人物', stage: 'character' }
+      input.currentStage === 'character'
+        ? { label: '去剧本骨架', stage: 'outline' }
         : { label: '去详细大纲', stage: 'detailed_outline' }
   }
 }
@@ -92,7 +119,7 @@ export function buildOutlineCharacterGenerationFailureNotice(input: {
   if (/^rough_outline_requires_confirmed_seven_questions$/i.test(errorCode)) {
     return {
       kind: 'error',
-      title: buildFailureTitle(input.hadExistingContent),
+      title: buildFailureTitle(input.currentStage, input.hadExistingContent),
       detail: '这次卡在旧七问前置条件，请直接重新生成人物小传和骨架',
       primaryAction: {
         label: buildCurrentStageActionLabel(input.currentStage),
@@ -104,7 +131,7 @@ export function buildOutlineCharacterGenerationFailureNotice(input: {
   if (/^confirmed_story_intent_missing$/i.test(errorCode)) {
     return {
       kind: 'error',
-      title: buildFailureTitle(input.hadExistingContent),
+      title: buildFailureTitle(input.currentStage, input.hadExistingContent),
       detail,
       primaryAction: { label: '回聊天确认信息', stage: 'chat' },
       secondaryAction: {
@@ -116,7 +143,7 @@ export function buildOutlineCharacterGenerationFailureNotice(input: {
 
   return {
     kind: 'error',
-    title: buildFailureTitle(input.hadExistingContent),
+    title: buildFailureTitle(input.currentStage, input.hadExistingContent),
     detail
   }
 }

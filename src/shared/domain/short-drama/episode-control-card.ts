@@ -17,7 +17,8 @@ import {
   buildSignatureLineSeed,
   buildOpeningShockEventFallback,
   buildRetentionCliffhangerFallback,
-  resolveViralHookTypeByEpisode
+  resolveViralHookTypeByEpisode,
+  normalizePayoffTag
 } from './viral-short-drama-policy.ts'
 import {
   resolveGenerationStrategy,
@@ -88,7 +89,7 @@ export function normalizeEpisodeControlCard(
     // 爆款规则字段
     viralHookType: cleanText(card.viralHookType),
     signatureLineSeed: cleanText(card.signatureLineSeed),
-    payoffType: cleanText(card.payoffType),
+    payoffType: normalizePayoffTag(cleanText(card.payoffType)) ?? '',
     payoffLevel: normalizePayoffLevel(card.payoffLevel),
     villainOppressionMode: cleanText(card.villainOppressionMode),
     openingShockEvent: cleanText(card.openingShockEvent),
@@ -252,7 +253,10 @@ export function buildEpisodeControlCard(input: {
     identityAnchor: input.storyIntent?.protagonist,
     conflictCore: coreConflict || summary
   })
-  const payoffType = resolvePayoffTypeByEpisode(episodeNo)
+  // 优先继承outline中对应集的标准化payoffType，没有才用fallback计算
+  const outlineEpisode = input.outline?.summaryEpisodes?.find(ep => ep.episodeNo === episodeNo)
+  const beatPayoffType = normalizePayoffTag(outlineEpisode?.payoffType)
+  const payoffType = beatPayoffType || resolvePayoffTypeByEpisode(episodeNo)
   const payoffLevel = resolvePayoffLevelByEpisode(episodeNo, totalEpisodes)
   const villainOppressionMode = resolveVillainOppressionModeByEpisode(episodeNo)
   // Use beat summary to generate specific opening shock event

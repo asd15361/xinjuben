@@ -18,6 +18,7 @@ import type { OutlineDraftDto } from '@shared/contracts/workflow'
 import type { StoryIntentPackageDto, StorySynopsisDto } from '@shared/contracts/intake'
 import { writeConfirmedSevenQuestionsToOutlineBlocks } from '@shared/domain/workflow/seven-questions-authority'
 import { buildConfirmedStoryIntent } from '@shared/domain/workflow/confirmed-story-intent'
+import { attachStoryFoundationToIntent } from '@shared/domain/world-building/world-foundation'
 import { generateTextWithRouter } from '../../application/ai/generate-text'
 import {
   loadRuntimeProviderConfig,
@@ -159,6 +160,52 @@ function buildStorySynopsisFromChat(input: {
     episodePlanHint: '20集短剧，前期压迫和首次觉醒，中期误信反派与连环暗算，后期真相揭露、复仇和情感回收。',
     finaleDirection:
       '主角揭开魔尊降世与父母被害真相，击败反派大小姐及幕后宗门，理解宗门老大的隐忍牺牲，并最终接受默默守护自己的女主。'
+  }
+}
+
+function buildDemonXianxiaRoster(): {
+  protagonist: string
+  antagonist: string
+  names: string[]
+  briefText: string
+} {
+  const names = [
+    '林潜渊',
+    '谢含章',
+    '沈观澜',
+    '陆昭仪',
+    '秦玄策',
+    '周砚',
+    '叶归尘',
+    '执法弟子甲',
+    '山门守卫乙'
+  ]
+  return {
+    protagonist: '林潜渊',
+    antagonist: '陆昭仪',
+    names,
+    briefText: [
+      '【关键角色】林潜渊、谢含章、沈观澜、陆昭仪、秦玄策、周砚、叶归尘、执法弟子甲、山门守卫乙',
+      '【角色卡】',
+      '- 林潜渊：男主，表面被众人嘲笑为废柴，实则身负魔尊血脉；母亲吊坠被踩碎后第一次觉醒。',
+      '- 谢含章：女主，宗门老大的女儿，暗中守护男主并陪他寻找身世真相。',
+      '- 沈观澜：宗门老大，知道男主魔尊血脉真相，为保护男主和世界故意制造废柴假象。',
+      '- 陆昭仪：名门正派大小姐，伪装善意接近男主，实际觊觎魔尊血脉。',
+      '- 秦玄策：正道盟主宗门掌权者，联合多派试探和围猎男主血脉。',
+      '- 周砚：开局欺辱男主的同门弟子，踩碎吊坠并触发第一场打脸。',
+      '- 叶归尘：男主父母旧案线索人物，连接旧仇与复仇目标。',
+      '- 执法弟子甲：功能角色，负责传令、宣判、押送和制造宗门规则压迫。',
+      '- 山门守卫乙：群像/跑龙套角色，负责阻拦、通报、目击和一句台词反应。',
+      '【人物分层】',
+      '- 林潜渊｜核心人物｜废柴逆袭、血脉觉醒、身世追查和最终复仇',
+      '- 谢含章｜核心人物｜默默守护、禁忌情感和后期愧疚反转',
+      '- 沈观澜｜核心人物｜隐忍保护、父辈秘密和世界危机真相',
+      '- 陆昭仪｜核心反派｜诱骗男主、争夺魔尊血脉、推动情感骗局',
+      '- 秦玄策｜势力反派｜代表正道盟主宗门和多派围猎压力',
+      '- 周砚｜功能反派｜负责开局羞辱、踩碎吊坠和第一场打脸',
+      '- 执法弟子甲｜功能角色｜执行宗门规则压迫，可在多集里传令和押送',
+      '- 山门守卫乙｜群像/跑龙套｜提供阻拦、通报、目击和一句台词反应'
+    ].join('\n')
   }
 }
 
@@ -342,15 +389,20 @@ ${chatTranscript}
     })
     const storySource = `${chatTranscript}\n${summaryText}\n${fieldText}`
     const isDemonXianxia = includesAny(storySource, ['魔尊', '修仙', '宗门', '血脉'])
+    const demonRoster = isDemonXianxia ? buildDemonXianxiaRoster() : null
+    const enrichedSummaryText = demonRoster
+      ? `${summaryText}\n\n${demonRoster.briefText}`
+      : summaryText
 
     // Step 2: Build the structured storyIntent
-    const storyIntent: StoryIntentPackageDto = buildConfirmedStoryIntent({
+    const storyIntentWithoutFoundation: StoryIntentPackageDto = buildConfirmedStoryIntent({
       storyIntent: {
         genre: extractField(fieldText, '题材') || existingProject.genre || '',
         protagonist:
+          demonRoster?.protagonist ||
           extractField(fieldText, '主角') ||
           (isDemonXianxia ? '身负魔尊血脉却被伪装成废柴的少年' : '被众人轻视但隐藏力量的主角'),
-        antagonist: extractField(fieldText, '反派') || storySynopsis.antagonistForce,
+        antagonist: demonRoster?.antagonist || extractField(fieldText, '反派') || storySynopsis.antagonistForce,
         coreConflict:
           extractField(fieldText, '核心冲突') ||
           (isDemonXianxia
@@ -376,10 +428,18 @@ ${chatTranscript}
           storySynopsis.firstFaceSlapEvent,
           storySynopsis.antagonistPressureMethod,
           storySynopsis.finaleDirection
-        ]
+        ],
+        officialKeyCharacters: demonRoster?.names ?? [],
+        lockedCharacterNames: demonRoster?.names ?? []
       },
-      generationBriefText: summaryText,
+      generationBriefText: enrichedSummaryText,
       chatTranscript
+    })
+    const storyIntent = attachStoryFoundationToIntent({
+      storyIntent: storyIntentWithoutFoundation,
+      entityStore: existingProject.entityStore,
+      characterDrafts: existingProject.characterDrafts ?? [],
+      totalEpisodes: isDemonXianxia ? 20 : undefined
     })
 
     // Step 3: Persist the storyIntent
@@ -393,7 +453,7 @@ ${chatTranscript}
     res.json({
       project: updatedProject,
       storyIntent,
-      generationBriefText: summaryText
+      generationBriefText: enrichedSummaryText
     })
   } catch (error) {
     console.error('[Projects] confirm-story-intent failed:', error)

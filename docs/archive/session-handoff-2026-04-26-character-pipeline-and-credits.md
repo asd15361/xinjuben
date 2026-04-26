@@ -13,6 +13,41 @@
   - 明显男性名会防止被情感兜底写成 `她/师妹/少女`。
 - 测试账号 `12345@qq.com` 已补 1000 积分，当前钱包余额 `1001`。
 - 充值弹窗已改为 portal 到 `document.body`，使用 `z-[99999]` 和 body 滚动锁，避免被人物页大弹层压住。
+- 追加修复：2026-04-26 晚间真实生成在 99% 停留约 900 秒后失败。日志显示不是 UI 卡死，而是人物/骨架已生成完成后，合同校验触发三次整链重跑，最终报 `character_contract_incomplete_after_retries:protagonist=1:antagonist=0:incomplete=0`。
+
+## 2026-04-26 晚间事故记录：99% 长时间失败
+
+### 真实日志症状
+
+- UI 显示 `已处理 1189/405 秒 · 99%`，提示仍为“正在先写人物小传，再生成统一剧本骨架”。
+- 后端 `logs/server-dev.log` 中出现：
+  - `character_bundle_added_missing_protagonist name=林轩，外门弟子，母亲遗物吊坠被毁后触发血脉封印，逐步觉醒`
+  - `character_bundle_incomplete_after_enrichment ... antagonist=名门正派大小姐 protagonistCovered=1 antagonistCovered=0 ... incomplete=[林轩...{legacy:-;v2:appearance|personality|identity|values|plotFunction}]`
+  - `[OutlineCharacters] contract retry attempt=2/3 ...`
+  - `[OutlineCharacters] Failed ... character_contract_incomplete_after_retries:protagonist=1:antagonist=0:incomplete=0`
+- 同一请求里还叠加了粗纲 batch JSON 截断重试，例如 `range=16-20 responseChars=0 parsed=no` 后再 retry。
+
+### 根因
+
+- `outline-characters-service.ts` 在合同不通过时会最多 3 次重跑完整链路：势力矩阵、人物 V2、粗纲 overview、4 个粗纲 batch 全部重来。一个合同误判会把 400 秒级生成放大成 900 秒级失败。
+- `resolveCharacterContractAnchors` 把 outline 里的 `林轩，外门弟子，母亲遗物...` 当完整主角名，锚点匹配被描述后缀污染。
+- `名门正派大小姐` 是角色类型，不是已命名人物；合同层此前把它当具体 antagonist 硬要求覆盖，导致 `antagonistCovered=0`。
+- `buildMandatoryProtagonistDraft` 自动补主角时只补 legacy 字段，没有补 `appearance/personality/identity/values/plotFunction`，所以系统自己补出来的主角又被合同层判为不完整。
+
+### 已改文件
+
+- `src/shared/domain/workflow/character-contract.ts`
+  - 清洗 outline 主角描述后缀，只保留具体名。
+  - 将 `名门正派大小姐/仙盟大小姐/反派大小姐/贵女/嫡女` 这类角色类型锚点视为泛称，不再阻塞保存。
+- `server/src/application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.ts`
+  - `buildMandatoryProtagonistDraft` 补齐 V2 五维字段。
+  - 玄幻主角兜底不再把 `名门正派大小姐` 泛称写进主角卡。
+- `server/src/application/workspace/outline-characters-service.ts`
+  - 移除外层 3 次完整生成重跑。
+  - 保留一次最终本地合同校验；若仍失败，直接返回明确 `character_contract_incomplete`，不再吞掉几百秒重来。
+- 对应测试：
+  - `src/shared/domain/workflow/character-contract.test.ts`
+  - `server/src/application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.test.ts`
 
 ## 最新验证
 
@@ -22,10 +57,13 @@
   - `npx tsx --tsconfig server/tsconfig.json --test src/shared/contracts/character-profile-v2.test.ts server/src/application/workspace/enrich-character-drafts.test.ts`
   - `npx tsx --tsconfig server/tsconfig.json --test server/src/application/workspace/enrich-character-drafts.test.ts src/shared/contracts/character-profile-v2.test.ts server/src/application/workspace/character-profile-v2-agent.test.ts server/src/application/workspace/build-outline-character-entity-store.test.ts src/renderer/src/features/character/model/character-stage-copy-text.test.ts`
 - 全量 `npm test` 最近一次通过口径：`758 tests, 756 pass, 0 fail, 2 skipped`。
+- 追加验证：
+  - `npx tsx --tsconfig server/tsconfig.json --test src/shared/domain/workflow/character-contract.test.ts server/src/application/workspace/generate-outline-and-characters-from-confirmed-seven-questions.test.ts`：21 条通过。
+  - `cd server && npm run typecheck` 通过。
 
 ## 下一次真实测试清单
 
-先让用户重新生成人物小传，不要先推进骨架。
+先让用户重新生成人物小传和骨架。重点确认：不再 99% 后整链重跑三次；如果粗纲 batch JSON 截断，只允许该 batch 内部重试，不应再因为 `名门正派大小姐` 泛称导致整条人物/骨架链失败。
 
 重点看：
 
@@ -37,6 +75,8 @@
 6. 仙盟爪牙是否还硬套 `养育恩情 / 正道名分`。
 7. 大长老、盟主、宗主这类权力核心是否还落入 `程序慢半拍 / 站队代价`。
 8. 势力成员是否仍串阵营，尤其仙盟人物进入主角宗门。
+9. outline 主角若返回 `林轩，外门弟子...`，最终人物锚点应只按 `林轩` 匹配。
+10. 自动补主角时，完整人物小传不应再缺 `appearance/personality/identity/values/plotFunction`。
 
 人物小传过关后，再跑剧本骨架；骨架失败也要确认人物成果不丢、warning 可见。
 
@@ -46,6 +86,7 @@
 - `cd server && npm run build` 仍受既有 `.ts` 后缀 import 配置影响，当前 server 验证口径以 `cd server && npm run typecheck` 为准。
 - `server/pb_data/data.db` 当前工作树已有修改态，可能来自本地 PocketBase 使用或历史测试；不要在不确认的情况下回滚。
 - 真实 UI 性能仍是风险，`CharacterStage`、`OutlineStage`、首页工作台和复制/导出能力后续改动必须做页面级手测。
+- 仍可能慢的部分：AI 返回截断/空 JSON 时，`generate-outline-and-characters-support.ts` 会对单个粗纲 batch 做内部重试；这是局部重试，不是整链重跑。后续若仍慢，应优先优化 JSON 修复/单 batch 降 token，而不是恢复整链 retry。
 
 ## 关键文件
 
